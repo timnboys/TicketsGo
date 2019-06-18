@@ -16,22 +16,30 @@ type CommandContext struct {
 	IsPremium bool
 }
 
-func (cc *CommandContext) SendEmbed(colour utils.Colour, title, content string) {
-	utils.SendEmbed(cc.Session, cc.Channel, colour, title, content, 30, cc.IsPremium)
+func (ctx *CommandContext) SendEmbed(colour utils.Colour, title, content string) {
+	utils.SendEmbed(ctx.Session, ctx.Channel, colour, title, content, 30, ctx.IsPremium)
 }
 
-func (cc *CommandContext) SendEmbedNoDelete(colour utils.Colour, title, content string) {
-	utils.SendEmbed(cc.Session, cc.Channel, colour, title, content, 0, cc.IsPremium)
+func (ctx *CommandContext) SendEmbedNoDelete(colour utils.Colour, title, content string) {
+	utils.SendEmbed(ctx.Session, ctx.Channel, colour, title, content, 0, ctx.IsPremium)
 }
 
-func (cc *CommandContext) ReactWithCheck() {
-	utils.ReactWithCheck(cc.Session, &cc.Message)
+func (ctx *CommandContext) ReactWithCheck() {
+	utils.ReactWithCheck(ctx.Session, &ctx.Message)
 }
 
-func (cc *CommandContext) ReactWithCross() {
-	utils.ReactWithCross(cc.Session, cc.Message)
+func (ctx *CommandContext) ReactWithCross() {
+	utils.ReactWithCross(ctx.Session, ctx.Message)
 }
 
-func (cc *CommandContext) GetPermissionLevel(ch chan utils.PermissionLevel) {
-	utils.GetPermissionLevel(cc.Guild, cc.User.ID, ch)
+func (ctx *CommandContext) GetPermissionLevel(ch chan utils.PermissionLevel) {
+	utils.GetPermissionLevel(ctx.Session, ctx.Guild, ctx.User.ID, ch)
+}
+
+func (ctx *CommandContext) ChannelMemberHasPermission(channel, user string, permission utils.Permission, ch chan bool) {
+	utils.ChannelMemberHasPermission(ctx.Session, ctx.Guild, channel, user, permission, ch)
+}
+
+func (ctx *CommandContext) MemberHasPermission(user string, permission utils.Permission, ch chan bool) {
+	utils.MemberHasPermission(ctx.Session, ctx.Guild, user, permission, ch)
 }

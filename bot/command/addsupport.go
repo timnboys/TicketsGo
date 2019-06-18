@@ -37,7 +37,7 @@ func (AddSupportCommand) Execute(ctx CommandContext) {
 	ctx.ReactWithCheck()
 }
 
-func (AddSupportCommand) Parent() *Command {
+func (AddSupportCommand) Parent() interface{} {
 	return nil
 }
 

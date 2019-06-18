@@ -55,7 +55,7 @@ func (RemoveAdminCommand) Execute(ctx CommandContext) {
 	ctx.ReactWithCheck()
 }
 
-func (RemoveAdminCommand) Parent() *Command {
+func (RemoveAdminCommand) Parent() interface{} {
 	return nil
 }
 

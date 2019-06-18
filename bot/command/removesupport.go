@@ -55,7 +55,7 @@ func (RemoveSupportCommand) Execute(ctx CommandContext) {
 	ctx.ReactWithCheck()
 }
 
-func (RemoveSupportCommand) Parent() *Command {
+func (RemoveSupportCommand) Parent() interface{} {
 	return nil
 }
 

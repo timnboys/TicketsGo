@@ -9,21 +9,22 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"os"
 )
-
 func Start(ch chan os.Signal) {
 	discord, err := discordgo.New(fmt.Sprintf("Bot %s", config.Conf.Bot.Token)); if err != nil {
 		panic(err)
 	}
 
 	discord.AddHandler(listeners.OnCommand)
+	discord.AddHandler(listeners.OnSetupProgress)
 
 	if err = discord.Open(); err != nil {
 		panic(err)
 	}
 
-	if self, err := discord.User("@me"); err != nil {
+	if self, err := discord.User("@me"); err == nil {
 		if self != nil {
 			utils.AvatarUrl = self.AvatarURL("128")
+			utils.Id = self.ID
 		}
 	}
 

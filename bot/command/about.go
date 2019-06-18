@@ -28,7 +28,7 @@ func (AboutCommand) Execute(ctx CommandContext) {
 	ctx.SendEmbed(utils.Green, "About", config.Conf.AboutMessage)
 }
 
-func (AboutCommand) Parent() *Command {
+func (AboutCommand) Parent() interface{} {
 	return nil
 }
 

@@ -3,6 +3,7 @@ package utils
 import (
 	"github.com/apex/log"
 	"github.com/bwmarrin/discordgo"
+	"regexp"
 	"time"
 )
 
@@ -16,14 +17,18 @@ const (
 	Blue   Colour = 472219
 )
 
-var AvatarUrl string
+var (
+	AvatarUrl string
+	Id string
+	ChannelMentionRegex = regexp.MustCompile(`<#(\d+)>`)
+)
 
 type SentMessage struct {
 	Session *discordgo.Session
 	Message *discordgo.Message
 }
 
-func SendEmbed(session *discordgo.Session, ch string, colour Colour, title, content string, deleteAfter int, isPremium bool) {
+func SendEmbed(session *discordgo.Session, channel string, colour Colour, title, content string, deleteAfter int, isPremium bool) {
 	embed := NewEmbed().
 		SetColor(int(colour)).
 		AddField(title, content, false)
@@ -32,7 +37,7 @@ func SendEmbed(session *discordgo.Session, ch string, colour Colour, title, cont
 		embed.SetFooter("Powered by ticketsbot.net", AvatarUrl)
 	}
 
-	msg, err := session.ChannelMessageSendEmbed(ch, embed.MessageEmbed); if err != nil {
+	msg, err := session.ChannelMessageSendEmbed(channel, embed.MessageEmbed); if err != nil {
 		log.Error(err.Error())
 		return
 	}

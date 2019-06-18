@@ -3,7 +3,7 @@ package database
 import "strconv"
 
 type Prefix struct {
-	GuildId int64  `gorm:"column:GUILDID"`
+	GuildId int64  `gorm:"column:GUILDID;unique;primary_key"`
 	Prefix  string `gorm:"column:PREFIX;type:varchar(8)"`
 }
 

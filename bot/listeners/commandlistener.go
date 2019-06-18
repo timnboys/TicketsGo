@@ -38,7 +38,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 
 	var c command.Command
 	for _, cmd := range command.Commands {
-		if strings.ToLower(cmd.Name()) == strings.ToLower(root) {
+		if strings.ToLower(cmd.Name()) == strings.ToLower(root) || contains(cmd.Aliases(), strings.ToLower(root)) {
 			parent := cmd
 			index := 0
 
@@ -48,7 +48,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 					found := false
 
 					for _, child := range parent.Children() {
-						if strings.ToLower(child.Name()) == strings.ToLower(childName) {
+						if strings.ToLower(child.Name()) == strings.ToLower(childName) || contains(child.Aliases(), strings.ToLower(childName)) {
 							parent = child
 							found = true
 							index++
@@ -65,7 +65,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 
 			var childArgs []string
 			if len(args) > 0 {
-				childArgs = args[:index]
+				childArgs = args[index:]
 			}
 
 			args = childArgs
@@ -74,7 +74,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 	}
 
 	premiumChan := make(chan bool)
-	utils.IsPremiumGuild(e.GuildID, premiumChan)
+	go utils.IsPremiumGuild(e.GuildID, premiumChan)
 	premiumGuild := <- premiumChan
 
 	ctx := command.CommandContext{
@@ -102,7 +102,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 			return
 		}
 
-		if c.HelperOnly() && !isBotHelper(e.Author.ID) {
+		if c.HelperOnly() && !isBotHelper(e.Author.ID) && !isBotAdmin(e.Author.ID) {
 			ctx.ReactWithCross()
 			ctx.SendEmbed(utils.Red, "Error", NO_PERMISSION)
 			return
@@ -121,3 +121,13 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		utils.DeleteAfter(utils.SentMessage{Session: s, Message: e.Message}, 30)
 	}
 }
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+

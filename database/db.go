@@ -36,7 +36,17 @@ func Connect() {
 
 func Setup() {
 	Db.AutoMigrate(
+		ChannelCategory{},
+		Permissions{},
+		PingEveryone{},
 		Prefix{},
 		PremiumGuilds{},
+		TicketLimit{},
+		Ticket{},
+		WelcomeMessage{},
 		)
+}
+
+func IsConnected(ch chan bool) {
+	ch <- Db.DB.DB().Ping() == nil
 }

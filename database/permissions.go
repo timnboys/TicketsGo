@@ -58,6 +58,8 @@ func GetAdmins(guild string, ch chan []int64) {
 	for _, node := range nodes {
 		ids = append(ids, node.UserId)
 	}
+
+	ch <- ids
 }
 
 func GetSupport(guild string, ch chan []int64) {
@@ -73,6 +75,8 @@ func GetSupport(guild string, ch chan []int64) {
 	for _, node := range nodes {
 		ids = append(ids, node.UserId)
 	}
+
+	ch <- ids
 }
 
 func AddAdmin(guild string, user string) {
@@ -85,7 +89,7 @@ func AddAdmin(guild string, user string) {
 	}
 
 	var node Permissions
-	Db.Where(Permissions{GuildId: guildId, UserId: userId}).Assign(Permissions{Admin: true}).FirstOrCreate(&node)
+	Db.Where(Permissions{GuildId: guildId, UserId: userId}).Assign(Permissions{Admin: true, Support: true}).FirstOrCreate(&node)
 }
 
 func AddSupport(guild string, user string) {
@@ -110,8 +114,11 @@ func RemoveAdmin(guild string, user string) {
 		return
 	}
 
-	var node Permissions
-	Db.Where(Permissions{GuildId: guildId, UserId: userId}).Assign(Permissions{Admin: false}).FirstOrCreate(&node)
+	node := Permissions{
+		GuildId: guildId,
+		UserId: userId,
+	}
+	Db.Model(&node).Update("ISADMIN", false)
 }
 
 func RemoveSupport(guild string, user string) {
@@ -123,6 +130,12 @@ func RemoveSupport(guild string, user string) {
 		return
 	}
 
-	var node Permissions
-	Db.Where(Permissions{GuildId: guildId, UserId: userId}).Assign(Permissions{Support: false}).FirstOrCreate(&node)
+	node := Permissions{
+		GuildId: guildId,
+		UserId:  userId,
+	}
+	Db.Model(&node).Updates(map[string]interface{}{
+		"ISADMIN": false,
+		"ISSUPPORT": false,
+	})
 }

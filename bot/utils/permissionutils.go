@@ -2,11 +2,21 @@ package utils
 
 import (
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/apex/log"
 	"github.com/bwmarrin/discordgo"
 )
 
 func GetPermissionLevel(session *discordgo.Session, guild string, user string, ch chan PermissionLevel) {
-	if g, err := session.Guild(guild); err == nil {
+	// Check if user is guild owner
+	g, err := session.State.Guild(guild); if err != nil {
+		// Not cached
+		g, err = session.Guild(guild)
+		if err != nil {
+			log.Error(err.Error())
+		}
+	}
+
+	if g != nil {
 		if user == g.OwnerID {
 			ch <- Admin
 			return
@@ -14,14 +24,14 @@ func GetPermissionLevel(session *discordgo.Session, guild string, user string, c
 	}
 
 	admin := make(chan bool)
-	database.IsAdmin(guild, user, admin)
+	go database.IsAdmin(guild, user, admin)
 	if <- admin {
 		ch <- Admin
 		return
 	}
 
 	support := make(chan bool)
-	database.IsSupport(guild, user, support)
+	go database.IsSupport(guild, user, support)
 	if <- support {
 		ch <- Support
 		return

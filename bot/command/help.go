@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/apex/log"
+	"strings"
 )
 
 type HelpCommand struct {
@@ -29,8 +30,9 @@ func (HelpCommand) PermissionLevel() utils.PermissionLevel {
 func (HelpCommand) Execute(ctx CommandContext) {
 	msg := ""
 	for _, cmd := range Commands {
-		msg += fmt.Sprintf("`%s%s` - %s", config.Conf.Bot.Prefix, cmd.Name(), cmd.Description())
+		msg += fmt.Sprintf("`%s%s` - %s\n", config.Conf.Bot.Prefix, cmd.Name(), cmd.Description())
 	}
+	msg = strings.Trim(msg, "\n")
 
 	ch, err := ctx.Session.UserChannelCreate(ctx.User.ID); if err != nil {
 		log.Error(err.Error())
@@ -44,7 +46,7 @@ func (HelpCommand) Execute(ctx CommandContext) {
 	ctx.ReactWithCheck()
 }
 
-func (HelpCommand) Parent() *Command {
+func (HelpCommand) Parent() interface{} {
 	return nil
 }
 

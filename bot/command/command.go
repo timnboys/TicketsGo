@@ -8,7 +8,7 @@ type Command interface {
 	Aliases() []string
 	PermissionLevel() utils.PermissionLevel
 	Execute(ctx CommandContext)
-	Parent() *Command
+	Parent() interface{}
 	Children() []Command
 	PremiumOnly() bool
 	AdminOnly() bool
