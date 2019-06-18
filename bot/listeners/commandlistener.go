@@ -89,7 +89,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 
 	if c != nil {
 		permLevel := make(chan utils.PermissionLevel)
-		ctx.GetPermissionLevel(permLevel)
+		go ctx.GetPermissionLevel(permLevel)
 		if int(c.PermissionLevel()) > int(<- permLevel) {
 			ctx.ReactWithCross()
 			ctx.SendEmbed(utils.Red, "Error", NO_PERMISSION)

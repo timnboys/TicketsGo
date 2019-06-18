@@ -1,8 +1,18 @@
 package utils
 
-import "github.com/TicketsBot/TicketsGo/database"
+import (
+	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/bwmarrin/discordgo"
+)
 
-func GetPermissionLevel(guild string, user string, ch chan PermissionLevel) {
+func GetPermissionLevel(session *discordgo.Session, guild string, user string, ch chan PermissionLevel) {
+	if g, err := session.Guild(guild); err == nil {
+		if user == g.OwnerID {
+			ch <- Admin
+			return
+		}
+	}
+
 	admin := make(chan bool)
 	database.IsAdmin(guild, user, admin)
 	if <- admin {
