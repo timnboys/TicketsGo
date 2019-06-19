@@ -58,13 +58,16 @@ func (OpenCommand) Execute(ctx CommandContext) {
 		}
 	}
 
-	for _, perm := range requiredPerms {
-		hasPermChan := make(chan bool)
-		go ctx.ChannelMemberHasPermission(strconv.Itoa(int(category)), utils.Id, perm, hasPermChan)
-		if !<-hasPermChan {
-			ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
-			ctx.ReactWithCross()
-			return
+	useCategory := category != 0
+	if useCategory {
+		for _, perm := range requiredPerms {
+			hasPermChan := make(chan bool)
+			go ctx.ChannelMemberHasPermission(strconv.Itoa(int(category)), utils.Id, perm, hasPermChan)
+			if !<-hasPermChan {
+				ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
+				ctx.ReactWithCross()
+				return
+			}
 		}
 	}
 
@@ -106,21 +109,24 @@ func (OpenCommand) Execute(ctx CommandContext) {
 	}
 
 	// Make sure there's not > 50 channels in a category
-	channels, err := ctx.Session.GuildChannels(ctx.Guild); if err != nil {
-		channels = make([]*discordgo.Channel, 0)
-	}
-
-	channelCount := 0
-	categoryRaw := strconv.Itoa(int(category))
-	for _, channel := range channels {
-		if channel.ParentID != "" && channel.ParentID == categoryRaw {
-			channelCount += 1
+	if useCategory {
+		channels, err := ctx.Session.GuildChannels(ctx.Guild);
+		if err != nil {
+			channels = make([]*discordgo.Channel, 0)
 		}
-	}
 
-	if channelCount > 50 {
-		ctx.SendEmbed(utils.Red, "Error", "There are too many tickets in the ticket category. Ask an admin to close some, or to move them to another category")
-		return
+		channelCount := 0
+		categoryRaw := strconv.Itoa(int(category))
+		for _, channel := range channels {
+			if channel.ParentID != "" && channel.ParentID == categoryRaw {
+				channelCount += 1
+			}
+		}
+
+		if channelCount > 50 {
+			ctx.SendEmbed(utils.Red, "Error", "There are too many tickets in the ticket category. Ask an admin to close some, or to move them to another category")
+			return
+		}
 	}
 
 	ctx.ReactWithCheck()
@@ -170,13 +176,17 @@ func (OpenCommand) Execute(ctx CommandContext) {
 		})
 	}
 
-	c, err := ctx.Session.GuildChannelCreateComplex(ctx.Guild, discordgo.GuildChannelCreateData{
+	data := discordgo.GuildChannelCreateData{
 		Name: fmt.Sprintf("ticket-%d", id),
 		Type: discordgo.ChannelTypeGuildText,
 		Topic: subject,
 		PermissionOverwrites: overwrites,
-		ParentID: categoryRaw,
-	})
+	}
+	if useCategory {
+		data.ParentID = strconv.Itoa(int(category))
+	}
+
+	c, err := ctx.Session.GuildChannelCreateComplex(ctx.Guild, data)
 	if err != nil {
 		log.Error(err.Error())
 		return

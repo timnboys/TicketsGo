@@ -92,26 +92,26 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		go ctx.GetPermissionLevel(permLevel)
 		if int(c.PermissionLevel()) > int(<- permLevel) {
 			ctx.ReactWithCross()
-			ctx.SendEmbed(utils.Red, "Error", NO_PERMISSION)
+			ctx.SendEmbed(utils.Red, "Error", utils.NO_PERMISSION)
 			return
 		}
 
 		if c.AdminOnly() && !isBotAdmin(e.Author.ID) {
 			ctx.ReactWithCross()
-			ctx.SendEmbed(utils.Red, "Error", NO_PERMISSION)
+			ctx.SendEmbed(utils.Red, "Error", utils.NO_PERMISSION)
 			return
 		}
 
 		if c.HelperOnly() && !isBotHelper(e.Author.ID) && !isBotAdmin(e.Author.ID) {
 			ctx.ReactWithCross()
-			ctx.SendEmbed(utils.Red, "Error", NO_PERMISSION)
+			ctx.SendEmbed(utils.Red, "Error", utils.NO_PERMISSION)
 			return
 		}
 
 		if c.PremiumOnly() {
 			if !premiumGuild {
 				ctx.ReactWithCross()
-				ctx.SendEmbed(utils.Red, "Premium Only Command", PREMIUM_MESSAGE)
+				ctx.SendEmbed(utils.Red, "Premium Only Command", utils.PREMIUM_MESSAGE)
 				return
 			}
 		}

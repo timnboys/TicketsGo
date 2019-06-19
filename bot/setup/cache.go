@@ -55,3 +55,7 @@ func (u *SetupUser) Finish() {
 	// Psuedo-premium
 	utils.SendEmbed(u.Session, u.Channel, utils.Green, "Setup", msg, 30, true)
 }
+
+func (u *SetupUser) Cancel() {
+	setupCache.Delete(u.ToString())
+}

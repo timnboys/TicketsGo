@@ -14,6 +14,10 @@ const (
 
 var stages = []Stage{
 	PrefixStage{},
+	WelcomeMessageStage{},
+	TicketLimitStage{},
+	ChannelCategoryStage{},
+	ArchiveChannelStage{},
 }
 
 func (s *State) GetStage() *Stage {

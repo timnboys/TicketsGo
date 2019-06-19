@@ -2,7 +2,7 @@ package database
 
 import (
 	"fmt"
-	"github.com/google/uuid"
+	"github.com/satori/go.uuid"
 	"strings"
 	"time"
 )
@@ -36,7 +36,7 @@ func CreateTicket(guild, owner int64, ch chan int) {
 	now := time.Now().UnixNano() / int64(time.Millisecond)
 
 	node := Ticket{
-		Uuid:     uuid.New().String(),
+		Uuid:     uuid.Must(uuid.NewV4()).String(),
 		Id:       id,
 		Guild:    guild,
 		Channel:  nil,
@@ -52,11 +52,9 @@ func CreateTicket(guild, owner int64, ch chan int) {
 }
 
 func SetTicketChannel(id int, guild int64, channel int64) {
-	node := Ticket{
-		Id:    id,
-		Guild: guild,
-	}
+	var node Ticket
 
+	Db.Where(Ticket{Id: id, Guild: guild}).First(&node)
 	Db.Model(&node).Update("CHANNELID", channel)
 }
 
