@@ -70,6 +70,21 @@ func (AddCommand) Execute(ctx CommandContext) {
 		return
 	}
 
+	// Verify that the user is allowed to modify the ticket
+	permLevelChan := make(chan utils.PermissionLevel)
+	go utils.GetPermissionLevel(ctx.Session, ctx.Guild, ctx.User.ID, permLevelChan)
+	permLevel := <-permLevelChan
+
+	ownerChan := make(chan int64)
+	go database.GetOwner(ticketId, guildId, ownerChan)
+	owner := <-ownerChan
+
+	if permLevel == 0 && strconv.Itoa(int(owner)) != ctx.User.ID {
+		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to add people to this ticket")
+		ctx.ReactWithCross()
+		return
+	}
+
 	for _, user := range ctx.Message.Mentions {
 		// Add user to ticket in DB
 		go database.AddMember(ticketId, guildId, ctx.User.ID)

@@ -5,7 +5,6 @@ import (
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/apex/log"
 	"strconv"
-	"strings"
 )
 
 type RemoveCommand struct {
@@ -35,38 +34,44 @@ func (RemoveCommand) Execute(ctx CommandContext) {
 		return
 	}
 
-	// Check channel is mentioned
-	found := utils.ChannelMentionRegex.FindStringSubmatch(strings.Join(ctx.Args, " "))
-	if len(found) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention a ticket channel to remove the user(s) from")
-		ctx.ReactWithCross()
-		return
-	}
-
-	// Verify that the specified channel is a real ticket
-	ticket, err := strconv.ParseInt(found[1], 10, 64); if err != nil {
-		ctx.SendEmbed(utils.Red, "Error", "The specified channel is not a ticket")
-		ctx.ReactWithCross()
+	// Verify that the current channel is a real ticket
+	channelId, err := strconv.ParseInt(ctx.Channel, 10, 64); if err != nil {
+		log.Error(err.Error())
 		return
 	}
 
 	isTicketChan := make(chan bool)
-	go database.IsTicketChannel(ticket, isTicketChan)
+	go database.IsTicketChannel(channelId, isTicketChan)
 	isTicket := <- isTicketChan
 
 	if !isTicket {
-		ctx.SendEmbed(utils.Red, "Error", "The specified channel is not a ticket")
+		ctx.SendEmbed(utils.Red, "Error", "The current channel is not a ticket")
 		ctx.ReactWithCross()
 		return
 	}
 
 	// Get ticket ID
 	ticketIdChan := make(chan int)
-	go database.GetTicketId(ticket, ticketIdChan)
+	go database.GetTicketId(channelId, ticketIdChan)
 	ticketId := <- ticketIdChan
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
 		log.Error(err.Error())
+		return
+	}
+
+	// Verify that the user is allowed to modify the ticket
+	permLevelChan := make(chan utils.PermissionLevel)
+	go utils.GetPermissionLevel(ctx.Session, ctx.Guild, ctx.User.ID, permLevelChan)
+	permLevel := <-permLevelChan
+
+	ownerChan := make(chan int64)
+	go database.GetOwner(ticketId, guildId, ownerChan)
+	owner := <-ownerChan
+
+	if permLevel == 0 && strconv.Itoa(int(owner)) != ctx.User.ID {
+		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to add people to this ticket")
+		ctx.ReactWithCross()
 		return
 	}
 
@@ -76,7 +81,7 @@ func (RemoveCommand) Execute(ctx CommandContext) {
 
 		// Remove user from ticket
 		err = ctx.Session.ChannelPermissionSet(
-			strconv.Itoa(int(ticket)),
+			strconv.Itoa(int(channelId)),
 			user.ID,
 			"member",
 			0,

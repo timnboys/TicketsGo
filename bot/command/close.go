@@ -131,39 +131,88 @@ func (CloseCommand) Execute(ctx CommandContext) {
 	archiveChannelId := strconv.Itoa(int(<-archiveChannelChan))
 
 	channelExists := true
-	archiveChannel, err := ctx.Session.State.Channel(archiveChannelId); if err != nil {
+	_, err = ctx.Session.State.Channel(archiveChannelId); if err != nil {
 		// Not cached
-		archiveChannel, err = ctx.Session.Channel(archiveChannelId); if err != nil {
+		_, err = ctx.Session.Channel(archiveChannelId); if err != nil {
 			// Channel doesn't exist
 			channelExists = false
 		}
 	}
 
 	if channelExists {
-		requiredPerms := []utils.Permission{
-			utils.ViewChannel,
-			utils.SendMessages,
-			utils.AttachFiles,
+		msg := fmt.Sprintf("Archive of `#ticket-%d` (closed by %s#%s)", id, ctx.User.Username, ctx.User.Discriminator)
+		if reason != "" {
+			msg += fmt.Sprintf(" with reason `%s`", reason)
 		}
 
-		hasPermissions := true
-		for _, perm := range requiredPerms {
-			hasPermChannel := make(chan bool)
-			go utils.ChannelMemberHasPermission(ctx.Session, ctx.Guild, archiveChannelId, utils.Id, perm, hasPermChannel)
-			if !<-hasPermChannel {
-				hasPermissions = false
-				break
-			}
+		data := discordgo.MessageSend{
+			Content: msg,
+			Files: []*discordgo.File{
+				{
+					Name: fmt.Sprintf("ticket-%d.txt", id),
+					ContentType: "text/plain",
+					Reader: strings.NewReader(content),
+				},
+			},
 		}
 
-		if hasPermissions {
-			data := discordgo.MessageSend{
-				Content: fmt.Sprintf("Archive of `#%s` (closed by %s%d) with message `%s`", ),
-			}
+		// Errors occur when the bot doesn't have permission
+		m, err := ctx.Session.ChannelMessageSendComplex(archiveChannelId, &data)
 
-			if _, err := ctx.Session.ChannelMessageSendComplex(archiveChannelId, &data); err != nil {
+		// Add archive to DB
+		userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		if err == nil {
+			uuidChan := make(chan string)
+			go database.GetTicketUuid(channelId, uuidChan)
+			uuid := <-uuidChan
+
+			go database.AddArchive(uuid, guildId, userId, ctx.User.Username, id, m.Attachments[0].URL)
+		}
+
+		// Notify user and send logs in DMs
+		guild, err := ctx.Session.State.Guild(ctx.Guild); if err != nil {
+			// Not cached
+			guild, err = ctx.Session.Guild(ctx.Guild); if err != nil {
 				log.Error(err.Error())
+				return
 			}
+		}
+
+		// Create message content
+		if userId == owner {
+			content = fmt.Sprintf("You closed your ticket (`#ticket-%d`) in `%s`", id, guild.Name)
+		} else if len(ctx.Args) == 0 {
+			content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s", id, guild.Name, ctx.User.Mention())
+		} else {
+			content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s with reason `%s`", id, guild.Name, ctx.User.Mention(), reason)
+		}
+
+		privateMessage, err := ctx.Session.UserChannelCreate(strconv.Itoa(int(owner)))
+		// Only send the msg if we could create the channel
+		if err == nil {
+			data := discordgo.MessageSend{
+				Content: content,
+				Files: []*discordgo.File{
+					{
+						Name: fmt.Sprintf("ticket-%d.txt", id),
+						ContentType: "text/plain",
+						Reader: strings.NewReader(content),
+					},
+				},
+			}
+
+			// Errors occur when users have privacy settings high
+			_, _ = ctx.Session.ChannelMessageSendComplex(privateMessage.ID, &data)
+		}
+
+		// Set ticket state as closed and delete chan
+		go database.Close(guildId, id)
+		if _, err = ctx.Session.ChannelDelete(ctx.Channel); err != nil {
+			log.Error(err.Error())
 		}
 	}
 }

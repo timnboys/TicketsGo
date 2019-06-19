@@ -36,14 +36,16 @@ func Connect() {
 
 func Setup() {
 	Db.AutoMigrate(
-		ArchiveChannel{},
+		TicketArchive{},
 		Blacklist{},
+		CannedResponse{},
 		ChannelCategory{},
 		Permissions{},
 		PingEveryone{},
 		Prefix{},
 		PremiumGuilds{},
 		PremiumKeys{},
+		TicketArchive{},
 		TicketLimit{},
 		Ticket{},
 		WelcomeMessage{},

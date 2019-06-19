@@ -8,6 +8,7 @@ var Commands = []Command{
 	AdminCommand{},
 	BlacklistCommand{},
 	CancelCommand{},
+	CannedResponseCommand{},
 	CloseCommand{},
 	HelpCommand{},
 	OpenCommand{},
