@@ -2,7 +2,7 @@ package database
 
 type WelcomeMessage struct {
 	Guild int64  `gorm:"column:GUILDID;unique;primary_key"`
-	Message string `gorm:"column:MESSAGE;type:text"`
+	Message string `gorm:"column:MESSAGE;type:text CHARACTER SET utf8 COLLATE utf8_unicode_ci"`
 }
 
 func (WelcomeMessage) TableName() string {

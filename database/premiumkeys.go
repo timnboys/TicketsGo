@@ -5,7 +5,7 @@ import (
 )
 
 type PremiumKeys struct {
-	Key    uuid.UUID `gorm:"column:KEY;type:uuid;unique;primary_key"`
+	Key    string `gorm:"column:KEY;type:varchar(36);unique;primary_key"`
 	Length int64     `gorm:"column:EXPIRY"`
 }
 
@@ -17,7 +17,7 @@ func AddKey(length int64, ch chan uuid.UUID) {
 	uuid := uuid.Must(uuid.NewV4())
 
 	Db.Create(&PremiumKeys{
-		Key: uuid,
+		Key: uuid.String(),
 		Length: length,
 	})
 
@@ -26,7 +26,7 @@ func AddKey(length int64, ch chan uuid.UUID) {
 
 func PopKey(key uuid.UUID, ch chan int64) {
 	var node PremiumKeys
-	Db.Where(PremiumKeys{Key: key}).Take(&node)
+	Db.Where(PremiumKeys{Key: key.String()}).Take(&node)
 
 	length := node.Length
 
@@ -37,6 +37,6 @@ func PopKey(key uuid.UUID, ch chan int64) {
 
 func KeyExists(key uuid.UUID, ch chan bool) {
 	var count int
-	Db.Where(PremiumKeys{Key: key}).Count(&count)
+	Db.Table(PremiumKeys{}.TableName()).Where(PremiumKeys{Key: key.String()}).Count(&count)
 	ch <- count > 0
 }

@@ -45,7 +45,11 @@ func (AdminCommand) Parent() interface{} {
 
 func (AdminCommand) Children() []Command {
 	return []Command{
+		AdminDebugCommand{},
+		AdminGeneratePremium{},
 		AdminResetCommand{},
+		AdminShardRestartCommand{},
+		AdminUsersCommand{},
 	}
 }
 

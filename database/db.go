@@ -31,6 +31,8 @@ func Connect() {
 	db.DB().SetMaxOpenConns(config.Conf.Database.Pool.MaxConnections)
 	db.DB().SetMaxIdleConns(config.Conf.Database.Pool.MaxIdle)
 
+	db.Set("gorm:table_options", "charset=utf8mb4")
+
 	Db = Database {db}
 }
 
@@ -46,8 +48,10 @@ func Setup() {
 		PremiumGuilds{},
 		PremiumKeys{},
 		TicketArchive{},
+		TicketFirstResponse{},
 		TicketLimit{},
 		Ticket{},
+		UserData{},
 		WelcomeMessage{},
 		)
 }

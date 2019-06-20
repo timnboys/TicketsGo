@@ -76,7 +76,7 @@ func (PremiumCommand) Execute(ctx CommandContext) {
 			return
 		}
 
-		go database.AddPremium(key.String(), guildId, length, userId)
+		go database.AddPremium(key.String(), guildId, userId, length, userId)
 		ctx.ReactWithCheck()
 	}
 }

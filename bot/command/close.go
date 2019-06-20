@@ -210,6 +210,8 @@ func (CloseCommand) Execute(ctx CommandContext) {
 		}
 
 		// Set ticket state as closed and delete chan
+		println(guildId)
+		println(id)
 		go database.Close(guildId, id)
 		if _, err = ctx.Session.ChannelDelete(ctx.Channel); err != nil {
 			log.Error(err.Error())

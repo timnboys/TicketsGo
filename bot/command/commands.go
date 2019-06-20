@@ -11,6 +11,7 @@ var Commands = []Command{
 	CannedResponseCommand{},
 	CloseCommand{},
 	HelpCommand{},
+	ManageCannedResponses{},
 	OpenCommand{},
 	PremiumCommand{},
 	RemoveCommand{},
@@ -18,5 +19,6 @@ var Commands = []Command{
 	AdminResetCommand{},
 	RemoveSupportCommand{},
 	SetupCommand{},
+	StatsCommand{},
 	VoteCommand{},
 }

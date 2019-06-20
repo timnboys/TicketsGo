@@ -9,13 +9,18 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"os"
 )
+
 func Start(ch chan os.Signal) {
 	discord, err := discordgo.New(fmt.Sprintf("Bot %s", config.Conf.Bot.Token)); if err != nil {
 		panic(err)
 	}
 
+	discord.AddHandler(listeners.OnChannelDelete)
 	discord.AddHandler(listeners.OnCommand)
+	discord.AddHandler(listeners.OnFirstResponse)
 	discord.AddHandler(listeners.OnSetupProgress)
+	discord.AddHandler(listeners.OnUserJoin)
+	discord.AddHandler(listeners.OnUserUpdate)
 
 	if err = discord.Open(); err != nil {
 		panic(err)

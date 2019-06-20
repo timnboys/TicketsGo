@@ -5,9 +5,9 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/apex/log"
 	"strconv"
 	"strings"
-	"vitess.io/vitess/go/vt/log"
 )
 
 type ManageCannedResponsesList struct {
@@ -48,7 +48,7 @@ func (ManageCannedResponsesList) Execute(ctx CommandContext) {
 }
 
 func (ManageCannedResponsesList) Parent() interface{} {
-	return nil
+	return ManageCannedResponses{}
 }
 
 func (ManageCannedResponsesList) Children() []Command {

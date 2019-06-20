@@ -45,6 +45,8 @@ func (ManageCannedResponses) Parent() interface{} {
 
 func (ManageCannedResponses) Children() []Command {
 	return []Command{
+		ManageCannedResponsesAdd{},
+		ManageCannedResponsesDelete{},
 		ManageCannedResponsesList{},
 	}
 }

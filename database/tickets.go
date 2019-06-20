@@ -138,7 +138,7 @@ func GetTicketUuid(channel int64, ch chan string) {
 
 func GetOpenTickets(guild int64, ch chan []string) {
 	var nodes []Ticket
-	Db.Where(Ticket{Guild: guild}).Find(&nodes)
+	Db.Where(Ticket{Guild: guild, IsOpen: true}).Find(&nodes)
 
 	tickets := make([]string, 0)
 	for _, ticket := range nodes {
@@ -154,9 +154,21 @@ func GetOpenTime(uuid string, ch chan *int64) {
 	ch <- node.OpenTime
 }
 
+func GetOpenTimes(guild int64, ch chan []*int64) {
+	var nodes []Ticket
+	Db.Where(Ticket{Guild: guild}).Find(&nodes)
+
+	times := make([]*int64, 0)
+	for _, node := range nodes {
+		times = append(times, node.OpenTime)
+	}
+
+	ch <- times
+}
+
 func GetTotalTicketCount(guild int64, ch chan int) {
 	var count int
-	Db.Where(Ticket{Guild: guild}).Count(&count)
+	Db.Table(Ticket{}.TableName()).Where(Ticket{Guild: guild}).Count(&count)
 	ch <- count
 }
 
@@ -168,5 +180,10 @@ func GetTotalTicketsFromUser(guild int64, user int64, ch chan int) {
 
 func Close(guild int64, ticket int) {
 	node := Ticket{Id: ticket, Guild: guild}
+	Db.Model(&node).Update("OPEN", false)
+}
+
+func CloseByChannel(channel int64) {
+	node := Ticket{Channel: &channel}
 	Db.Model(&node).Update("OPEN", false)
 }

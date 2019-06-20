@@ -41,5 +41,8 @@ func AddCannedResponse(guild int64, id string, content string) {
 }
 
 func DeleteCannedResponse(guild int64, id string) {
-	Db.Delete(&CannedResponse{Id: id, Guild: guild})
+	Db.Where(map[string]interface{}{
+		"ID": id,
+		"GUILDID": guild,
+	}).Delete(&CannedResponse{})
 }

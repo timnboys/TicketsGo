@@ -192,7 +192,7 @@ func (OpenCommand) Execute(ctx CommandContext) {
 		return
 	}
 
-	// Update channel in DB
+	// UpdateUser channel in DB
 	channelId, err := strconv.ParseInt(c.ID, 10, 64); if err != nil {
 		log.Error(err.Error())
 		return

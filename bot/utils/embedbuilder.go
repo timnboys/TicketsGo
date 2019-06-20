@@ -55,7 +55,11 @@ func (e *Embed) AddField(name, value string, inline bool) *Embed {
 	})
 
 	return e
+}
 
+func (e *Embed) AddBlankField(inline bool) *Embed {
+	e.AddField("‎", "‎", inline)
+	return e
 }
 
 //SetFooter [Text] [iconURL]
