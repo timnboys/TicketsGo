@@ -8,6 +8,7 @@ import (
 	"github.com/apex/log"
 	"github.com/bwmarrin/discordgo"
 	"os"
+	"time"
 )
 
 func Start(ch chan os.Signal) {
@@ -18,6 +19,7 @@ func Start(ch chan os.Signal) {
 	discord.AddHandler(listeners.OnChannelDelete)
 	discord.AddHandler(listeners.OnCommand)
 	discord.AddHandler(listeners.OnFirstResponse)
+	discord.AddHandler(listeners.OnGuildCreate)
 	discord.AddHandler(listeners.OnSetupProgress)
 	discord.AddHandler(listeners.OnUserJoin)
 	discord.AddHandler(listeners.OnUserUpdate)
@@ -32,6 +34,13 @@ func Start(ch chan os.Signal) {
 			utils.Id = self.ID
 		}
 	}
+
+	go func() {
+		for {
+			time.Sleep(20 * time.Second)
+			UpdateServerCount()
+		}
+	}()
 
 	<-ch
 	if err = discord.Close(); err != nil {
