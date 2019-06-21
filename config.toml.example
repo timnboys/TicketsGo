@@ -1,0 +1,52 @@
+aboutMessage="""Tickets is an easy to use and highly configurable ticket and support bot.
+Support server: https://discord.gg/VtV3rSk
+Commands: Type `t!help`
+
+Get started by running `t!setup`"""
+
+[bot]
+token=""
+prefix="t!"
+admins=["217617036749176833"]
+helpers=[]
+  [bot.sharding]
+  total=1
+  lowest=0
+  max=0
+
+[database]
+host="127.0.0.1"
+port=3306
+username="root"
+password="root"
+database="tickets"
+  [database.pool]
+  maxConnections=5
+  maxIdle=5
+
+[serverCounter]
+enabled=false
+baseUrl=""
+key=""
+
+[metrics]
+  [metrics.statsd]
+  enabled=false
+  prefix="tickets."
+  host=""
+  port=
+
+[panel]
+  [httpserver]
+  enabled=false
+  host="0.0.0.0"
+  port=8089
+  key=""
+
+[redis]
+enabled=false
+uri="redis://:password@localhost:6379"
+threads=5
+
+[sentry]
+dsn=""
