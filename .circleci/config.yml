@@ -1,0 +1,26 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.12
+    working_directory: /go/src/github.com/TicketsBot/TicketsGo
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-pkg-cache
+
+      - run: go get github.com/BurntSushi/toml
+      - run: go get github.com/apex/log
+      - run: go get github.com/bwmarrin/discordgo
+      - run: go get github.com/getsentry/raven-go
+      - run: go get github.com/go-sql-driver/mysql
+      - run: go get github.com/jinzhu/gorm
+      - run: go get github.com/satori/go.uuid
+
+      - run: go build cmd/tickets/main.go
+
+      - store_artifacts:
+          path: /go/src/github.com/TicketsBot/TicketsGo
