@@ -1,4 +1,4 @@
-package bot
+package servercounter
 
 import (
 	"bytes"
