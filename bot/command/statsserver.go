@@ -43,23 +43,55 @@ func (StatsServerCommand) Execute(ctx CommandContext) {
 	go database.GetGuildResponseTimes(guildId, responseTimesChan)
 	responseTimes := <-responseTimesChan
 
+	openTimesChan := make(chan map[string]*int64)
+	go database.GetOpenTimes(guildId, openTimesChan)
+	openTimes := <-openTimesChan
+
 	// total average response
 	var averageResponse int64
 	for _, t := range responseTimes {
 		averageResponse += t
 	}
-	averageResponse = averageResponse / int64(len(responseTimes))
+	if len(responseTimes) > 0 { // Note: If responseTimes is empty, averageResponse must = 0
+		averageResponse = averageResponse / int64(len(responseTimes))
+	}
 
 	current := time.Now().UnixNano() / int64(time.Millisecond)
 
 	// monthly average response
+	var monthly int64
+	var monthlyCounter int
+	for uuid, t := range responseTimes {
+		openTime := openTimes[uuid]
+		if openTime == nil {
+			continue
+		}
+
+		if current - t < 60 * 60 * 24 * 7 * 4 * 100 {
+			monthly += t
+			monthlyCounter++
+		}
+	}
+	if monthlyCounter > 0 {
+		monthly = monthly / int64(monthlyCounter)
+	}
 
 	// weekly average response
-	weekly := make([]int64, 0)
+	var weekly int64
+	var weeklyCounter int
 	for uuid, t := range responseTimes {
-		openTimeChan := make(chan *int64)
-		go database.GetOpenTime(uuid, openTimeChan)
-		openTime := <-openTimeChan
+		openTime := openTimes[uuid]
+		if openTime == nil {
+			continue
+		}
+
+		if current - t < 60 * 60 * 24 * 7 * 100 {
+			weekly += t
+			weeklyCounter++
+		}
+	}
+	if weeklyCounter > 0 {
+		weekly = weekly / int64(weeklyCounter)
 	}
 
 	embed := utils.NewEmbed().
@@ -71,7 +103,9 @@ func (StatsServerCommand) Execute(ctx CommandContext) {
 
 		AddBlankField(false).
 
-		AddField("Average First Response Time (Total)", utils.FormatTime(averageResponse), true)
+		AddField("Average First Response Time (Total)", utils.FormatTime(averageResponse), true).
+		AddField("Average First Response Time (Weekly)", utils.FormatTime(weekly), true).
+		AddField("Average First Response Time (Monthly)", utils.FormatTime(monthly), true).
 
 		MessageEmbed
 

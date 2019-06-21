@@ -148,19 +148,31 @@ func GetOpenTickets(guild int64, ch chan []string) {
 	ch <- tickets
 }
 
+func GetOpenTicketsOpenedBy(guild, user int64, ch chan []string) {
+	var nodes []Ticket
+	Db.Where(Ticket{Guild: guild, Owner: user, IsOpen: true}).Find(&nodes)
+
+	tickets := make([]string, 0)
+	for _, ticket := range nodes {
+		tickets = append(tickets, ticket.Uuid)
+	}
+
+	ch <- tickets
+}
+
 func GetOpenTime(uuid string, ch chan *int64) {
 	var node Ticket
 	Db.Where(Ticket{Uuid: uuid}).Take(&node)
 	ch <- node.OpenTime
 }
 
-func GetOpenTimes(guild int64, ch chan []*int64) {
+func GetOpenTimes(guild int64, ch chan map[string]*int64) {
 	var nodes []Ticket
 	Db.Where(Ticket{Guild: guild}).Find(&nodes)
 
-	times := make([]*int64, 0)
+	times := make(map[string]*int64, 0)
 	for _, node := range nodes {
-		times = append(times, node.OpenTime)
+		times[node.Uuid] = node.OpenTime
 	}
 
 	ch <- times
