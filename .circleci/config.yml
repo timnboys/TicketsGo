@@ -24,4 +24,4 @@ jobs:
       - run: go build cmd/tickets/main.go
 
       - store_artifacts:
-          path: /go/src/github.com/TicketsBot/TicketsGo
+          path: /go/src/github.com/TicketsBot/TicketsGo/main
