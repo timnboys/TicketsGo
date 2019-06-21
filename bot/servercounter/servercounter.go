@@ -44,10 +44,11 @@ func UpdateServerCount() {
 			return
 		}
 
-		req, err := http.NewRequest(fmt.Sprintf("%s/update", config.Conf.ServerCounter.BaseUrl), "application/json", bytes.NewBuffer(encoded)); if err != nil {
+		req, err := http.NewRequest("POST", fmt.Sprintf("%s/update", config.Conf.ServerCounter.BaseUrl), bytes.NewBuffer(encoded)); if err != nil {
 			log.Error(err.Error())
 			return
 		}
+		req.Header.Set("Content-Type", "application/json")
 
 		res, err := client.Do(req); if err != nil {
 			log.Error(err.Error())
