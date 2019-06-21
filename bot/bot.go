@@ -36,12 +36,14 @@ func Start(ch chan os.Signal) {
 		}
 	}
 
-	go func() {
-		for {
-			time.Sleep(20 * time.Second)
-			servercounter.UpdateServerCount()
-		}
-	}()
+	if config.Conf.ServerCounter.Enabled {
+		go func() {
+			for {
+				time.Sleep(20 * time.Second)
+				servercounter.UpdateServerCount()
+			}
+		}()
+	}
 
 	<-ch
 	if err = discord.Close(); err != nil {
