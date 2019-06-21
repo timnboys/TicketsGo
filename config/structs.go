@@ -8,6 +8,7 @@ type (
 		ServerCounter ServerCounter
 		Metrics       Metrics
 		Redis         Redis
+		Sentry 		  Sentry
 	}
 
 	Bot struct {
@@ -59,5 +60,9 @@ type (
 		Enabled bool
 		Uri     string
 		Threads int
+	}
+
+	Sentry struct {
+		DSN string
 	}
 )

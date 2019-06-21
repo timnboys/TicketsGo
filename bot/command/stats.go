@@ -48,7 +48,7 @@ func (StatsCommand) Execute(ctx CommandContext) {
 	}
 
 	user := ctx.Message.Mentions[0]
-	userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
+	userId, err := strconv.ParseInt(user.ID, 10, 64); if err != nil {
 		log.Error(err.Error())
 		return
 	}
@@ -117,7 +117,7 @@ func (StatsCommand) Execute(ctx CommandContext) {
 				continue
 			}
 
-			if current - t < 60 * 60 * 24 * 7 * 4 * 100 {
+			if current - *openTime < 60 * 60 * 24 * 7 * 4 * 1000 {
 				monthly += t
 				monthlyCounter++
 			}
@@ -135,7 +135,7 @@ func (StatsCommand) Execute(ctx CommandContext) {
 				continue
 			}
 
-			if current - t < 60 * 60 * 24 * 7 * 100 {
+			if current - *openTime < 60 * 60 * 24 * 7 * 1000 {
 				weekly += t
 				weeklyCounter++
 			}

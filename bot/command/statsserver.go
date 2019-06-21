@@ -67,7 +67,7 @@ func (StatsServerCommand) Execute(ctx CommandContext) {
 			continue
 		}
 
-		if current - t < 60 * 60 * 24 * 7 * 4 * 100 {
+		if current - *openTime < 60 * 60 * 24 * 7 * 4 * 1000 {
 			monthly += t
 			monthlyCounter++
 		}
@@ -85,7 +85,7 @@ func (StatsServerCommand) Execute(ctx CommandContext) {
 			continue
 		}
 
-		if current - t < 60 * 60 * 24 * 7 * 100 {
+		if current - *openTime < 60 * 60 * 24 * 7 * 1000 {
 			weekly += t
 			weeklyCounter++
 		}

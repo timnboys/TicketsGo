@@ -11,7 +11,7 @@ func (Blacklist) TableName() string {
 
 func IsBlacklisted(guild int64, user int64, ch chan bool) {
 	var count int
-	Db.Where(Blacklist{Guild: guild, User: user}).Count(&count)
+	Db.Table(Blacklist{}.TableName()).Where(Blacklist{Guild: guild, User: user}).Count(&count)
 	ch <- count > 0
 }
 

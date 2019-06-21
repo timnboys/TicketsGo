@@ -6,7 +6,7 @@ import (
 
 type PremiumKeys struct {
 	Key    string `gorm:"column:KEY;type:varchar(36);unique;primary_key"`
-	Length int64     `gorm:"column:EXPIRY"`
+	Length int64  `gorm:"column:EXPIRY"`
 }
 
 func (PremiumKeys) TableName() string {
@@ -17,7 +17,7 @@ func AddKey(length int64, ch chan uuid.UUID) {
 	uuid := uuid.Must(uuid.NewV4())
 
 	Db.Create(&PremiumKeys{
-		Key: uuid.String(),
+		Key:    uuid.String(),
 		Length: length,
 	})
 
