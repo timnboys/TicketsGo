@@ -16,6 +16,7 @@ jobs:
       - run: go get github.com/apex/log
       - run: go get github.com/bwmarrin/discordgo
       - run: go get github.com/getsentry/raven-go
+      - run: go get github.com/robfig/go-cache
       - run: go get github.com/go-sql-driver/mysql
       - run: go get github.com/jinzhu/gorm
       - run: go get github.com/satori/go.uuid
