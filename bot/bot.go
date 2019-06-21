@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/listeners"
+	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/apex/log"
@@ -38,7 +39,7 @@ func Start(ch chan os.Signal) {
 	go func() {
 		for {
 			time.Sleep(20 * time.Second)
-			UpdateServerCount()
+			servercounter.UpdateServerCount()
 		}
 	}()
 
