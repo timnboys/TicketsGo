@@ -156,16 +156,15 @@ func (CloseCommand) Execute(ctx CommandContext) {
 			},
 		}
 
-		// Errors occur when the bot doesn't have permission
-		m, err := ctx.Session.ChannelMessageSendComplex(archiveChannelId, &data)
-
-		// Add archive to DB
 		userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
 			log.Error(err.Error())
 			return
 		}
 
+		// Errors occur when the bot doesn't have permission
+		m, err := ctx.Session.ChannelMessageSendComplex(archiveChannelId, &data)
 		if err == nil {
+			// Add archive to DB
 			uuidChan := make(chan string)
 			go database.GetTicketUuid(channelId, uuidChan)
 			uuid := <-uuidChan
