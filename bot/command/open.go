@@ -48,25 +48,33 @@ func (OpenCommand) Execute(ctx CommandContext) {
 		utils.ReadMessageHistory,
 	}
 
-	for _, perm := range requiredPerms {
-		hasPermChan := make(chan bool)
-		go ctx.MemberHasPermission(utils.Id, perm, hasPermChan)
-		if !<-hasPermChan {
-			ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
-			ctx.ReactWithCross()
-			return
+	hasAdmin := make(chan bool)
+	go ctx.MemberHasPermission(utils.Id, utils.Administrator, hasAdmin)
+	if !<-hasAdmin {
+		for _, perm := range requiredPerms {
+			hasPermChan := make(chan bool)
+			go ctx.MemberHasPermission(utils.Id, perm, hasPermChan)
+			if !<-hasPermChan {
+				ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
+				ctx.ReactWithCross()
+				return
+			}
 		}
 	}
 
 	useCategory := category != 0
 	if useCategory {
-		for _, perm := range requiredPerms {
-			hasPermChan := make(chan bool)
-			go ctx.ChannelMemberHasPermission(strconv.Itoa(int(category)), utils.Id, perm, hasPermChan)
-			if !<-hasPermChan {
-				ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
-				ctx.ReactWithCross()
-				return
+		hasAdmin := make(chan bool)
+		go ctx.ChannelMemberHasPermission(strconv.Itoa(int(category)), utils.Id, utils.Administrator, hasAdmin)
+		if !<-hasAdmin {
+			for _, perm := range requiredPerms {
+				hasPermChan := make(chan bool)
+				go ctx.ChannelMemberHasPermission(strconv.Itoa(int(category)), utils.Id, perm, hasPermChan)
+				if !<-hasPermChan {
+					ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
+					ctx.ReactWithCross()
+					return
+				}
 			}
 		}
 	}
