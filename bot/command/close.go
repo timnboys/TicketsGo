@@ -116,14 +116,14 @@ func (CloseCommand) Execute(ctx CommandContext) {
 		msgs[i], msgs[j] = msgs[j], msgs[i]
 	}
 
-	content := ""
+	logs := ""
 	for _, msg := range msgs {
 		var date string
 		if t, err := msg.Timestamp.Parse(); err == nil {
 			date = t.UTC().String()
 		}
 
-		content += fmt.Sprintf("[%s][%s] %s: %s\n", date, msg.ID, msg.Author.Username, msg.Content)
+		logs += fmt.Sprintf("[%s][%s] %s: %s\n", date, msg.ID, msg.Author.Username, msg.Content)
 	}
 
 	archiveChannelChan := make(chan int64)
@@ -151,7 +151,7 @@ func (CloseCommand) Execute(ctx CommandContext) {
 				{
 					Name: fmt.Sprintf("ticket-%d.txt", id),
 					ContentType: "text/plain",
-					Reader: strings.NewReader(content),
+					Reader: strings.NewReader(logs),
 				},
 			},
 		}
@@ -181,6 +181,7 @@ func (CloseCommand) Execute(ctx CommandContext) {
 			}
 		}
 
+		var content string
 		// Create message content
 		if userId == owner {
 			content = fmt.Sprintf("You closed your ticket (`#ticket-%d`) in `%s`", id, guild.Name)
@@ -199,7 +200,7 @@ func (CloseCommand) Execute(ctx CommandContext) {
 					{
 						Name: fmt.Sprintf("ticket-%d.txt", id),
 						ContentType: "text/plain",
-						Reader: strings.NewReader(content),
+						Reader: strings.NewReader(logs),
 					},
 				},
 			}
