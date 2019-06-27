@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type OpenCommand struct {
@@ -208,10 +209,44 @@ func (OpenCommand) Execute(ctx CommandContext) {
 	go database.SetTicketChannel(id, guildId, channelId)
 
 	// Send welcome message
-	// TODO: %average_response%
 	welcomeMessageChan := make(chan string)
 	go database.GetWelcomeMessage(guildId, welcomeMessageChan)
 	welcomeMessage := <- welcomeMessageChan
+	
+	// %average_response%
+	if ctx.IsPremium && strings.Contains(welcomeMessage, "%average_response%") {
+		responseTimesChan := make(chan map[string]int64)
+		go database.GetGuildResponseTimes(guildId, responseTimesChan)
+		responseTimes := <-responseTimesChan
+
+		openTimesChan := make(chan map[string]*int64)
+		go database.GetOpenTimes(guildId, openTimesChan)
+		openTimes := <-openTimesChan
+
+		current := time.Now().UnixNano() / int64(time.Millisecond)
+
+		var weekly int64
+		var weeklyCounter int
+		for uuid, t := range responseTimes {
+			openTime := openTimes[uuid]
+			if openTime == nil {
+				continue
+			}
+
+			if current - *openTime < 60 * 60 * 24 * 7 * 1000 {
+				weekly += t
+				weeklyCounter++
+			}
+		}
+		if weeklyCounter > 0 {
+			weekly = weekly / int64(weeklyCounter)
+		}
+
+		welcomeMessage = strings.Replace(welcomeMessage, "%average_response%", utils.FormatTime(weekly), -1)
+	}
+
+	// %user%
+	welcomeMessage = strings.Replace(welcomeMessage, "%user%", ctx.User.Mention(), -1)
 
 	if welcomeMessage == "" {
 		welcomeMessage = "No message specified"
