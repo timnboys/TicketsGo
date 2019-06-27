@@ -7,15 +7,14 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/apex/log"
-	"github.com/bwmarrin/discordgo"
+	"github.com/jonas747/dshardmanager"
 	"os"
 	"time"
 )
 
 func Start(ch chan os.Signal) {
-	discord, err := discordgo.New(fmt.Sprintf("Bot %s", config.Conf.Bot.Token)); if err != nil {
-		panic(err)
-	}
+	discord := dshardmanager.New(fmt.Sprintf("Bot %s", config.Conf.Bot.Token))
+	discord.SetNumShards(config.Conf.Bot.Shading.Total)
 
 	discord.AddHandler(listeners.OnChannelDelete)
 	discord.AddHandler(listeners.OnCommand)
@@ -25,11 +24,11 @@ func Start(ch chan os.Signal) {
 	discord.AddHandler(listeners.OnUserJoin)
 	discord.AddHandler(listeners.OnUserUpdate)
 
-	if err = discord.Open(); err != nil {
+	if err := discord.Start(); err != nil {
 		panic(err)
 	}
 
-	if self, err := discord.User("@me"); err == nil {
+	if self, err := discord.Session(0).User("@me"); err == nil {
 		if self != nil {
 			utils.AvatarUrl = self.AvatarURL("128")
 			utils.Id = self.ID
@@ -46,7 +45,7 @@ func Start(ch chan os.Signal) {
 	}
 
 	<-ch
-	if err = discord.Close(); err != nil {
+	if err := discord.StopAll(); err != nil {
 		log.Error(err.Error())
 	}
 }
