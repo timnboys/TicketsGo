@@ -85,6 +85,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		Message: *e.Message,
 		Root: root,
 		Args: args,
+		IsPremium: premiumGuild,
 	}
 
 	if c != nil {
