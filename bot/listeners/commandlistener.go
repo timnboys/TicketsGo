@@ -31,9 +31,14 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 
 	split := strings.Split(e.Content, " ")
 	root := strings.TrimPrefix(split[0], usedPrefix)
-	var args []string
+
+	args := make([]string, 0)
 	if len(split) > 1 {
-		args = split[1:]
+		for _, arg := range split[1:] {
+			if arg != "" {
+				args = append(args, arg)
+			}
+		}
 	}
 
 	var c command.Command
