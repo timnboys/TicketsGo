@@ -1,6 +1,7 @@
 package command
 
 import (
+	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/apex/log"
@@ -39,6 +40,11 @@ func (CannedResponseCommand) Execute(ctx CommandContext) {
 		return
 	}
 
+	channelId, err := strconv.ParseInt(ctx.Channel, 10, 64); if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
 	id := strings.ToLower(ctx.Args[0])
 
 	contentChan := make(chan string)
@@ -49,6 +55,15 @@ func (CannedResponseCommand) Execute(ctx CommandContext) {
 		ctx.SendEmbed(utils.Red, "Error", "Invalid canned response. For more help with canned responses, visit <https://ticketsbot.net#canned>.")
 		ctx.ReactWithCross()
 		return
+	}
+
+	isTicket := make(chan bool)
+	go database.IsTicketChannel(channelId, isTicket)
+	if <-isTicket {
+		ticketOwnerChan := make(chan int64)
+		go database.GetOwnerByChannel(channelId, ticketOwnerChan)
+		mention := fmt.Sprintf("<@%s>", strconv.Itoa(int(<-ticketOwnerChan)))
+		content = strings.Replace(content, "%user%", mention, -1)
 	}
 
 	ctx.ReactWithCheck()

@@ -116,6 +116,12 @@ func GetOwner(ticket int, guild int64, ch chan int64) {
 	ch <- node.Owner
 }
 
+func GetOwnerByChannel(channel int64, ch chan int64) {
+	var node Ticket
+	Db.Where(Ticket{Channel: &channel}).Take(&node)
+	ch <- node.Owner
+}
+
 func GetTicketsOpenedBy(guild, owner int64, ch chan map[int64]int) {
 	var nodes []Ticket
 	Db.Where(Ticket{Guild: guild, Owner: owner}).Find(&nodes)
