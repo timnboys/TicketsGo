@@ -41,7 +41,7 @@ func (PremiumCommand) Execute(ctx CommandContext) {
 			go database.GetExpiry(guildId, expiryChan)
 			expiry := <-expiryChan // millis
 
-			parsed := time.Unix(expiry / int64(time.Second), 0)
+			parsed := time.Unix(0, expiry * int64(time.Millisecond))
 			formatted := parsed.UTC().String()
 
 			ctx.SendEmbed(utils.Red, "Premium", fmt.Sprintf("This guild already has premium. It expires on %s", formatted))
