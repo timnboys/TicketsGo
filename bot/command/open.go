@@ -107,8 +107,8 @@ func (OpenCommand) Execute(ctx CommandContext) {
 	}
 
 	if ticketCount >= ticketLimit {
-		ctx.SendEmbed(utils.Red, "Error", fmt.Sprintf("You are only able to open %d tickets at once", ticketLimit))
 		if ctx.ShouldReact {
+			ctx.SendEmbed(utils.Red, "Error", fmt.Sprintf("You are only able to open %d tickets at once", ticketLimit))
 			ctx.ReactWithCross()
 		}
 		return
