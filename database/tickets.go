@@ -154,6 +154,18 @@ func GetOpenTickets(guild int64, ch chan []string) {
 	ch <- tickets
 }
 
+func GetOpenTicketChannelIds(guild int64, ch chan []*int64) {
+	var nodes []Ticket
+	Db.Where(Ticket{Guild: guild, IsOpen: true}).Find(&nodes)
+
+	tickets := make([]*int64, 0)
+	for _, ticket := range nodes {
+		tickets = append(tickets, ticket.Channel)
+	}
+
+	ch <- tickets
+}
+
 func GetOpenTicketsOpenedBy(guild, user int64, ch chan []string) {
 	var nodes []Ticket
 	Db.Where(Ticket{Guild: guild, Owner: user, IsOpen: true}).Find(&nodes)

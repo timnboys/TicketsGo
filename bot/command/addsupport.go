@@ -44,8 +44,8 @@ func (AddSupportCommand) Execute(ctx CommandContext) {
 		return
 	}
 
-	openTicketsChan := make(chan []string)
-	go database.GetOpenTickets(guildId, openTicketsChan)
+	openTicketsChan := make(chan []*int64)
+	go database.GetOpenTicketChannelIds(guildId, openTicketsChan)
 
 	for _, channelId := range <-openTicketsChan {
 		var overwrites []*discordgo.PermissionOverwrite
@@ -71,7 +71,7 @@ func (AddSupportCommand) Execute(ctx CommandContext) {
 			PermissionOverwrites: overwrites,
 		}
 
-		if _, err = ctx.Session.ChannelEditComplex(channelId, &data); err != nil {
+		if _, err = ctx.Session.ChannelEditComplex(strconv.Itoa(int(*channelId)), &data); err != nil {
 			ctx.ReactWithCross()
 			log.Error(err.Error())
 			return
