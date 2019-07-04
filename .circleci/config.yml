@@ -21,6 +21,7 @@ jobs:
       - run: go get github.com/jinzhu/gorm
       - run: go get github.com/satori/go.uuid
       - run: go get github.com/jonas747/dshardmanager
+      - run: go get github.com/btfak/sqlext
 
       - run: go build cmd/tickets/main.go
 
