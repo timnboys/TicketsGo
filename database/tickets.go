@@ -210,10 +210,10 @@ func GetTotalTicketsFromUser(guild int64, user int64, ch chan int) {
 
 func Close(guild int64, ticket int) {
 	node := Ticket{Id: ticket, Guild: guild}
-	Db.Model(&node).Update("OPEN", false)
+	Db.Model(&node).Where(node).Update("OPEN", false)
 }
 
 func CloseByChannel(channel int64) {
 	node := Ticket{Channel: &channel}
-	Db.Model(&node).Update("OPEN", false)
+	Db.Model(&node).Where(node).Update("OPEN", false)
 }

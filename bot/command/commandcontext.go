@@ -6,14 +6,15 @@ import (
 )
 
 type CommandContext struct {
-	Session *discordgo.Session
-	User discordgo.User
-	Guild string
-	Channel string
-	Message discordgo.Message
-	Root string
-	Args []string
-	IsPremium bool
+	Session     *discordgo.Session
+	User        discordgo.User
+	Guild       string
+	Channel     string
+	Message     discordgo.Message
+	Root        string
+	Args        []string
+	IsPremium   bool
+	ShouldReact bool
 }
 
 func (ctx *CommandContext) SendEmbed(colour utils.Colour, title, content string) {

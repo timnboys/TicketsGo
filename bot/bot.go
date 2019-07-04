@@ -20,6 +20,8 @@ func Start(ch chan os.Signal) {
 	discord.AddHandler(listeners.OnCommand)
 	discord.AddHandler(listeners.OnFirstResponse)
 	discord.AddHandler(listeners.OnGuildCreate)
+	discord.AddHandler(listeners.OnGuildCreateUserData)
+	discord.AddHandler(listeners.OnPanelReact)
 	discord.AddHandler(listeners.OnSetupProgress)
 	discord.AddHandler(listeners.OnUserJoin)
 	discord.AddHandler(listeners.OnUserUpdate)

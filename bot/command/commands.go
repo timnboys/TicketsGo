@@ -13,6 +13,7 @@ var Commands = []Command{
 	HelpCommand{},
 	ManageCannedResponses{},
 	OpenCommand{},
+	PanelCommand{},
 	PremiumCommand{},
 	RemoveCommand{},
 	RemoveAdminCommand{},

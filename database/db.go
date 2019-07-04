@@ -43,6 +43,8 @@ func Setup() {
 		Blacklist{},
 		CannedResponse{},
 		ChannelCategory{},
+		Panels{},
+		PanelSettings{},
 		Permissions{},
 		PingEveryone{},
 		Prefix{},

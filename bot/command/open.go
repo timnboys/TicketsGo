@@ -57,7 +57,9 @@ func (OpenCommand) Execute(ctx CommandContext) {
 			go ctx.MemberHasPermission(utils.Id, perm, hasPermChan)
 			if !<-hasPermChan {
 				ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
-				ctx.ReactWithCross()
+				if ctx.ShouldReact {
+					ctx.ReactWithCross()
+				}
 				return
 			}
 		}
@@ -73,7 +75,9 @@ func (OpenCommand) Execute(ctx CommandContext) {
 				go ctx.ChannelMemberHasPermission(strconv.Itoa(int(category)), utils.Id, perm, hasPermChan)
 				if !<-hasPermChan {
 					ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
-					ctx.ReactWithCross()
+					if ctx.ShouldReact {
+						ctx.ReactWithCross()
+					}
 					return
 				}
 			}
@@ -104,7 +108,9 @@ func (OpenCommand) Execute(ctx CommandContext) {
 
 	if ticketCount >= ticketLimit {
 		ctx.SendEmbed(utils.Red, "Error", fmt.Sprintf("You are only able to open %d tickets at once", ticketLimit))
-		ctx.ReactWithCross()
+		if ctx.ShouldReact {
+			ctx.ReactWithCross()
+		}
 		return
 	}
 
@@ -138,7 +144,9 @@ func (OpenCommand) Execute(ctx CommandContext) {
 		}
 	}
 
-	ctx.ReactWithCheck()
+	if ctx.ShouldReact {
+		ctx.ReactWithCheck()
+	}
 
 	// Create channel
 	idChan := make(chan int)
@@ -270,8 +278,10 @@ func (OpenCommand) Execute(ctx CommandContext) {
 		}
 	}
 
-	// Let the user know the ticket has been opened
-	ctx.SendEmbed(utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", c.Mention()))
+	if ctx.ShouldReact {
+		// Let the user know the ticket has been opened
+		ctx.SendEmbed(utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", c.Mention()))
+	}
 }
 
 func (OpenCommand) Parent() interface{} {

@@ -91,6 +91,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		Root: root,
 		Args: args,
 		IsPremium: premiumGuild,
+		ShouldReact: true,
 	}
 
 	if c != nil {
