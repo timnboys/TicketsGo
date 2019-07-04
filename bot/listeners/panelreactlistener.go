@@ -27,7 +27,7 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 			return
 		}
 
-		if err = s.MessageReactionRemove(e.ChannelID, e.MessageID, e.Emoji.ID, e.UserID); err != nil {
+		if err = s.MessageReactionRemove(e.ChannelID, e.MessageID, "📩", e.UserID); err != nil {
 			log.Error(err.Error())
 		}
 
