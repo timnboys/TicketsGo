@@ -32,6 +32,7 @@ func Connect() {
 	db.DB().SetMaxIdleConns(config.Conf.Database.Pool.MaxIdle)
 
 	db.Set("gorm:table_options", "charset=utf8mb4")
+	db.BlockGlobalUpdate(true)
 
 	Db = Database {db}
 }

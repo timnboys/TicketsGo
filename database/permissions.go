@@ -116,7 +116,7 @@ func RemoveAdmin(guild string, user string) {
 
 	var node Permissions
 	Db.Where(Permissions{GuildId: guildId, UserId: userId}).Take(&node)
-	Db.Model(&node).Update("ISADMIN", false)
+	Db.Model(&node).Where("GUILDID = ? AND USERID = ?", guildId, userId).Update("ISADMIN", false)
 }
 
 func RemoveSupport(guild string, user string) {
@@ -130,7 +130,7 @@ func RemoveSupport(guild string, user string) {
 
 	var node Permissions
 	Db.Where(Permissions{GuildId: guildId, UserId: userId}).Take(&node)
-	Db.Model(&node).Updates(map[string]interface{}{
+	Db.Model(&node).Where("GUILDID = ? AND USERID = ?", guildId, userId).Updates(map[string]interface{}{
 		"ISADMIN": false,
 		"ISSUPPORT": false,
 	})
