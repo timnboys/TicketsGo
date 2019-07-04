@@ -3,6 +3,8 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/apex/log"
+	"github.com/bwmarrin/discordgo"
 )
 
 type AddAdminCommand struct {
@@ -31,9 +33,37 @@ func (AddAdminCommand) Execute(ctx CommandContext) {
 		return
 	}
 
+	var overwrites []*discordgo.PermissionOverwrite
+	ch, err := ctx.Session.State.Channel(ctx.Channel); if err != nil {
+		ch, err = ctx.Session.Channel(ctx.Channel); if err != nil {
+			log.Error(err.Error())
+			return
+		}
+	}
+
+	overwrites = ch.PermissionOverwrites
+
 	for _, mention := range ctx.Message.Mentions {
 		go database.AddAdmin(ctx.Guild, mention.ID)
+
+		overwrites = append(overwrites, &discordgo.PermissionOverwrite{
+			ID: mention.ID,
+			Type: "member",
+			Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
+			Deny: 0,
+		})
 	}
+
+	data := discordgo.ChannelEdit{
+		PermissionOverwrites: overwrites,
+	}
+
+	if _, err = ctx.Session.ChannelEditComplex(ctx.Guild, &data); err != nil {
+		ctx.ReactWithCross()
+		log.Error(err.Error())
+		return
+	}
+
 	ctx.ReactWithCheck()
 }
 
