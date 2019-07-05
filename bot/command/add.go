@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"strconv"
 	"strings"
 )
@@ -66,7 +66,7 @@ func (AddCommand) Execute(ctx CommandContext) {
 	ticketId := <- ticketIdChan
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -98,7 +98,7 @@ func (AddCommand) Execute(ctx CommandContext) {
 			0)
 
 		if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 		}
 	}
 

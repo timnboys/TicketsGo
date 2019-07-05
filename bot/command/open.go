@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 	"strings"
@@ -34,7 +34,7 @@ func (OpenCommand) Execute(ctx CommandContext) {
 	ch := make(chan int64)
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (OpenCommand) Execute(ctx CommandContext) {
 	ticketLimit := <- ticketLimitChan
 
 	userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -205,13 +205,13 @@ func (OpenCommand) Execute(ctx CommandContext) {
 
 	c, err := ctx.Session.GuildChannelCreateComplex(ctx.Guild, data)
 	if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
 	// UpdateUser channel in DB
 	channelId, err := strconv.ParseInt(c.ID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 	go database.SetTicketChannel(id, guildId, channelId)
@@ -270,10 +270,10 @@ func (OpenCommand) Execute(ctx CommandContext) {
 	if pingEveryone {
 		msg, err := ctx.Session.ChannelMessageSend(c.ID, "@everyone")
 		if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 		} else {
 			if err = ctx.Session.ChannelMessageDelete(c.ID, msg.ID); err != nil {
-				log.Error(err.Error())
+				sentry.Error(err)
 			}
 		}
 	}

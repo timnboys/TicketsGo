@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 )
 
 type RemoveSupportCommand struct {
@@ -34,7 +34,7 @@ func (RemoveSupportCommand) Execute(ctx CommandContext) {
 
 	// Get guild obj
 	guild, err := ctx.Session.Guild(ctx.Guild); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		ctx.ReactWithCross()
 		return
 	}

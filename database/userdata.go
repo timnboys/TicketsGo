@@ -2,7 +2,7 @@ package database
 
 import (
 	"github.com/TicketsBot/sqlext"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 )
 
 type UserData struct {
@@ -24,7 +24,7 @@ func UpdateUser(id int64, name string, discrim string, avatarHash string) {
 // We don't need to update / upsert because this should be for initial data only when we first receive the guold
 func InsertUsers(data []UserData) {
 	if _, err := sqlext.BatchInsert(Db.DB.DB(), UserData{}.TableName(), data); err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 	}
 }
 

@@ -5,7 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 )
@@ -32,7 +32,7 @@ func (PrefixStage) Process(session *discordgo.Session, msg discordgo.Message) {
 	}
 
 	guild, err := strconv.ParseInt(msg.GuildID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 

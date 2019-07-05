@@ -2,7 +2,7 @@ package command
 
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 )
 
 // Reset
@@ -27,12 +27,12 @@ func (AdminShardRestartCommand) PermissionLevel() utils.PermissionLevel {
 
 func (AdminShardRestartCommand) Execute(ctx CommandContext) {
 	if err := ctx.Session.Close(); err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
 	if err := ctx.Session.Open(); err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 	"strings"
@@ -31,12 +31,12 @@ func (CloseCommand) PermissionLevel() utils.PermissionLevel {
 
 func (CloseCommand) Execute(ctx CommandContext) {
 	channelId, err := strconv.ParseInt(ctx.Channel, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -157,7 +157,7 @@ func (CloseCommand) Execute(ctx CommandContext) {
 		}
 
 		userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 			return
 		}
 
@@ -180,7 +180,7 @@ func (CloseCommand) Execute(ctx CommandContext) {
 		guild, err := ctx.Session.State.Guild(ctx.Guild); if err != nil {
 			// Not cached
 			guild, err = ctx.Session.Guild(ctx.Guild); if err != nil {
-				log.Error(err.Error())
+				sentry.Error(err)
 				return
 			}
 		}
@@ -216,7 +216,7 @@ func (CloseCommand) Execute(ctx CommandContext) {
 		// Set ticket state as closed and delete channel
 		go database.Close(guildId, id)
 		if _, err = ctx.Session.ChannelDelete(ctx.Channel); err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 		}
 	}
 }

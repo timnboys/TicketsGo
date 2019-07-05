@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"strconv"
 )
 
@@ -28,7 +28,7 @@ func (PanelCommand) PermissionLevel() utils.PermissionLevel {
 
 func (PanelCommand) Execute(ctx CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -46,7 +46,7 @@ func (PanelCommand) Execute(ctx CommandContext) {
 	}
 
 	msg, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (PanelCommand) Execute(ctx CommandContext) {
 	}
 
 	msgId, err := strconv.ParseInt(msg.ID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 

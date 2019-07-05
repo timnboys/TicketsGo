@@ -3,7 +3,7 @@ package utils
 import (
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -21,7 +21,7 @@ func GetPermissionLevel(session *discordgo.Session, guild string, user string, c
 		// Not cached
 		g, err = session.Guild(guild)
 		if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 		}
 	}
 

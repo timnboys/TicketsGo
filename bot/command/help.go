@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"strings"
 )
 
@@ -35,7 +35,7 @@ func (HelpCommand) Execute(ctx CommandContext) {
 	msg = strings.Trim(msg, "\n")
 
 	ch, err := ctx.Session.UserChannelCreate(ctx.User.ID); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -51,7 +51,7 @@ func (HelpCommand) Execute(ctx CommandContext) {
 
 		// Explicitly ignore error to fix 403 (Cannot send messages to this user)
 		_, _ = ctx.Session.ChannelMessageSendEmbed(ch.ID, embed.MessageEmbed); if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 			return
 		}
 	}

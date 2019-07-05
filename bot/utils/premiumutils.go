@@ -2,13 +2,13 @@ package utils
 
 import (
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"strconv"
 )
 
 func IsPremiumGuild(guild string, ch chan bool) {
 	i, err := strconv.ParseInt(guild, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		ch <- false
 		return
 	}

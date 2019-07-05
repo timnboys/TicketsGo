@@ -2,14 +2,14 @@ package listeners
 
 import (
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 )
 
 func OnUserUpdate(_ *discordgo.Session, e *discordgo.UserUpdate) {
 	id, err := strconv.ParseInt(e.User.ID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -18,7 +18,7 @@ func OnUserUpdate(_ *discordgo.Session, e *discordgo.UserUpdate) {
 
 func OnUserJoin(_ *discordgo.Session, e *discordgo.GuildMemberAdd) {
 	id, err := strconv.ParseInt(e.User.ID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -30,7 +30,7 @@ func OnGuildCreateUserData(_ *discordgo.Session, e *discordgo.GuildCreate) {
 
 	for _, member := range e.Members {
 		userId, err := strconv.ParseInt(member.User.ID, 10, 64); if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 			continue
 		}
 

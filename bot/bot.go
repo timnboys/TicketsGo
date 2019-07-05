@@ -6,7 +6,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/jonas747/dshardmanager"
 	"os"
 	"time"
@@ -48,6 +48,6 @@ func Start(ch chan os.Signal) {
 
 	<-ch
 	if err := discord.StopAll(); err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 	}
 }

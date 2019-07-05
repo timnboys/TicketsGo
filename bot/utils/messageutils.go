@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"regexp"
 	"time"
@@ -38,7 +38,7 @@ func SendEmbed(session *discordgo.Session, channel string, colour Colour, title,
 	}
 
 	msg, err := session.ChannelMessageSendEmbed(channel, embed.MessageEmbed); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -51,19 +51,19 @@ func DeleteAfter(msg SentMessage, secs int) {
 	go func() {
 		time.Sleep(time.Duration(secs) * time.Second)
 		if err := msg.Session.ChannelMessageDelete(msg.Message.ChannelID, msg.Message.ID); err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 		}
 	}()
 }
 
 func ReactWithCheck(session *discordgo.Session, msg *discordgo.Message) {
 	if err := session.MessageReactionAdd(msg.ChannelID, msg.ID, "✅"); err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 	}
 }
 
 func ReactWithCross(session *discordgo.Session, msg discordgo.Message) {
 	if err := session.MessageReactionAdd(msg.ChannelID, msg.ID, "❌"); err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 	}
 }

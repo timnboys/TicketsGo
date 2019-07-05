@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/config"
-	"github.com/apex/log"
+	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/go-errors/errors"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -40,27 +41,27 @@ func UpdateServerCount() {
 		}
 
 		encoded, err := json.Marshal(data); if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 			return
 		}
 
 		req, err := http.NewRequest("POST", fmt.Sprintf("%s/update", config.Conf.ServerCounter.BaseUrl), bytes.NewBuffer(encoded)); if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 			return
 		}
 		req.Header.Set("Content-Type", "application/json")
 
 		res, err := client.Do(req); if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 			return
 		}
 
 		if res.StatusCode != 200 {
 			body, err := ioutil.ReadAll(res.Body)
 			if err != nil {
-				log.Error(err.Error())
+				sentry.Error(err)
 			} else {
-				log.Error(string(body))
+				sentry.Error(errors.New(body))
 			}
 		}
 

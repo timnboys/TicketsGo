@@ -1,21 +1,11 @@
 package sentry
 
 import (
-	"github.com/apex/log"
 	"github.com/getsentry/raven-go"
+	"github.com/go-errors/errors"
 )
 
-type Handler struct {
-}
-
-var Default = NewHandler()
-
-func NewHandler() *Handler {
-	return &Handler{}
-}
-
-func (h *Handler) HandleLog(e *log.Entry) error {
-	//packet := ConstructPacket(e)
-	raven.Capture(ConstructPacket(e), nil)
-	return nil
+func Error(e error) {
+	wrapped := e.(*errors.Error)
+	raven.Capture(ConstructPacket(wrapped), nil)
 }
