@@ -14,6 +14,11 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		return
 	}
 
+	// Ignore commands in DMs
+	if e.GuildID == "" {
+		return
+	}
+
 	ch := make(chan string)
 	go database.GetPrefix(e.GuildID, ch)
 
