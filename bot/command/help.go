@@ -40,7 +40,19 @@ func (HelpCommand) Execute(ctx CommandContext) {
 	}
 
 	if ch != nil {
-		utils.SendEmbed(ctx.Session, ch.ID, utils.Green, "Help", msg, 0, ctx.IsPremium)
+		embed := utils.NewEmbed().
+			SetColor(int(utils.Green)).
+			AddField("Help", msg, false)
+
+		if !ctx.IsPremium {
+			embed.SetFooter("Powered by ticketsbot.net", utils.AvatarUrl)
+		}
+
+		// Explicitly ignore error to fix 403 (Cannot send messages to this user)
+		_, _ = ctx.Session.ChannelMessageSendEmbed(ch.ID, embed.MessageEmbed); if err != nil {
+			log.Error(err.Error())
+			return
+		}
 	}
 
 	ctx.ReactWithCheck()
