@@ -71,11 +71,7 @@ func (AddAdminCommand) Execute(ctx CommandContext) {
 			PermissionOverwrites: overwrites,
 		}
 
-		if _, err = ctx.Session.ChannelEditComplex(strconv.Itoa(int(*channelId)), &data); err != nil {
-			ctx.ReactWithCross()
-			log.Error(err.Error())
-			return
-		}
+		_, _ = ctx.Session.ChannelEditComplex(strconv.Itoa(int(*channelId)), &data)
 	}
 
 	ctx.ReactWithCheck()
