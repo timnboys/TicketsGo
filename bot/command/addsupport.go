@@ -50,8 +50,7 @@ func (AddSupportCommand) Execute(ctx CommandContext) {
 	for _, channelId := range <-openTicketsChan {
 		var overwrites []*discordgo.PermissionOverwrite
 		ch, err := ctx.Session.Channel(ctx.Channel); if err != nil {
-			log.Error(err.Error())
-			return
+			continue
 		}
 
 		overwrites = ch.PermissionOverwrites
@@ -67,6 +66,7 @@ func (AddSupportCommand) Execute(ctx CommandContext) {
 
 		data := discordgo.ChannelEdit{
 			PermissionOverwrites: overwrites,
+			Position: ch.Position,
 		}
 
 		_, _ = ctx.Session.ChannelEditComplex(strconv.Itoa(int(*channelId)), &data)
