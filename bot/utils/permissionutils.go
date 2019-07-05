@@ -1,12 +1,21 @@
 package utils
 
 import (
+	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/apex/log"
 	"github.com/bwmarrin/discordgo"
 )
 
 func GetPermissionLevel(session *discordgo.Session, guild string, user string, ch chan PermissionLevel) {
+	// Check if the user is a bot admin
+	for _, admin := range config.Conf.Bot.Admins {
+		if admin == user {
+			ch <- Admin
+			return
+		}
+	}
+
 	// Check if user is guild owner
 	g, err := session.State.Guild(guild); if err != nil {
 		// Not cached
