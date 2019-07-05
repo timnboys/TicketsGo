@@ -2,7 +2,6 @@ package sentry
 
 import(
 	"github.com/TicketsBot/TicketsGo/config"
-	"github.com/TicketsBot/sentry"
 	"github.com/getsentry/raven-go"
 	"github.com/go-errors/errors"
 	"os"
@@ -11,7 +10,7 @@ import(
 
 func Connect() {
 	if err := raven.SetDSN(config.Conf.Sentry.DSN); err != nil {
-		sentry.Error(err)
+		Error(err)
 		return
 	}
 }
@@ -19,7 +18,7 @@ func Connect() {
 func ConstructPacket(e *errors.Error) *raven.Packet {
 	hostname, err := os.Hostname(); if err != nil {
 		hostname = "null"
-		sentry.Error(err)
+		Error(err)
 	}
 
 	extra := map[string]interface{}{
