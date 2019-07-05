@@ -22,6 +22,7 @@ jobs:
       - run: go get github.com/satori/go.uuid
       - run: go get github.com/jonas747/dshardmanager
       - run: go get github.com/TicketsBot/sqlext
+      - run: go get github.com/go-errors/errors
 
       - run: go build cmd/tickets/main.go
 
