@@ -169,9 +169,11 @@ func (CloseCommand) Execute(ctx CommandContext) {
 			go database.GetTicketUuid(channelId, uuidChan)
 			uuid := <-uuidChan
 
-			userName := make(chan string)
-			go database.GetUsername()
-			go database.AddArchive(uuid, guildId, userId, ctx.User.Username, id, m.Attachments[0].URL)
+			userNameChan := make(chan string)
+			go database.GetUsername(owner, userNameChan)
+			userName := <-userNameChan
+
+			go database.AddArchive(uuid, guildId, owner, userName, id, m.Attachments[0].URL)
 		}
 
 		// Notify user and send logs in DMs
