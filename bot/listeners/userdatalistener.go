@@ -1,6 +1,7 @@
 package listeners
 
 import (
+	"errors"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
@@ -30,7 +31,7 @@ func OnGuildCreateUserData(_ *discordgo.Session, e *discordgo.GuildCreate) {
 
 	for _, member := range e.Members {
 		userId, err := strconv.ParseInt(member.User.ID, 10, 64); if err != nil {
-			sentry.Error(err)
+			sentry.Error(errors.New(err.Error()))
 			continue
 		}
 
