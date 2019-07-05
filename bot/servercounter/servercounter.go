@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/go-errors/errors"
 	"io/ioutil"
 	"net/http"
