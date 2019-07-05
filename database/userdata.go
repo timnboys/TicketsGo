@@ -27,3 +27,9 @@ func InsertUsers(data []UserData) {
 		log.Error(err.Error())
 	}
 }
+
+func GetUsername(id int64, ch chan string) {
+	var node UserData
+	Db.Where(UserData{Id: id}).Take(&node)
+	ch <- node.Username
+}

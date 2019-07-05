@@ -138,7 +138,7 @@ func (OpenCommand) Execute(ctx CommandContext) {
 			}
 		}
 
-		if channelCount > 50 {
+		if channelCount >= 50 {
 			ctx.SendEmbed(utils.Red, "Error", "There are too many tickets in the ticket category. Ask an admin to close some, or to move them to another category")
 			return
 		}
