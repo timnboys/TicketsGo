@@ -1,13 +1,13 @@
 package database
 
 import (
-	"github.com/TicketsBot/sqlext"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/TicketsBot/sqlext"
 	"github.com/go-errors/errors"
 )
 
 type UserData struct {
-	Id          int64  `gorm:"column:USERID;unique;primary_key"`
+	Id            int64  `gorm:"column:USERID;unique;primary_key"`
 	Username      string `gorm:"column:USERNAME;type:text"`
 	Discriminator string `gorm:"column:DISCRIM;type:varchar(4)"`
 	Avatar        string `gorm:"column:AVATARHASH;type:varchar(100)"`
