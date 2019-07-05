@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/sentry"
 	"strconv"
 	"time"
 )
@@ -29,7 +29,7 @@ func (StatsServerCommand) PermissionLevel() utils.PermissionLevel {
 
 func (StatsServerCommand) Execute(ctx CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 

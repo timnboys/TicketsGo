@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/sentry"
 	"strconv"
 )
 
@@ -36,7 +36,7 @@ func (RemoveCommand) Execute(ctx CommandContext) {
 
 	// Verify that the current channel is a real ticket
 	channelId, err := strconv.ParseInt(ctx.Channel, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (RemoveCommand) Execute(ctx CommandContext) {
 	ticketId := <- ticketIdChan
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -88,7 +88,7 @@ func (RemoveCommand) Execute(ctx CommandContext) {
 			utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks))
 
 		if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 		}
 	}
 

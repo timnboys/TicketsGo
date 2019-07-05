@@ -3,7 +3,7 @@ package setup
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 )
@@ -25,14 +25,14 @@ func (ArchiveChannelStage) Default() string {
 
 func (ArchiveChannelStage) Process(session *discordgo.Session, msg discordgo.Message) {
 	guildId, err := strconv.ParseInt(msg.GuildID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
 	guild, err := session.State.Guild(msg.GuildID); if err != nil {
 		// Not cached
 		guild, err = session.Guild(msg.GuildID); if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 			return
 		}
 	}

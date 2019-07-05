@@ -4,14 +4,14 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/command"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 )
 
 func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 	msgId, err := strconv.ParseInt(e.MessageID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -19,7 +19,7 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 	go database.IsPanel(msgId, isPanel)
 	if <-isPanel {
 		user, err := s.User(e.UserID); if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 			return
 		}
 
@@ -28,11 +28,11 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		}
 
 		if err = s.MessageReactionRemove(e.ChannelID, e.MessageID, "📩", e.UserID); err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 		}
 
 		msg, err := s.ChannelMessage(e.ChannelID, e.MessageID); if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 			return
 		}
 

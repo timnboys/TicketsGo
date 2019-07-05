@@ -3,24 +3,24 @@ package listeners
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 )
 
 func OnFirstResponse(s *discordgo.Session, e *discordgo.MessageCreate) {
 	channelId, err := strconv.ParseInt(e.ChannelID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
 	guildId, err := strconv.ParseInt(e.GuildID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
 	userId, err := strconv.ParseInt(e.Author.ID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 

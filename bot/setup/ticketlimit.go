@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 	"strings"
@@ -28,7 +28,7 @@ func (TicketLimitStage) Default() string {
 
 func (TicketLimitStage) Process(session *discordgo.Session, msg discordgo.Message) {
 	guild, err := strconv.ParseInt(msg.GuildID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 

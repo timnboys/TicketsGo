@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/sentry"
 	"strconv"
 	"time"
 )
@@ -30,7 +30,7 @@ func (StatsCommand) PermissionLevel() utils.PermissionLevel {
 
 func (StatsCommand) Execute(ctx CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
@@ -49,7 +49,7 @@ func (StatsCommand) Execute(ctx CommandContext) {
 
 	user := ctx.Message.Mentions[0]
 	userId, err := strconv.ParseInt(user.ID, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 

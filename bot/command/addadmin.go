@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 )
@@ -40,7 +40,7 @@ func (AddAdminCommand) Execute(ctx CommandContext) {
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
 		ctx.ReactWithCross()
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 

@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/apex/log"
+	"github.com/TicketsBot/sentry"
 	"strconv"
 )
 
@@ -29,14 +29,14 @@ func (AdminDebugCommand) PermissionLevel() utils.PermissionLevel {
 
 func (AdminDebugCommand) Execute(ctx CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
 	guild, err := ctx.Session.State.Guild(ctx.Guild); if err != nil {
 		// Not cached
 		guild, err = ctx.Session.Guild(ctx.Guild); if err != nil {
-			log.Error(err.Error())
+			sentry.Error(err)
 			return
 		}
 	}
@@ -74,7 +74,7 @@ func (AdminDebugCommand) Execute(ctx CommandContext) {
 		MessageEmbed
 
 	msg, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed); if err != nil {
-		log.Error(err.Error())
+		sentry.Error(err)
 		return
 	}
 
