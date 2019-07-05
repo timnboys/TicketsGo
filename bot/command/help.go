@@ -42,7 +42,8 @@ func (HelpCommand) Execute(ctx CommandContext) {
 	if ch != nil {
 		embed := utils.NewEmbed().
 			SetColor(int(utils.Green)).
-			AddField("Help", msg, false)
+			SetTitle("Help").
+			SetDescription(msg)
 
 		if !ctx.IsPremium {
 			embed.SetFooter("Powered by ticketsbot.net", utils.AvatarUrl)
