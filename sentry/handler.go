@@ -16,6 +16,6 @@ func NewHandler() *Handler {
 
 func (h *Handler) HandleLog(e *log.Entry) error {
 	//packet := ConstructPacket(e)
-	raven.CaptureMessage(e.Message, nil)
+	raven.Capture(ConstructPacket(e), nil)
 	return nil
 }

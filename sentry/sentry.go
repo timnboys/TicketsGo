@@ -15,14 +15,15 @@ func Connect() {
 	}
 }
 
-func ConstructPacket(e *log.Entry) raven.Packet {
+func ConstructPacket(e *log.Entry) *raven.Packet {
 	hostname, err := os.Hostname(); if err != nil {
 		hostname = "null"
 		log.Error(err.Error())
 	}
 
-	return raven.Packet{
+	return &raven.Packet{
 		Message: e.Message,
+		Extra: map[string]interface{}(e.Fields),
 		Project: "tickets-bot",
 		Timestamp: raven.Timestamp(time.Now()),
 		Level: raven.ERROR,
