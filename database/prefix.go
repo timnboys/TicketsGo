@@ -17,7 +17,10 @@ func SetPrefix(guild int64, prefix string) {
 }
 
 func GetPrefix(guild string, ch chan string) {
-	var node Prefix
+	node := Prefix{
+            Prefix: "t!",
+        }
+
 
 	i, err := strconv.ParseInt(guild, 10, 64); if err != nil {
 		ch <- ""
