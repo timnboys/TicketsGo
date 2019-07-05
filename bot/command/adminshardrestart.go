@@ -2,7 +2,7 @@ package command
 
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
-	"github.com/TicketsBot/sentry"
+	"github.com/TicketsBot/TicketsGo/sentry"
 )
 
 // Reset

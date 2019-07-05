@@ -2,7 +2,7 @@ package utils
 
 import (
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/sentry"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"strconv"
 )
 

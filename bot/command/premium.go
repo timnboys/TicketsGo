@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/sentry"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	uuid "github.com/satori/go.uuid"
 	"strconv"
 	"time"

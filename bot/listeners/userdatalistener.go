@@ -2,7 +2,7 @@ package listeners
 
 import (
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/sentry"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 )

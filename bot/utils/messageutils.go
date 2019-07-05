@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/TicketsBot/sentry"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"regexp"
 	"time"

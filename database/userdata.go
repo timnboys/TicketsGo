@@ -2,7 +2,7 @@ package database
 
 import (
 	"github.com/TicketsBot/sqlext"
-	"github.com/TicketsBot/sentry"
+	"github.com/TicketsBot/TicketsGo/sentry"
 )
 
 type UserData struct {
