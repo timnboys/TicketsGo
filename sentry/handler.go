@@ -6,6 +6,6 @@ import (
 )
 
 func Error(e error) {
-	wrapped := e.(*errors.Error)
+	wrapped := errors.New(e)
 	raven.Capture(ConstructPacket(wrapped), nil)
 }
