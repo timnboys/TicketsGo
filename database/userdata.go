@@ -7,7 +7,7 @@ import (
 )
 
 type UserData struct {
-	Id            int64  `gorm:"column:USERID;unique;primary_key"`
+	UserId        int64  `gorm:"column:USERID;unique;primary_key"`
 	Username      string `gorm:"column:USERNAME;type:text"`
 	Discriminator string `gorm:"column:DISCRIM;type:varchar(4)"`
 	Avatar        string `gorm:"column:AVATARHASH;type:varchar(100)"`
@@ -19,7 +19,7 @@ func (UserData) TableName() string {
 
 func UpdateUser(id int64, name string, discrim string, avatarHash string) {
 	var node UserData
-	Db.Where(UserData{Id: id}).Assign(&UserData{Username: name, Discriminator: discrim, Avatar: avatarHash}).FirstOrCreate(&node)
+	Db.Where(UserData{UserId: id}).Assign(&UserData{Username: name, Discriminator: discrim, Avatar: avatarHash}).FirstOrCreate(&node)
 }
 
 // We don't need to update / upsert because this should be for initial data only when we first receive the guold
@@ -31,6 +31,6 @@ func InsertUsers(data []UserData) {
 
 func GetUsername(id int64, ch chan string) {
 	var node UserData
-	Db.Where(UserData{Id: id}).Take(&node)
+	Db.Where(UserData{UserId: id}).Take(&node)
 	ch <- node.Username
 }

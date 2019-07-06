@@ -36,10 +36,10 @@ func OnGuildCreateUserData(_ *discordgo.Session, e *discordgo.GuildCreate) {
 		}
 
 		data = append(data, database.UserData{
-			Id: userId,
-			Username: member.User.Username,
+			UserId:        userId,
+			Username:      member.User.Username,
 			Discriminator: member.User.Discriminator,
-			Avatar: member.User.Avatar,
+			Avatar:        member.User.Avatar,
 		})
 	}
 
