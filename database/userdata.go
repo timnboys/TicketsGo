@@ -64,8 +64,7 @@ func bulkInsert(data []UserData) {
 			args = append(args, record.Avatar)
 		}
 
-		// Ignore errors from duplicate records
-		statement := fmt.Sprintf("INSERT IGNORE INTO usernames(USERID, USERNAME, DISCRIM, AVATARHASH) VALUES %s", strings.Join(values, ","))
+		statement := fmt.Sprintf("INSERT INTO usernames(USERID, USERNAME, DISCRIM, AVATARHASH) VALUES %s ON DUPLICATE KEY UPDATE USERNAME=VALUES(USERNAME), DISCRIM=VALUES(DISCRIM), AVATARHASH=VALUES(AVATARHASH)", strings.Join(values, ","))
 		if _, err := Db.DB.DB().Exec(statement, args...); err != nil {
 			sentry.Error(err)
 		}
