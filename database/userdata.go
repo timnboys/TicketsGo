@@ -29,9 +29,7 @@ func InsertUsers(data []UserData) {
 		records = append(records, record)
 	}
 
-	if err := bulkInsert(data); err != nil {
-		sentry.Error(err)
-	}
+	bulkInsert(data)
 }
 
 func GetUsername(id int64, ch chan string) {
@@ -40,7 +38,7 @@ func GetUsername(id int64, ch chan string) {
 	ch <- node.Username
 }
 
-func bulkInsert(data []UserData) error {
+func bulkInsert(data []UserData) {
 	chunks := make([][]UserData, 0)
 	temp := make([]UserData, 0)
 
