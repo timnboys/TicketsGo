@@ -64,7 +64,7 @@ func bulkInsert(data []UserData) {
 			args = append(args, record.Avatar)
 		}
 
-		statement := fmt.Sprintf("INSERT INTO userdata(USERID, USERNAME, DISCRIM, AVATARHASH) VALUES %s", strings.Join(values, ","))
+		statement := fmt.Sprintf("INSERT INTO usernames(USERID, USERNAME, DISCRIM, AVATARHASH) VALUES %s", strings.Join(values, ","))
 		if _, err := Db.DB.DB().Exec(statement, args...); err != nil {
 			sentry.Error(err)
 		}
