@@ -62,3 +62,4 @@ func Setup() {
 func IsConnected(ch chan bool) {
 	ch <- Db.DB.DB().Ping() == nil
 }
+
