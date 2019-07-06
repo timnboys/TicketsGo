@@ -8,7 +8,7 @@ import (
 
 type UserData struct {
 	UserId        int64  `gorm:"column:USERID;unique;primary_key"`
-	Username      string `gorm:"column:USERNAME;type:text"`
+	Username      string `gorm:"column:USERNAME;type:text CHARACTER SET utf8 COLLATE utf8_unicode_ci"`
 	Discriminator string `gorm:"column:DISCRIM;type:varchar(4)"`
 	Avatar        string `gorm:"column:AVATARHASH;type:varchar(100)"`
 }
@@ -64,7 +64,8 @@ func bulkInsert(data []UserData) {
 			args = append(args, record.Avatar)
 		}
 
-		statement := fmt.Sprintf("INSERT INTO usernames(USERID, USERNAME, DISCRIM, AVATARHASH) VALUES %s", strings.Join(values, ","))
+		// Ignore errors from duplicate records
+		statement := fmt.Sprintf("INSERT IGNORE INTO usernames(USERID, USERNAME, DISCRIM, AVATARHASH) VALUES %s", strings.Join(values, ","))
 		if _, err := Db.DB.DB().Exec(statement, args...); err != nil {
 			sentry.Error(err)
 		}
