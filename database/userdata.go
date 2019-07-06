@@ -2,8 +2,7 @@ package database
 
 import (
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/TicketsBot/sqlext"
-	"github.com/go-errors/errors"
+	"github.com/t-tiger/gorm-bulk-insert"
 )
 
 type UserData struct {
@@ -24,8 +23,13 @@ func UpdateUser(id int64, name string, discrim string, avatarHash string) {
 
 // We don't need to update / upsert because this should be for initial data only when we first receive the guold
 func InsertUsers(data []UserData) {
-	if _, err := sqlext.BatchInsert(Db.DB.DB(), UserData{}.TableName(), data); err != nil {
-		sentry.Error(errors.New(err.Error()))
+	records := make([]interface{}, 0)
+	for _, record := range data {
+		records = append(records, record)
+	}
+
+	if err := gormbulk.BulkInsert(Db.DB, records, 2000); err != nil {
+		sentry.Error(err)
 	}
 }
 
