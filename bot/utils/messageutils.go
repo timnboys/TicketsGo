@@ -37,10 +37,8 @@ func SendEmbed(session *discordgo.Session, channel string, colour Colour, title,
 		embed.SetFooter("Powered by ticketsbot.net", AvatarUrl)
 	}
 
-	msg, err := session.ChannelMessageSendEmbed(channel, embed.MessageEmbed); if err != nil {
-		sentry.Error(err)
-		return
-	}
+	// Explicitly ignore error because it's usually a 403 (missing permissions)
+	msg, _ := session.ChannelMessageSendEmbed(channel, embed.MessageEmbed)
 
 	if deleteAfter > 0 {
 		DeleteAfter(SentMessage{session, msg}, deleteAfter)
