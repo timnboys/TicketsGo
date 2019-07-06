@@ -41,6 +41,13 @@ func (OpenCommand) Execute(ctx CommandContext) {
 	go database.GetCategory(guildId, ch)
 	category := <- ch
 
+	// Make sure the category exists
+	if category != 0 {
+		if _, err = ctx.Session.Channel(strconv.Itoa(int(category))); err != nil {
+			category = 0
+		}
+	}
+
 	requiredPerms := []utils.Permission{
 		utils.ManageChannels,
 		utils.ManageRoles,
