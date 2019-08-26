@@ -56,7 +56,7 @@ func (BlacklistCommand) Execute(ctx CommandContext) {
 		return
 	}
 
-	userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
+	userId, err := strconv.ParseInt(user.ID, 10, 64); if err != nil {
 		sentry.Error(err)
 		return
 	}
