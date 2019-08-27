@@ -6,6 +6,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/bwmarrin/discordgo"
+	"strconv"
 	"strings"
 )
 
@@ -16,6 +17,14 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 
 	// Ignore commands in DMs
 	if e.GuildID == "" {
+		return
+	}
+
+	guildId, err := strconv.ParseInt(e.GuildID, 10, 64); if err != nil {
+		return
+	}
+
+	userId, err := strconv.ParseInt(e.Author.ID, 10, 64); if err != nil {
 		return
 	}
 
@@ -90,13 +99,23 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 	ctx := command.CommandContext{
 		Session: s,
 		User: *e.Author,
+		UserID: userId,
 		Guild: e.GuildID,
+		GuildId: guildId,
 		Channel: e.ChannelID,
 		Message: *e.Message,
 		Root: root,
 		Args: args,
 		IsPremium: premiumGuild,
 		ShouldReact: true,
+	}
+
+	// Ensure user isn't blacklisted
+	blacklisted := make(chan bool)
+	go database.IsBlacklisted(ctx.GuildId, ctx.UserID, blacklisted)
+	if <-blacklisted {
+		ctx.ReactWithCross()
+		return
 	}
 
 	if c != nil {

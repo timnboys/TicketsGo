@@ -15,6 +15,16 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		return
 	}
 
+	userId, err := strconv.ParseInt(e.UserID, 10, 64); if err != nil {
+		sentry.Error(err)
+		return
+	}
+
+	guildId, err := strconv.ParseInt(e.GuildID, 10, 64); if err != nil {
+		sentry.Error(err)
+		return
+	}
+
 	isPanel := make(chan bool)
 	go database.IsPanel(msgId, isPanel)
 	if <-isPanel {
@@ -31,6 +41,12 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 			sentry.Error(err)
 		}
 
+		blacklisted := make(chan bool)
+		go database.IsBlacklisted(guildId, userId, blacklisted)
+		if <-blacklisted {
+			return
+		}
+
 		msg, err := s.ChannelMessage(e.ChannelID, e.MessageID); if err != nil {
 			sentry.Error(err)
 			return
@@ -42,7 +58,9 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		ctx := command.CommandContext{
 			Session: s,
 			User: *user,
+			UserID: userId,
 			Guild: e.GuildID,
+			GuildId: guildId,
 			Channel: e.ChannelID,
 			Message: *msg,
 			Root: "new",

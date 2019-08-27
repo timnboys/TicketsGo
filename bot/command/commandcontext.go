@@ -8,7 +8,9 @@ import (
 type CommandContext struct {
 	Session     *discordgo.Session
 	User        discordgo.User
+	UserID		int64
 	Guild       string
+	GuildId 	int64
 	Channel     string
 	Message     discordgo.Message
 	Root        string
