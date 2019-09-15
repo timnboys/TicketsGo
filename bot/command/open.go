@@ -72,14 +72,28 @@ func (OpenCommand) Execute(ctx CommandContext) {
 		}
 	}
 
+	categoryStr := strconv.Itoa(int(category))
 	useCategory := category != 0
 	if useCategory {
+		// Check if the category still exists
+		ch, err := ctx.Session.Channel(categoryStr); if err != nil {
+			useCategory = false
+			go database.DeleteCategory(ctx.GuildId)
+			return
+		}
+
+		if ch.Type != discordgo.ChannelTypeGuildCategory {
+			useCategory = false
+			go database.DeleteCategory(ctx.GuildId)
+			return
+		}
+
 		hasAdmin := make(chan bool)
-		go ctx.ChannelMemberHasPermission(strconv.Itoa(int(category)), utils.Id, utils.Administrator, hasAdmin)
+		go ctx.ChannelMemberHasPermission(categoryStr, utils.Id, utils.Administrator, hasAdmin)
 		if !<-hasAdmin {
 			for _, perm := range requiredPerms {
 				hasPermChan := make(chan bool)
-				go ctx.ChannelMemberHasPermission(strconv.Itoa(int(category)), utils.Id, perm, hasPermChan)
+				go ctx.ChannelMemberHasPermission(categoryStr, utils.Id, perm, hasPermChan)
 				if !<-hasPermChan {
 					ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
 					if ctx.ShouldReact {

@@ -19,3 +19,9 @@ func SetCategory(guild int64, category int64) {
 	var node ChannelCategory
 	Db.Where(ChannelCategory{Guild: guild}).Assign(ChannelCategory{Category: category}).FirstOrCreate(&node)
 }
+
+func DeleteCategory(guild int64) {
+	var node ChannelCategory
+	Db.Where(ChannelCategory{Guild: guild}).Take(&node)
+	Db.Delete(&node)
+}

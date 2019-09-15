@@ -20,18 +20,20 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		return
 	}
 
-	guildId, err := strconv.ParseInt(e.GuildID, 10, 64); if err != nil {
+	guildId, err := strconv.ParseInt(e.GuildID, 10, 64);
+	if err != nil {
 		return
 	}
 
-	userId, err := strconv.ParseInt(e.Author.ID, 10, 64); if err != nil {
+	userId, err := strconv.ParseInt(e.Author.ID, 10, 64);
+	if err != nil {
 		return
 	}
 
 	ch := make(chan string)
 	go database.GetPrefix(e.GuildID, ch)
 
-	customPrefix := <- ch
+	customPrefix := <-ch
 	defaultPrefix := config.Conf.Bot.Prefix
 	var usedPrefix string
 
@@ -93,20 +95,24 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 	}
 
 	premiumChan := make(chan bool)
-	go utils.IsPremiumGuild(e.GuildID, premiumChan)
-	premiumGuild := <- premiumChan
-
-	ctx := command.CommandContext{
+	go utils.IsPremiumGuild(command.CommandContext{
 		Session: s,
-		User: *e.Author,
-		UserID: userId,
 		Guild: e.GuildID,
 		GuildId: guildId,
-		Channel: e.ChannelID,
-		Message: *e.Message,
-		Root: root,
-		Args: args,
-		IsPremium: premiumGuild,
+	}, premiumChan)
+	premiumGuild := <-premiumChan
+
+	ctx := command.CommandContext{
+		Session:     s,
+		User:        *e.Author,
+		UserID:      userId,
+		Guild:       e.GuildID,
+		GuildId:     guildId,
+		Channel:     e.ChannelID,
+		Message:     *e.Message,
+		Root:        root,
+		Args:        args,
+		IsPremium:   premiumGuild,
 		ShouldReact: true,
 	}
 
@@ -121,7 +127,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 	if c != nil {
 		permLevel := make(chan utils.PermissionLevel)
 		go ctx.GetPermissionLevel(permLevel)
-		if int(c.PermissionLevel()) > int(<- permLevel) {
+		if int(c.PermissionLevel()) > int(<-permLevel) {
 			ctx.ReactWithCross()
 			ctx.SendEmbed(utils.Red, "Error", utils.NO_PERMISSION)
 			return
@@ -161,4 +167,3 @@ func contains(s []string, e string) bool {
 	}
 	return false
 }
-

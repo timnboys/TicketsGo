@@ -8,6 +8,8 @@ Get started by running `t!setup`"""
 token=""
 prefix="t!"
 admins=["217617036749176833"]
+premium-lookup-proxy-url="http://localhost:3000"
+premium-lookup-proxy-key=""
 helpers=[]
   [bot.sharding]
   total=1

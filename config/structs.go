@@ -8,15 +8,17 @@ type (
 		ServerCounter ServerCounter
 		Metrics       Metrics
 		Redis         Redis
-		Sentry 		  Sentry
+		Sentry        Sentry
 	}
 
 	Bot struct {
-		Token   string
-		Prefix  string
-		Admins  []string
-		Helpers []string
-		Shading Sharding
+		Token                 string
+		Prefix                string
+		Admins                []string
+		Helpers               []string
+		PremiumLookupProxyUrl string `toml:"premium-lookup-proxy-url"`
+		PremiumLookupProxyKey string `toml:"premium-lookup-proxy-key"`
+		Shading               Sharding
 	}
 
 	Sharding struct {
