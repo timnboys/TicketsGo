@@ -53,7 +53,11 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		}
 
 		isPremium := make(chan bool)
-		go utils.IsPremiumGuild(e.GuildID, isPremium)
+		go utils.IsPremiumGuild(utils.CommandContext{
+			Session: s,
+			Guild: e.GuildID,
+			GuildId: guildId,
+		}, isPremium)
 
 		ctx := utils.CommandContext{
 			Session: s,
