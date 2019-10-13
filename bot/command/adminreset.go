@@ -1,6 +1,8 @@
 package command
 
-import "github.com/TicketsBot/TicketsGo/bot/utils"
+import (
+	"github.com/TicketsBot/TicketsGo/bot/utils"
+)
 
 // Reset
 type AdminResetCommand struct {
@@ -22,7 +24,7 @@ func (AdminResetCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (AdminResetCommand) Execute(ctx CommandContext) {
+func (AdminResetCommand) Execute(ctx utils.CommandContext) {
 	ctx.SendEmbed(utils.Red, "Admin", "Not yet implemented")
 }
 

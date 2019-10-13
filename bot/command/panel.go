@@ -26,7 +26,7 @@ func (PanelCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Admin
 }
 
-func (PanelCommand) Execute(ctx CommandContext) {
+func (PanelCommand) Execute(ctx utils.CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
 		sentry.Error(err)
 		return

@@ -26,7 +26,7 @@ func (BlacklistCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Support
 }
 
-func (BlacklistCommand) Execute(ctx CommandContext) {
+func (BlacklistCommand) Execute(ctx utils.CommandContext) {
 	if len(ctx.Message.Mentions) == 0 {
 		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user to toggle the blacklist state for")
 		ctx.ReactWithCross()

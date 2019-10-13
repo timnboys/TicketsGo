@@ -28,7 +28,7 @@ func (CannedResponseCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Support
 }
 
-func (CannedResponseCommand) Execute(ctx CommandContext) {
+func (CannedResponseCommand) Execute(ctx utils.CommandContext) {
 	if len(ctx.Args) == 0 {
 		ctx.SendEmbed(utils.Red, "Error", "You must provide the ID of the canned response. For more help with canned responses, visit <https://ticketsbot.net#canned>.")
 		ctx.ReactWithCross()

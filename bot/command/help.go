@@ -27,7 +27,7 @@ func (HelpCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (HelpCommand) Execute(ctx CommandContext) {
+func (HelpCommand) Execute(ctx utils.CommandContext) {
 	msg := ""
 	for _, cmd := range Commands {
 		msg += fmt.Sprintf("`%s%s` - %s\n", config.Conf.Bot.Prefix, cmd.Name(), cmd.Description())

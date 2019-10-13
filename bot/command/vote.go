@@ -23,7 +23,7 @@ func (VoteCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (VoteCommand) Execute(ctx CommandContext) {
+func (VoteCommand) Execute(ctx utils.CommandContext) {
 	ctx.ReactWithCheck()
 	ctx.SendEmbed(utils.Green, "Vote", "Click here to vote for 24 hours of free premium:\nhttps://vote.ticketsbot.net")
 }

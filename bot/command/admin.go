@@ -26,7 +26,7 @@ func (AdminCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (AdminCommand) Execute(ctx CommandContext) {
+func (AdminCommand) Execute(ctx utils.CommandContext) {
 	msg := "Select a subcommand:\n"
 
 	children := AdminCommand{}.Children()

@@ -29,7 +29,7 @@ func (CloseCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (CloseCommand) Execute(ctx CommandContext) {
+func (CloseCommand) Execute(ctx utils.CommandContext) {
 	channelId, err := strconv.ParseInt(ctx.Channel, 10, 64); if err != nil {
 		sentry.Error(err)
 		return

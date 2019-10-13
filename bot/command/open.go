@@ -30,7 +30,7 @@ func (OpenCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (OpenCommand) Execute(ctx CommandContext) {
+func (OpenCommand) Execute(ctx utils.CommandContext) {
 	ch := make(chan int64)
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {

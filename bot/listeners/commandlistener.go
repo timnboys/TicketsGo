@@ -95,14 +95,14 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 	}
 
 	premiumChan := make(chan bool)
-	go utils.IsPremiumGuild(command.CommandContext{
+	go utils.IsPremiumGuild(bot.CommandContext{
 		Session: s,
 		Guild: e.GuildID,
 		GuildId: guildId,
 	}, premiumChan)
 	premiumGuild := <-premiumChan
 
-	ctx := command.CommandContext{
+	ctx := bot.CommandContext{
 		Session:     s,
 		User:        *e.Author,
 		UserID:      userId,

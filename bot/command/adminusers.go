@@ -25,7 +25,7 @@ func (AdminUsersCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (AdminUsersCommand) Execute(ctx CommandContext) {
+func (AdminUsersCommand) Execute(ctx utils.CommandContext) {
 	count := 0
 	for _, guild := range ctx.Session.State.Guilds {
 		count += guild.MemberCount

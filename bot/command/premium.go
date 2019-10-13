@@ -29,7 +29,7 @@ func (PremiumCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Admin
 }
 
-func (PremiumCommand) Execute(ctx CommandContext) {
+func (PremiumCommand) Execute(ctx utils.CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
 		sentry.Error(err)
 		return

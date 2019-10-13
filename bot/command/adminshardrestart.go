@@ -25,7 +25,7 @@ func (AdminShardRestartCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (AdminShardRestartCommand) Execute(ctx CommandContext) {
+func (AdminShardRestartCommand) Execute(ctx utils.CommandContext) {
 	if err := ctx.Session.Close(); err != nil {
 		sentry.Error(err)
 		return

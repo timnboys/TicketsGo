@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/TicketsBot/TicketsGo/bot/command"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -20,7 +19,7 @@ type ProxyResponse struct {
 
 var premiumCache = cache.New(10 * time.Minute, 10 * time.Minute)
 
-func IsPremiumGuild(ctx command.CommandContext, ch chan bool) {
+func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 	if premium, ok := premiumCache.Get(ctx.Guild); ok {
 		ch<-premium.(bool)
 		return

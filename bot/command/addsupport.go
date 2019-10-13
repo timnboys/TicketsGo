@@ -27,7 +27,7 @@ func (AddSupportCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Admin
 }
 
-func (AddSupportCommand) Execute(ctx CommandContext) {
+func (AddSupportCommand) Execute(ctx utils.CommandContext) {
 	if len(ctx.Message.Mentions) == 0 {
 		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user to grant support representative privileges to")
 		ctx.ReactWithCross()

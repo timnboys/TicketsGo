@@ -27,7 +27,7 @@ func (AddAdminCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Admin
 }
 
-func (AddAdminCommand) Execute(ctx CommandContext) {
+func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 	if len(ctx.Message.Mentions) == 0 {
 		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user to grant admin privileges to")
 		ctx.ReactWithCross()

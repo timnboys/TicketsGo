@@ -26,7 +26,7 @@ func (SetupCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Admin
 }
 
-func (SetupCommand) Execute(ctx CommandContext) {
+func (SetupCommand) Execute(ctx utils.CommandContext) {
 	u := setup.SetupUser{
 		Guild:   ctx.Guild,
 		User:    ctx.User.ID,

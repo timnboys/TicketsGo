@@ -27,7 +27,7 @@ func (AdminDebugCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (AdminDebugCommand) Execute(ctx CommandContext) {
+func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
 		sentry.Error(err)
 		return

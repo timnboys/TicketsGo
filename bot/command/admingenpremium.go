@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/satori/go.uuid"
 	"strconv"
 	"strings"
 )
@@ -28,7 +27,7 @@ func (AdminGeneratePremium) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (AdminGeneratePremium) Execute(ctx CommandContext) {
+func (AdminGeneratePremium) Execute(ctx utils.CommandContext) {
 	if len(ctx.Args) == 0 {
 		ctx.ReactWithCross()
 		return

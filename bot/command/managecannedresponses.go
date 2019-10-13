@@ -26,7 +26,7 @@ func (ManageCannedResponses) PermissionLevel() utils.PermissionLevel {
 	return utils.Support
 }
 
-func (ManageCannedResponses) Execute(ctx CommandContext) {
+func (ManageCannedResponses) Execute(ctx utils.CommandContext) {
 	msg := "Select a subcommand:\n"
 
 	children := ManageCannedResponses{}.Children()

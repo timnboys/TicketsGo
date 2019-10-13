@@ -24,7 +24,7 @@ func (AboutCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (AboutCommand) Execute(ctx CommandContext) {
+func (AboutCommand) Execute(ctx utils.CommandContext) {
 	ctx.SendEmbed(utils.Green, "About", config.Conf.AboutMessage)
 }
 

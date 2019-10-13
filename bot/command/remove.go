@@ -26,7 +26,7 @@ func (RemoveCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (RemoveCommand) Execute(ctx CommandContext) {
+func (RemoveCommand) Execute(ctx utils.CommandContext) {
 	// Check users are mentioned
 	if len(ctx.Message.Mentions) == 0 {
 		ctx.SendEmbed(utils.Red, "Error", "You need to mention members to remove from the ticket")

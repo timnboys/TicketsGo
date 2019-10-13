@@ -25,7 +25,7 @@ func (RemoveSupportCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Admin
 }
 
-func (RemoveSupportCommand) Execute(ctx CommandContext) {
+func (RemoveSupportCommand) Execute(ctx utils.CommandContext) {
 	if len(ctx.Message.Mentions) == 0 {
 		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user to revoke support representative privileges from")
 		ctx.ReactWithCross()

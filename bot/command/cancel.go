@@ -24,7 +24,7 @@ func (CancelCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Admin
 }
 
-func (CancelCommand) Execute(ctx CommandContext) {
+func (CancelCommand) Execute(ctx utils.CommandContext) {
 	u := setup.SetupUser{
 		Guild: ctx.Guild,
 		User: ctx.User.ID,

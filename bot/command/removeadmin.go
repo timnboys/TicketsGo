@@ -25,7 +25,7 @@ func (RemoveAdminCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Admin
 }
 
-func (RemoveAdminCommand) Execute(ctx CommandContext) {
+func (RemoveAdminCommand) Execute(ctx utils.CommandContext) {
 	if len(ctx.Message.Mentions) == 0 {
 		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user to revoke admin privileges from")
 		ctx.ReactWithCross()
