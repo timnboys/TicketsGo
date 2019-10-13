@@ -39,7 +39,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 				return
 			}
 		}
-
+s
 		client := &http.Client{
 			Timeout: time.Second * 3,
 		}
