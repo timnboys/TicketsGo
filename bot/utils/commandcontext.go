@@ -7,15 +7,16 @@ import (
 type CommandContext struct {
 	Session     *discordgo.Session
 	User        discordgo.User
-	UserID		int64
+	UserID      int64
 	Guild       string
-	GuildId 	int64
+	GuildId     int64
 	Channel     string
 	Message     discordgo.Message
 	Root        string
 	Args        []string
 	IsPremium   bool
 	ShouldReact bool
+	OwnerId     string
 }
 
 func (ctx *CommandContext) SendEmbed(colour Colour, title, content string) {
