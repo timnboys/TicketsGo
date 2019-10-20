@@ -46,7 +46,6 @@ key=""
   key=""
 
 [redis]
-enabled=false
 uri="redis://:password@localhost:6379"
 threads=5
 

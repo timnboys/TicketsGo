@@ -14,13 +14,13 @@ import (
 
 func Start(ch chan os.Signal) {
 	discord := dshardmanager.New(fmt.Sprintf("Bot %s", config.Conf.Bot.Token))
-	discord.SetNumShards(config.Conf.Bot.Shading.Total)
+	discord.SetNumShards(config.Conf.Bot.Sharding.Total)
 
 	discord.AddHandler(listeners.OnChannelDelete)
 	discord.AddHandler(listeners.OnCommand)
 	discord.AddHandler(listeners.OnFirstResponse)
 	discord.AddHandler(listeners.OnGuildCreate)
-	discord.AddHandler(listeners.OnMessage)
+	//discord.AddHandler(listeners.OnMessage)
 	discord.AddHandler(listeners.OnGuildCreateUserData)
 	discord.AddHandler(listeners.OnPanelReact)
 	discord.AddHandler(listeners.OnSetupProgress)

@@ -18,7 +18,7 @@ type (
 		Helpers               []string
 		PremiumLookupProxyUrl string `toml:"premium-lookup-proxy-url"`
 		PremiumLookupProxyKey string `toml:"premium-lookup-proxy-key"`
-		Shading               Sharding
+		Sharding               Sharding
 	}
 
 	Sharding struct {
