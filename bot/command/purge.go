@@ -22,7 +22,6 @@ func (PurgeCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (PurgeCommand) Execute(ctx utils.CommandContext) {
-	ctx.SendEmbed(utils.Green, "About", config.Conf.AboutMessage)
 }
 
 func (PurgeCommand) Parent() interface{} {
