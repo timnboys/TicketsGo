@@ -54,7 +54,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 		}
 
 		hasVoted := make(chan bool)
-		database.HasVoted(ownerId, hasVoted)
+		go database.HasVoted(ownerId, hasVoted)
 		if <-hasVoted {
 			ch <- true
 
