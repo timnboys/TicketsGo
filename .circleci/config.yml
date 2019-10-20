@@ -12,17 +12,7 @@ jobs:
           keys:
             - v1-pkg-cache
 
-      - run: go get github.com/BurntSushi/toml
-      - run: go get github.com/apex/log
-      - run: go get github.com/bwmarrin/discordgo
-      - run: go get github.com/getsentry/raven-go
-      - run: go get github.com/robfig/go-cache
-      - run: go get github.com/go-sql-driver/mysql
-      - run: go get github.com/jinzhu/gorm
-      - run: go get github.com/satori/go.uuid
-      - run: go get github.com/jonas747/dshardmanager
-      - run: go get github.com/go-errors/errors
-
+      - run: go get -v ./cmd/tickets/
       - run: go build cmd/tickets/main.go
 
       - store_artifacts:
