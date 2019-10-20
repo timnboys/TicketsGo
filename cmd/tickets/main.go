@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/TicketsBot/TicketsGo/bot"
+	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -17,6 +18,8 @@ func main() {
 
 	database.Connect()
 	database.Setup()
+
+	cache.Client = cache.NewRedisClient()
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
