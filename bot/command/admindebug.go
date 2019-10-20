@@ -1,7 +1,9 @@
 package command
 
 import (
+	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
+	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"strconv"
@@ -45,6 +47,10 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 	sqlConnected := make(chan bool)
 	go database.IsConnected(sqlConnected)
 
+	// Get if Redis is connected
+	redisConnected := make(chan bool)
+	go cache.Client.IsConnected(redisConnected)
+
 	// Get ticket category
 	ticketCategoryChan := make(chan int64)
 	go database.GetCategory(guildId, ticketCategoryChan)
@@ -56,9 +62,24 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 		}
 	}
 
+	// Get owner
+	invalidOwner := false
+	owner, err := ctx.Session.State.Member(guild.ID, guild.OwnerID); if err != nil {
+		owner, err = ctx.Session.GuildMember(guild.ID, guild.OwnerID); if err != nil {
+			invalidOwner = true
+		}
+	}
+
+	var ownerFormatted string
+	if invalidOwner {
+		ownerFormatted = guild.OwnerID
+	} else {
+		ownerFormatted = fmt.Sprintf("%s#%s", owner.User.Username, owner.User.Discriminator)
+	}
+
 	// Get archive channel
 	//archiveChannelChan := make(chan int64)
-	//go database.Get
+	//go database.GetArchiveChannel()
 
 	embed := utils.NewEmbed().
 		SetTitle("Admin").
@@ -66,10 +87,10 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 
 		AddField("Shard", strconv.Itoa(ctx.Session.ShardID), true).
 		AddField("SQL Is Connected", strconv.FormatBool(<-sqlConnected), true).
-		AddField("Redis Is Connected", "false", true).
+		AddField("Redis Is Connected", strconv.FormatBool(<-redisConnected), true).
 
 		AddField("Ticket Category", ticketCategory, true).
-		//AddField()
+		AddField("Owner", ownerFormatted, true).
 
 		MessageEmbed
 

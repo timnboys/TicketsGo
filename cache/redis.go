@@ -24,3 +24,7 @@ func NewRedisClient() RedisClient {
 		client,
 	}
 }
+
+func (c *RedisClient) IsConnected(ch chan bool) {
+	ch <- c.Conn().Ping().Err() == nil
+}
