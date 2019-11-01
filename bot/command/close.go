@@ -74,7 +74,11 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	go database.GetOwner(id, guildId, ownerChan)
 	owner := <-ownerChan
 
-	if permissionlevel == 0 && strconv.Itoa(int(owner)) != ctx.User.ID {
+	usersCanCloseChan := make(chan bool)
+	go database.IsUserCanClose(guildId, usersCanCloseChan)
+	usersCanClose := <-usersCanCloseChan
+
+	if (permissionlevel == 0 && strconv.Itoa(int(owner)) != ctx.User.ID) || (permissionlevel == 0 && !usersCanClose) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "You are not permitted to close this ticket")
 		return

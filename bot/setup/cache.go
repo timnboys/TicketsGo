@@ -50,7 +50,8 @@ func (u *SetupUser) Finish() {
 		"`t!addadmin @User`\n" +
 		"`t!removadmin @User`\n" +
 		"`t!addsupport @User`\n" +
-		"`t!removesupprt @User`"
+		"`t!removesupprt @User`\n" +
+		"You can access more settings on the web panel at <https://panel.ticketsbot.net>"
 
 	// Psuedo-premium
 	utils.SendEmbed(u.Session, u.Channel, utils.Green, "Setup", msg, 30, true)
