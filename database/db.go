@@ -54,6 +54,7 @@ func Setup() {
 		TicketFirstResponse{},
 		TicketLimit{},
 		Ticket{},
+		UserCanClose{},
 		UserData{},
 		WelcomeMessage{},
 		)
