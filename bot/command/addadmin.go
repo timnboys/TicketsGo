@@ -69,7 +69,9 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 			Position: ch.Position,
 		}
 
-		_, _ = ctx.Session.ChannelEditComplex(strconv.Itoa(int(*channelId)), &data)
+		if _, err = ctx.Session.ChannelEditComplex(strconv.Itoa(int(*channelId)), &data); err != nil {
+			sentry.Error(err)
+		}
 	}
 
 	ctx.ReactWithCheck()
