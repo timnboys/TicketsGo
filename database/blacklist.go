@@ -1,8 +1,9 @@
 package database
 
 type Blacklist struct {
-	Guild int64  `gorm:"column:GUILDID"`
-	User  int64 `gorm:"column:USERID"`
+	AssocId int   `gorm:"column:ASSOCID;AUTO_INCREMENT;primary_key"`
+	Guild   int64 `gorm:"column:GUILDID"`
+	User    int64 `gorm:"column:USERID"`
 }
 
 func (Blacklist) TableName() string {
@@ -16,7 +17,9 @@ func IsBlacklisted(guild int64, user int64, ch chan bool) {
 }
 
 func RemoveBlacklist(guild int64, user int64) {
-	Db.Delete(&Blacklist{Guild: guild, User: user})
+	var node Blacklist
+	Db.Where(Blacklist{Guild: guild, User: user}).Take(&node)
+	Db.Delete(&node)
 }
 
 func AddBlacklist(guild int64, user int64) {
