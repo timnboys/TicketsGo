@@ -39,7 +39,7 @@ func (ArchiveChannelStage) Process(session *discordgo.Session, msg discordgo.Mes
 
 	found := utils.ChannelMentionRegex.FindStringSubmatch(msg.Content)
 	if len(found) == 0 {
-		utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", "You need to mention a ticket channel to add the user(s) in", 15, true)
+		utils.SendEmbed(session, msg.ChannelId, utils.Red, "Error", "You need to mention a ticket channel to add the user(s) in", 15, true)
 		utils.ReactWithCross(session, msg)
 		return
 	}

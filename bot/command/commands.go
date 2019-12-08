@@ -15,6 +15,7 @@ var Commands = []Command{
 	OpenCommand{},
 	PanelCommand{},
 	PremiumCommand{},
+	PurgeCommand{},
 	RemoveCommand{},
 	RemoveAdminCommand{},
 	AdminResetCommand{},

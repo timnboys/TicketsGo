@@ -51,10 +51,10 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 
 	// Create reason
 	var reason string
-	//silentClose := false
+	silentClose := false
 	for _, arg := range ctx.Args {
 		if arg == "--silent" {
-		//	silentClose = true
+			silentClose = true
 		} else {
 			reason += fmt.Sprintf("%s ", arg)
 		}
@@ -181,40 +181,44 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		}
 
 		// Notify user and send logs in DMs
-		guild, err := ctx.Session.State.Guild(ctx.Guild); if err != nil {
-			// Not cached
-			guild, err = ctx.Session.Guild(ctx.Guild); if err != nil {
-				sentry.Error(err)
-				return
+		if !silentClose {
+			guild, err := ctx.Session.State.Guild(ctx.Guild);
+			if err != nil {
+				// Not cached
+				guild, err = ctx.Session.Guild(ctx.Guild);
+				if err != nil {
+					sentry.Error(err)
+					return
+				}
 			}
-		}
 
-		var content string
-		// Create message content
-		if userId == owner {
-			content = fmt.Sprintf("You closed your ticket (`#ticket-%d`) in `%s`", id, guild.Name)
-		} else if len(ctx.Args) == 0 {
-			content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s", id, guild.Name, ctx.User.Mention())
-		} else {
-			content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s with reason `%s`", id, guild.Name, ctx.User.Mention(), reason)
-		}
+			var content string
+			// Create message content
+			if userId == owner {
+				content = fmt.Sprintf("You closed your ticket (`#ticket-%d`) in `%s`", id, guild.Name)
+			} else if len(ctx.Args) == 0 {
+				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s", id, guild.Name, ctx.User.Mention())
+			} else {
+				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s with reason `%s`", id, guild.Name, ctx.User.Mention(), reason)
+			}
 
-		privateMessage, err := ctx.Session.UserChannelCreate(strconv.Itoa(int(owner)))
-		// Only send the msg if we could create the channel
-		if err == nil {
-			data := discordgo.MessageSend{
-				Content: content,
-				Files: []*discordgo.File{
-					{
-						Name: fmt.Sprintf("ticket-%d.txt", id),
-						ContentType: "text/plain",
-						Reader: strings.NewReader(logs),
+			privateMessage, err := ctx.Session.UserChannelCreate(strconv.Itoa(int(owner)))
+			// Only send the msg if we could create the channel
+			if err == nil {
+				data := discordgo.MessageSend{
+					Content: content,
+					Files: []*discordgo.File{
+						{
+							Name:        fmt.Sprintf("ticket-%d.txt", id),
+							ContentType: "text/plain",
+							Reader:      strings.NewReader(logs),
+						},
 					},
-				},
-			}
+				}
 
-			// Errors occur when users have privacy settings high
-			_, _ = ctx.Session.ChannelMessageSendComplex(privateMessage.ID, &data)
+				// Errors occur when users have privacy settings high
+				_, _ = ctx.Session.ChannelMessageSendComplex(privateMessage.ID, &data)
+			}
 		}
 
 		// Set ticket state as closed and delete channel

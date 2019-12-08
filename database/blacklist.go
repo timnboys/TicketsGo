@@ -1,7 +1,7 @@
 package database
 
 type Blacklist struct {
-	AssocId int   `gorm:"column:ASSOCID;AUTO_INCREMENT;primary_key"`
+	AssocId int   `gorm:"column:ASSOCID;type:int;primary_key;auto_increment"`
 	Guild   int64 `gorm:"column:GUILDID"`
 	User    int64 `gorm:"column:USERID"`
 }
