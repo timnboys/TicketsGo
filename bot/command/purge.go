@@ -96,14 +96,14 @@ For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time peri
 				GuildId:     ctx.GuildId,
 				Channel:     channelId,
 				Message:     ctx.Message,
-				Root:        "t!close",
+				Root:        "close",
 				Args:        strings.Split(reason, " "),
 				IsPremium:   ctx.IsPremium,
 				ShouldReact: ctx.ShouldReact,
 				OwnerId:     ctx.OwnerId,
 			}
 
-			CloseCommand{}.Execute(fakeContext)
+			go CloseCommand{}.Execute(fakeContext)
 		}
 	}
 

@@ -73,6 +73,6 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 			ShouldReact: false,
 		}
 
-		command.OpenCommand{}.Execute(ctx)
+		go command.OpenCommand{}.Execute(ctx)
 	}
 }
