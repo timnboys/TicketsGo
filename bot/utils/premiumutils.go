@@ -99,11 +99,10 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 			return
 		}
 
-		err = premiumCache.Add(ctx.Guild, proxyResponse.Premium, 10 * time.Minute)
-
-		if err != nil {
-			sentry.Error(err)
-		}
+		// I think we can safely ignore this error as it's caused by a race condition
+		// which doesn't have any negative effects - it'd mean we have to lock the entire map
+		// while performing a lookup
+		_ = premiumCache.Add(ctx.Guild, proxyResponse.Premium, 10 * time.Minute)
 
 		ch <-proxyResponse.Premium
 	}

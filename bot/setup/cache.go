@@ -2,7 +2,7 @@ package setup
 
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
-	"github.com/robfig/go-cache"
+	"github.com/patrickmn/go-cache"
 	"time"
 )
 
