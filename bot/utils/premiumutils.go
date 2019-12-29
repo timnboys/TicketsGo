@@ -21,7 +21,11 @@ type ProxyResponse struct {
 var premiumCache = cache.New(10 * time.Minute, 10 * time.Minute)
 
 func IsPremiumGuild(ctx CommandContext, ch chan bool) {
-	if premium, ok := premiumCache.Get(ctx.Guild); ok {
+	premiumCache.Lock()
+	premium, ok := premiumCache.Get(ctx.Guild)
+	premiumCache.Unlock()
+
+	if ok {
 		ch<-premium.(bool)
 		return
 	}
@@ -31,7 +35,11 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 	go database.IsPremium(ctx.GuildId, keyLookup)
 
 	if <-keyLookup {
-		if err := premiumCache.Add(ctx.Guild, true, 10 * time.Minute); err != nil {
+		premiumCache.Lock()
+		err := premiumCache.Add(ctx.Guild, true, 10 * time.Minute)
+		premiumCache.Unlock()
+
+		if err != nil {
 			sentry.Error(err)
 		}
 
@@ -93,9 +101,14 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 			return
 		}
 
-		if err := premiumCache.Add(ctx.Guild, proxyResponse.Premium, 10 * time.Minute); err != nil {
+		premiumCache.Lock()
+		err = premiumCache.Add(ctx.Guild, proxyResponse.Premium, 10 * time.Minute)
+		premiumCache.Unlock()
+
+		if err != nil {
 			sentry.Error(err)
 		}
+
 		ch <-proxyResponse.Premium
 	}
 }
