@@ -66,7 +66,11 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 		if <-hasVoted {
 			ch <- true
 
-			if err := premiumCache.Add(ctx.Guild, true, 10 * time.Minute); err != nil {
+			premiumCache.Lock()
+			err = premiumCache.Add(ctx.Guild, true, 10 * time.Minute)
+			premiumCache.Unlock()
+
+			if err != nil {
 				sentry.Error(err)
 			}
 
