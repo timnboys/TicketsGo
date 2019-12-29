@@ -6,7 +6,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/robfig/go-cache"
+	"github.com/patrickmn/go-cache"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -21,9 +21,7 @@ type ProxyResponse struct {
 var premiumCache = cache.New(10 * time.Minute, 10 * time.Minute)
 
 func IsPremiumGuild(ctx CommandContext, ch chan bool) {
-	premiumCache.Lock()
 	premium, ok := premiumCache.Get(ctx.Guild)
-	premiumCache.Unlock()
 
 	if ok {
 		ch<-premium.(bool)
@@ -35,9 +33,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 	go database.IsPremium(ctx.GuildId, keyLookup)
 
 	if <-keyLookup {
-		premiumCache.Lock()
 		err := premiumCache.Add(ctx.Guild, true, 10 * time.Minute)
-		premiumCache.Unlock()
 
 		if err != nil {
 			sentry.Error(err)
@@ -66,9 +62,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 		if <-hasVoted {
 			ch <- true
 
-			premiumCache.Lock()
 			err = premiumCache.Add(ctx.Guild, true, 10 * time.Minute)
-			premiumCache.Unlock()
 
 			if err != nil {
 				sentry.Error(err)
@@ -105,9 +99,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 			return
 		}
 
-		premiumCache.Lock()
 		err = premiumCache.Add(ctx.Guild, proxyResponse.Premium, 10 * time.Minute)
-		premiumCache.Unlock()
 
 		if err != nil {
 			sentry.Error(err)
