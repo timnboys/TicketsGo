@@ -15,17 +15,32 @@ func OnFirstResponse(s *discordgo.Session, e *discordgo.MessageCreate) {
 	}
 
 	channelId, err := strconv.ParseInt(e.ChannelID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   e.GuildID,
+			User:    e.Author.ID,
+			Channel: e.ChannelID,
+			Shard:   s.ShardID,
+		})
 		return
 	}
 
 	guildId, err := strconv.ParseInt(e.GuildID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   e.GuildID,
+			User:    e.Author.ID,
+			Channel: e.ChannelID,
+			Shard:   s.ShardID,
+		})
 		return
 	}
 
 	userId, err := strconv.ParseInt(e.Author.ID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   e.GuildID,
+			User:    e.Author.ID,
+			Channel: e.ChannelID,
+			Shard:   s.ShardID,
+		})
 		return
 	}
 

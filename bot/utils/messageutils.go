@@ -59,12 +59,22 @@ func DeleteAfter(msg SentMessage, secs int) {
 
 func ReactWithCheck(session *discordgo.Session, msg *discordgo.Message) {
 	if err := session.MessageReactionAdd(msg.ChannelID, msg.ID, "✅"); err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   msg.GuildID,
+			User:    msg.Author.ID,
+			Channel: msg.ChannelID,
+			Shard:   session.ShardID,
+		})
 	}
 }
 
 func ReactWithCross(session *discordgo.Session, msg discordgo.Message) {
 	if err := session.MessageReactionAdd(msg.ChannelID, msg.ID, "❌"); err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   msg.GuildID,
+			User:    msg.Author.ID,
+			Channel: msg.ChannelID,
+			Shard:   session.ShardID,
+		})
 	}
 }

@@ -66,7 +66,7 @@ func (AddCommand) Execute(ctx utils.CommandContext) {
 	ticketId := <- ticketIdChan
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
@@ -98,7 +98,7 @@ func (AddCommand) Execute(ctx utils.CommandContext) {
 			0)
 
 		if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		}
 	}
 

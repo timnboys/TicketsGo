@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
+	"strings"
 )
 
 type CommandContext struct {
@@ -17,6 +19,18 @@ type CommandContext struct {
 	IsPremium   bool
 	ShouldReact bool
 	OwnerId     string
+}
+
+func (ctx *CommandContext) ToErrorContext() sentry.ErrorContext {
+	return sentry.ErrorContext{
+		Guild:       ctx.Guild,
+		User:        ctx.User.ID,
+		Channel:     ctx.Channel,
+		Shard:       ctx.Session.ShardID,
+		Command:     ctx.Root + " " + strings.Join(ctx.Args, " "),
+		Premium:     ctx.IsPremium,
+		Permissions: ctx.GetCachedPermissions(ctx.Channel),
+	}
 }
 
 func (ctx *CommandContext) SendEmbed(colour Colour, title, content string) {
@@ -57,4 +71,12 @@ func (ctx *CommandContext) MemberHasPermission(user string, permission Permissio
 	} else {
 		MemberHasPermission(ctx.Session, ctx.Guild, user, permission, ch)
 	}
+}
+
+func (ctx *CommandContext) GetCachedPermissions(ch string) []*discordgo.PermissionOverwrite {
+	channel, err := ctx.Session.State.Channel(ch); if err != nil {
+		return make([]*discordgo.PermissionOverwrite, 0)
+	}
+
+	return channel.PermissionOverwrites
 }

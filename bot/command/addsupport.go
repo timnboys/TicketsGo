@@ -40,7 +40,7 @@ func (AddSupportCommand) Execute(ctx utils.CommandContext) {
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
 		ctx.ReactWithCross()
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
@@ -70,7 +70,7 @@ func (AddSupportCommand) Execute(ctx utils.CommandContext) {
 		}
 
 		if _, err = ctx.Session.ChannelEditComplex(strconv.Itoa(int(*channelId)), &data); err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		}
 	}
 

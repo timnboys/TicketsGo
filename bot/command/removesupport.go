@@ -34,7 +34,7 @@ func (RemoveSupportCommand) Execute(ctx utils.CommandContext) {
 
 	// Get guild obj
 	guild, err := ctx.Session.Guild(ctx.Guild); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		ctx.ReactWithCross()
 		return
 	}

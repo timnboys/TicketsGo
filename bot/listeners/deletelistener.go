@@ -7,9 +7,13 @@ import (
 	"strconv"
 )
 
-func OnChannelDelete(_ *discordgo.Session, e *discordgo.ChannelDelete) {
+func OnChannelDelete(s *discordgo.Session, e *discordgo.ChannelDelete) {
 	channelId, err := strconv.ParseInt(e.ID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   e.GuildID,
+			Channel: e.Channel.ID,
+			Shard:   s.ShardID,
+		})
 		return
 	}
 

@@ -31,12 +31,12 @@ func (CloseCommand) PermissionLevel() utils.PermissionLevel {
 
 func (CloseCommand) Execute(ctx utils.CommandContext) {
 	channelId, err := strconv.ParseInt(ctx.Channel, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
@@ -161,7 +161,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		}
 
 		userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			return
 		}
 
@@ -187,7 +187,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 				// Not cached
 				guild, err = ctx.Session.Guild(ctx.Guild);
 				if err != nil {
-					sentry.Error(err)
+					sentry.ErrorWithContext(err, ctx.ToErrorContext())
 					return
 				}
 			}
@@ -224,7 +224,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		// Set ticket state as closed and delete channel
 		go database.Close(guildId, id)
 		if _, err = ctx.Session.ChannelDelete(ctx.Channel); err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		}
 	}
 }

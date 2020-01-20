@@ -36,12 +36,12 @@ func (CannedResponseCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
 	channelId, err := strconv.ParseInt(ctx.Channel, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
@@ -68,7 +68,7 @@ func (CannedResponseCommand) Execute(ctx utils.CommandContext) {
 
 	ctx.ReactWithCheck()
 	if _, err = ctx.Session.ChannelMessageSend(ctx.Channel, content); err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 	}
 }
 

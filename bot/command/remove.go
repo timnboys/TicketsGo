@@ -36,7 +36,7 @@ func (RemoveCommand) Execute(ctx utils.CommandContext) {
 
 	// Verify that the current channel is a real ticket
 	channelId, err := strconv.ParseInt(ctx.Channel, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
@@ -56,7 +56,7 @@ func (RemoveCommand) Execute(ctx utils.CommandContext) {
 	ticketId := <- ticketIdChan
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
@@ -88,7 +88,7 @@ func (RemoveCommand) Execute(ctx utils.CommandContext) {
 			utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks))
 
 		if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		}
 	}
 

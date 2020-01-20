@@ -32,7 +32,12 @@ func (PrefixStage) Process(session *discordgo.Session, msg discordgo.Message) {
 	}
 
 	guild, err := strconv.ParseInt(msg.GuildID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   msg.GuildID,
+			User:    msg.Author.ID,
+			Channel: msg.ChannelID,
+			Shard:   session.ShardID,
+		})
 		return
 	}
 

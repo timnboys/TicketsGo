@@ -11,17 +11,32 @@ import (
 
 func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 	msgId, err := strconv.ParseInt(e.MessageID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   e.GuildID,
+			User:    e.UserID,
+			Channel: e.ChannelID,
+			Shard:   s.ShardID,
+		})
 		return
 	}
 
 	userId, err := strconv.ParseInt(e.UserID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   e.GuildID,
+			User:    e.UserID,
+			Channel: e.ChannelID,
+			Shard:   s.ShardID,
+		})
 		return
 	}
 
 	guildId, err := strconv.ParseInt(e.GuildID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   e.GuildID,
+			User:    e.UserID,
+			Channel: e.ChannelID,
+			Shard:   s.ShardID,
+		})
 		return
 	}
 
@@ -29,7 +44,12 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 	go database.IsPanel(msgId, isPanel)
 	if <-isPanel {
 		user, err := s.User(e.UserID); if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, sentry.ErrorContext{
+				Guild:   e.GuildID,
+				User:    e.UserID,
+				Channel: e.ChannelID,
+				Shard:   s.ShardID,
+			})
 			return
 		}
 
@@ -38,7 +58,12 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		}
 
 		if err = s.MessageReactionRemove(e.ChannelID, e.MessageID, "📩", e.UserID); err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, sentry.ErrorContext{
+				Guild:   e.GuildID,
+				User:    e.UserID,
+				Channel: e.ChannelID,
+				Shard:   s.ShardID,
+			})
 		}
 
 		blacklisted := make(chan bool)
@@ -48,7 +73,12 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		}
 
 		msg, err := s.ChannelMessage(e.ChannelID, e.MessageID); if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, sentry.ErrorContext{
+				Guild:   e.GuildID,
+				User:    e.UserID,
+				Channel: e.ChannelID,
+				Shard:   s.ShardID,
+			})
 			return
 		}
 

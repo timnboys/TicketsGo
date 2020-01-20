@@ -30,7 +30,7 @@ func (StatsCommand) PermissionLevel() utils.PermissionLevel {
 
 func (StatsCommand) Execute(ctx utils.CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
@@ -49,7 +49,7 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 
 	user := ctx.Message.Mentions[0]
 	userId, err := strconv.ParseInt(user.ID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 

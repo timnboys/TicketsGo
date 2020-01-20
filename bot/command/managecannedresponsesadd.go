@@ -29,7 +29,7 @@ func (ManageCannedResponsesAdd) PermissionLevel() utils.PermissionLevel {
 
 func (ManageCannedResponsesAdd) Execute(ctx utils.CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 

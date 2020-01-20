@@ -83,7 +83,7 @@ For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time peri
 
 		lastMsg := msgs[0]
 		time, err := lastMsg.Timestamp.Parse(); if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			continue
 		}
 

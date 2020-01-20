@@ -28,7 +28,7 @@ func (PanelCommand) PermissionLevel() utils.PermissionLevel {
 
 func (PanelCommand) Execute(ctx utils.CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
@@ -46,7 +46,7 @@ func (PanelCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	msg, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
@@ -56,7 +56,7 @@ func (PanelCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	msgId, err := strconv.ParseInt(msg.ID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 

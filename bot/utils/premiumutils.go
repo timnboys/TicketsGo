@@ -36,7 +36,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 		err := premiumCache.Add(ctx.Guild, true, 10 * time.Minute)
 
 		if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		}
 
 		ch<-true
@@ -44,7 +44,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 		// Get guild object
 		guild, err := ctx.Session.State.Guild(ctx.Guild); if err != nil {
 			guild, err = ctx.Session.Guild(ctx.Guild); if err != nil {
-				sentry.Error(err)
+				sentry.ErrorWithContext(err, ctx.ToErrorContext())
 				ch<-false
 				return
 			}
@@ -52,7 +52,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 
 		// Lookup votes
 		ownerId, err := strconv.ParseInt(guild.OwnerID, 10, 64); if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			ch <- false
 			return
 		}
@@ -65,7 +65,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 			err = premiumCache.Add(ctx.Guild, true, 10 * time.Minute)
 
 			if err != nil {
-				sentry.Error(err)
+				sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			}
 
 			return
@@ -80,21 +80,21 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 		req, err := http.NewRequest("GET", url, nil)
 
 		res, err := client.Do(req); if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			ch<-false
 			return
 		}
 		defer res.Body.Close()
 
 		content, err := ioutil.ReadAll(res.Body); if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			ch<-false
 			return
 		}
 
 		var proxyResponse ProxyResponse
 		if err = json.Unmarshal(content, &proxyResponse); err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			ch<-false
 			return
 		}

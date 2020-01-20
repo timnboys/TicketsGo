@@ -8,18 +8,25 @@ import (
 	"strconv"
 )
 
-func OnUserUpdate(_ *discordgo.Session, e *discordgo.UserUpdate) {
+func OnUserUpdate(s *discordgo.Session, e *discordgo.UserUpdate) {
 	id, err := strconv.ParseInt(e.User.ID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			User:  e.User.ID,
+			Shard: s.ShardID,
+		})
 		return
 	}
 
 	go database.UpdateUser(id, e.Username, e.Discriminator, e.Avatar)
 }
 
-func OnUserJoin(_ *discordgo.Session, e *discordgo.GuildMemberAdd) {
+func OnUserJoin(s *discordgo.Session, e *discordgo.GuildMemberAdd) {
 	id, err := strconv.ParseInt(e.User.ID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild: e.GuildID,
+			User:  e.User.ID,
+			Shard: s.ShardID,
+		})
 		return
 	}
 

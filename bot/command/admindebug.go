@@ -31,14 +31,14 @@ func (AdminDebugCommand) PermissionLevel() utils.PermissionLevel {
 
 func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
 	guild, err := ctx.Session.State.Guild(ctx.Guild); if err != nil {
 		// Not cached
 		guild, err = ctx.Session.Guild(ctx.Guild); if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			return
 		}
 	}
@@ -95,7 +95,7 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 		MessageEmbed
 
 	msg, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 

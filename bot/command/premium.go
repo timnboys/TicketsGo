@@ -31,7 +31,7 @@ func (PremiumCommand) PermissionLevel() utils.PermissionLevel {
 
 func (PremiumCommand) Execute(ctx utils.CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
@@ -72,7 +72,7 @@ func (PremiumCommand) Execute(ctx utils.CommandContext) {
 		length := <-lengthChan
 
 		userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			return
 		}
 

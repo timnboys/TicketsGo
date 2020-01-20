@@ -34,7 +34,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	ch := make(chan int64)
 
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
@@ -111,7 +111,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	ticketLimit := <- ticketLimitChan
 
 	userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
@@ -226,13 +226,13 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	c, err := ctx.Session.GuildChannelCreateComplex(ctx.Guild, data)
 	if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
 	// UpdateUser channel in DB
 	channelId, err := strconv.ParseInt(c.ID, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 	go database.SetTicketChannel(id, guildId, channelId)
@@ -291,10 +291,10 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	if pingEveryone {
 		msg, err := ctx.Session.ChannelMessageSend(c.ID, "@everyone")
 		if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		} else {
 			if err = ctx.Session.ChannelMessageDelete(c.ID, msg.ID); err != nil {
-				sentry.Error(err)
+				sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			}
 		}
 	}

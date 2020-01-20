@@ -29,7 +29,7 @@ func (StatsServerCommand) PermissionLevel() utils.PermissionLevel {
 
 func (StatsServerCommand) Execute(ctx utils.CommandContext) {
 	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
-		sentry.Error(err)
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 

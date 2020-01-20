@@ -21,7 +21,11 @@ func GetPermissionLevel(session *discordgo.Session, guild string, user string, c
 		// Not cached
 		g, err = session.Guild(guild)
 		if err != nil {
-			sentry.Error(err)
+			sentry.ErrorWithContext(err, sentry.ErrorContext{
+				Guild: guild,
+				User:  user,
+				Shard: session.ShardID,
+			})
 		}
 	}
 
