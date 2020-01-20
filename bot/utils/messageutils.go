@@ -48,8 +48,12 @@ func SendEmbed(session *discordgo.Session, channel string, colour Colour, title,
 func DeleteAfter(msg SentMessage, secs int) {
 	go func() {
 		time.Sleep(time.Duration(secs) * time.Second)
-		// Explicitly ignore error, pretty much always a 404
-		_ = msg.Session.ChannelMessageDelete(msg.Message.ChannelID, msg.Message.ID)
+
+		// Fix a panic
+		if msg.Message != nil && msg.Session != nil{
+			// Explicitly ignore error, pretty much always a 404
+			_ = msg.Session.ChannelMessageDelete(msg.Message.ChannelID, msg.Message.ID)
+		}
 	}()
 }
 
