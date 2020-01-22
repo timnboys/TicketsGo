@@ -27,10 +27,10 @@ func IsClientNull() bool {
 	return Client.Client == nil
 }
 
-func (c *StatsdClient) IncrementMessages() {
+func IncrementKey(key Key) {
 	if IsClientNull() {
 		return
 	}
 
-	c.Increment("messages")
+	Client.Increment(key.String())
 }

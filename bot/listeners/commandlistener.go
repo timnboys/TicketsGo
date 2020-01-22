@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 	"strings"
@@ -154,6 +155,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		}
 
 		go c.Execute(ctx)
+		go statsd.IncrementKey(statsd.COMMANDS)
 
 		utils.DeleteAfter(utils.SentMessage{Session: s, Message: e.Message}, 30)
 	}

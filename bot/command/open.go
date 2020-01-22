@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
@@ -303,6 +304,8 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		// Let the user know the ticket has been opened
 		ctx.SendEmbed(utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", c.Mention()))
 	}
+
+	go statsd.IncrementKey(statsd.TICKETS)
 }
 
 func (OpenCommand) Parent() interface{} {

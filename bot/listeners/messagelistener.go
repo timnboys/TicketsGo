@@ -18,7 +18,7 @@ func OnMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 		return
 	}
 
-	go statsd.Client.IncrementMessages()
+	go statsd.IncrementKey(statsd.MESSAGES)
 
 	premiumChan := make(chan bool)
 	go utils.IsPremiumGuild(utils.CommandContext{
