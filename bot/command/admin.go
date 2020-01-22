@@ -48,6 +48,7 @@ func (AdminCommand) Children() []Command {
 		AdminDebugCommand{},
 		AdminGeneratePremium{},
 		AdminResetCommand{},
+		AdminSeedMetrics{},
 		AdminShardRestartCommand{},
 		AdminUsersCommand{},
 	}

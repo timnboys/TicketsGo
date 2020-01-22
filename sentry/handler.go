@@ -20,14 +20,30 @@ type ErrorContext struct {
 
 func Error(e error) {
 	wrapped := errors.New(e)
-	raven.Capture(ConstructPacket(wrapped), nil)
+	raven.Capture(ConstructErrorPacket(wrapped), nil)
 }
+
+func LogWithContext(e error, ctx ErrorContext) {
+	perms, _ := json.Marshal(ctx.Permissions)
+
+	wrapped := errors.New(e)
+	raven.Capture(ConstructPacket(wrapped, raven.INFO), map[string]string{
+		"guild":       ctx.Guild,
+		"user":        ctx.User,
+		"channel":     ctx.Channel,
+		"shard":       strconv.Itoa(ctx.Shard),
+		"command":     ctx.Command,
+		"premium":     strconv.FormatBool(ctx.Premium),
+		"permissions": string(perms),
+	})
+}
+
 
 func ErrorWithContext(e error, ctx ErrorContext) {
 	perms, _ := json.Marshal(ctx.Permissions)
 
 	wrapped := errors.New(e)
-	raven.Capture(ConstructPacket(wrapped), map[string]string{
+	raven.Capture(ConstructErrorPacket(wrapped), map[string]string{
 		"guild":       ctx.Guild,
 		"user":        ctx.User,
 		"channel":     ctx.Channel,

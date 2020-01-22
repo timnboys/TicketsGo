@@ -4,6 +4,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 )
@@ -16,6 +17,8 @@ func OnMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 	channelId, err := strconv.ParseInt(e.ChannelID, 10, 64); if err != nil {
 		return
 	}
+
+	go statsd.Client.IncrementMessages()
 
 	premiumChan := make(chan bool)
 	go utils.IsPremiumGuild(utils.CommandContext{

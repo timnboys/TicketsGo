@@ -215,6 +215,12 @@ func GetTotalTicketsFromUser(guild int64, user int64, ch chan int) {
 	ch <- count
 }
 
+func GetGlobalTicketCount(ch chan int) {
+	var count int
+	Db.Where(Ticket{}).Count(&count)
+	ch <- count
+}
+
 func Close(guild int64, ticket int) {
 	node := Ticket{Id: ticket, Guild: guild}
 	Db.Model(&node).Where(node).Update("OPEN", false)

@@ -15,7 +15,11 @@ func Connect() {
 	}
 }
 
-func ConstructPacket(e *errors.Error) *raven.Packet {
+func ConstructErrorPacket(e *errors.Error) *raven.Packet {
+	return ConstructPacket(e, raven.ERROR)
+}
+
+func ConstructPacket(e *errors.Error, level raven.Severity) *raven.Packet {
 	hostname, err := os.Hostname(); if err != nil {
 		hostname = "null"
 		Error(err)
@@ -30,7 +34,7 @@ func ConstructPacket(e *errors.Error) *raven.Packet {
 		Extra: extra,
 		Project: "tickets-bot",
 		Timestamp: raven.Timestamp(time.Now()),
-		Level: raven.ERROR,
+		Level: level,
 		ServerName: hostname,
 	}
 }
