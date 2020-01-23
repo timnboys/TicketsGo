@@ -169,8 +169,6 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		// Errors occur when the bot doesn't have permission
 		m, err := ctx.Session.ChannelMessageSendComplex(archiveChannelId, &data)
 		if err == nil {
-			sentry.LogWithContext(err, ctx.ToErrorContext())
-
 			// Add archive to DB
 			uuidChan := make(chan string)
 			go database.GetTicketUuid(channelId, uuidChan)
@@ -181,6 +179,8 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 			userName := <-userNameChan
 
 			go database.AddArchive(uuid, guildId, owner, userName, id, m.Attachments[0].URL)
+		} else {
+			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
 
 		// Notify user and send logs in DMs
