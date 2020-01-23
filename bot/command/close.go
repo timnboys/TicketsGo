@@ -64,7 +64,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	// Check the user is permitted to close the ticket
 	permissionLevelChan := make(chan utils.PermissionLevel)
 	go utils.GetPermissionLevel(ctx.Session, ctx.Guild, ctx.User.ID, permissionLevelChan)
-	permissionlevel := <-permissionLevelChan
+	permissionLevel := <-permissionLevelChan
 
 	idChan := make(chan int)
 	go database.GetTicketId(channelId, idChan)
@@ -78,7 +78,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	go database.IsUserCanClose(guildId, usersCanCloseChan)
 	usersCanClose := <-usersCanCloseChan
 
-	if (permissionlevel == 0 && strconv.Itoa(int(owner)) != ctx.User.ID) || (permissionlevel == 0 && !usersCanClose) {
+	if (permissionLevel == 0 && strconv.Itoa(int(owner)) != ctx.User.ID) || (permissionLevel == 0 && !usersCanClose) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "You are not permitted to close this ticket")
 		return
@@ -106,6 +106,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		count = len(array)
 		if err != nil {
 			count = 0
+			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
 
 		if count > 0 {
@@ -168,6 +169,8 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		// Errors occur when the bot doesn't have permission
 		m, err := ctx.Session.ChannelMessageSendComplex(archiveChannelId, &data)
 		if err == nil {
+			sentry.LogWithContext(err, ctx.ToErrorContext())
+
 			// Add archive to DB
 			uuidChan := make(chan string)
 			go database.GetTicketUuid(channelId, uuidChan)

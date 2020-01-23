@@ -38,7 +38,13 @@ func SendEmbed(session *discordgo.Session, channel string, colour Colour, title,
 	}
 
 	// Explicitly ignore error because it's usually a 403 (missing permissions)
-	msg, _ := session.ChannelMessageSendEmbed(channel, embed.MessageEmbed)
+	msg, err := session.ChannelMessageSendEmbed(channel, embed.MessageEmbed); if err != nil {
+		sentry.LogWithContext(err, sentry.ErrorContext{
+			Channel: channel,
+			Shard:   session.ShardID,
+			Premium: isPremium,
+		})
+	}
 
 	if deleteAfter > 0 {
 		DeleteAfter(SentMessage{session, msg}, deleteAfter)
@@ -59,7 +65,7 @@ func DeleteAfter(msg SentMessage, secs int) {
 
 func ReactWithCheck(session *discordgo.Session, msg *discordgo.Message) {
 	if err := session.MessageReactionAdd(msg.ChannelID, msg.ID, "✅"); err != nil {
-		sentry.ErrorWithContext(err, sentry.ErrorContext{
+		sentry.LogWithContext(err, sentry.ErrorContext{
 			Guild:   msg.GuildID,
 			User:    msg.Author.ID,
 			Channel: msg.ChannelID,
@@ -70,7 +76,7 @@ func ReactWithCheck(session *discordgo.Session, msg *discordgo.Message) {
 
 func ReactWithCross(session *discordgo.Session, msg discordgo.Message) {
 	if err := session.MessageReactionAdd(msg.ChannelID, msg.ID, "❌"); err != nil {
-		sentry.ErrorWithContext(err, sentry.ErrorContext{
+		sentry.LogWithContext(err, sentry.ErrorContext{
 			Guild:   msg.GuildID,
 			User:    msg.Author.ID,
 			Channel: msg.ChannelID,
