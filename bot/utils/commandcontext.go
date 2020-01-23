@@ -69,7 +69,7 @@ func (ctx *CommandContext) MemberHasPermission(user string, permission Permissio
 	if <-hasAdmin {
 		ch <- true
 	} else {
-		MemberHasPermission(ctx.Session, ctx.Guild, user, permission, ch)
+		go MemberHasPermission(ctx.Session, ctx.Guild, user, permission, ch)
 	}
 }
 

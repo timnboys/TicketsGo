@@ -146,8 +146,8 @@ func ChannelRoleHasPermission(session *discordgo.Session, guild, channel, role s
 	return
 }
 
-func RoleHasPermission(session *discordgo.Session, guild string, role string, perm Permission, ch chan bool) {
-	r, err := session.State.Role(guild, role); if err != nil {
+func RoleHasPermission(session *discordgo.Session, guild string, roleId string, perm Permission, ch chan bool) {
+	r, err := session.State.Role(guild, roleId); if err != nil {
 		// Not cached
 		roles, err := session.GuildRoles(guild); if err != nil {
 			ch <- false
@@ -155,9 +155,9 @@ func RoleHasPermission(session *discordgo.Session, guild string, role string, pe
 		}
 
 		found := false
-		for _, t := range roles {
-			if t.ID == role {
-				r = t
+		for _, role := range roles {
+			if role.ID == roleId {
+				r = role
 				found = true
 				break
 			}
@@ -168,7 +168,12 @@ func RoleHasPermission(session *discordgo.Session, guild string, role string, pe
 		}
 	}
 
-	ch <- hasPermission(r.Permissions, perm)
+	if r == nil {
+		ch <- false
+	} else {
+		hasPerm := hasPermission(r.Permissions, perm) || hasPermission(r.Permissions, Administrator)
+		ch <- hasPerm
+	}
 }
 
 func GetRolePermissions(session *discordgo.Session, guild string, role string, ch chan int) {
