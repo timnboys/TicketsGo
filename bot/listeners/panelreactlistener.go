@@ -58,7 +58,7 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		}
 
 		if err = s.MessageReactionRemove(e.ChannelID, e.MessageID, "📩", e.UserID); err != nil {
-			sentry.ErrorWithContext(err, sentry.ErrorContext{
+			sentry.LogWithContext(err, sentry.ErrorContext{
 				Guild:   e.GuildID,
 				User:    e.UserID,
 				Channel: e.ChannelID,
@@ -73,7 +73,7 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		}
 
 		msg, err := s.ChannelMessage(e.ChannelID, e.MessageID); if err != nil {
-			sentry.ErrorWithContext(err, sentry.ErrorContext{
+			sentry.LogWithContext(err, sentry.ErrorContext{
 				Guild:   e.GuildID,
 				User:    e.UserID,
 				Channel: e.ChannelID,
