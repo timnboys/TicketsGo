@@ -18,7 +18,6 @@ var Commands = []Command{
 	PurgeCommand{},
 	RemoveCommand{},
 	RemoveAdminCommand{},
-	AdminResetCommand{},
 	RemoveSupportCommand{},
 	SetupCommand{},
 	StatsCommand{},
