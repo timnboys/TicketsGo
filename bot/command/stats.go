@@ -29,7 +29,7 @@ func (StatsCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (StatsCommand) Execute(ctx utils.CommandContext) {
-	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
+	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
@@ -55,7 +55,7 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 
 	// Get user permission level
 	permLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Session, ctx.Guild, user.ID, permLevelChan)
+	go utils.GetPermissionLevel(ctx.Session, ctx.Member, permLevelChan)
 	permLevel := <-permLevelChan
 
 	// User stats

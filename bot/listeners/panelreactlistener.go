@@ -10,7 +10,8 @@ import (
 )
 
 func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
-	msgId, err := strconv.ParseInt(e.MessageID, 10, 64); if err != nil {
+	msgId, err := strconv.ParseInt(e.MessageID, 10, 64)
+	if err != nil {
 		sentry.ErrorWithContext(err, sentry.ErrorContext{
 			Guild:   e.GuildID,
 			User:    e.UserID,
@@ -20,7 +21,8 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		return
 	}
 
-	userId, err := strconv.ParseInt(e.UserID, 10, 64); if err != nil {
+	userId, err := strconv.ParseInt(e.UserID, 10, 64)
+	if err != nil {
 		sentry.ErrorWithContext(err, sentry.ErrorContext{
 			Guild:   e.GuildID,
 			User:    e.UserID,
@@ -35,7 +37,8 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		return
 	}
 
-	guildId, err := strconv.ParseInt(e.GuildID, 10, 64); if err != nil {
+	guildId, err := strconv.ParseInt(e.GuildID, 10, 64)
+	if err != nil {
 		sentry.ErrorWithContext(err, sentry.ErrorContext{
 			Guild:   e.GuildID,
 			User:    e.UserID,
@@ -48,7 +51,8 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 	isPanel := make(chan bool)
 	go database.IsPanel(msgId, isPanel)
 	if <-isPanel {
-		user, err := s.User(e.UserID); if err != nil {
+		user, err := s.User(e.UserID)
+		if err != nil {
 			sentry.ErrorWithContext(err, sentry.ErrorContext{
 				Guild:   e.GuildID,
 				User:    e.UserID,
@@ -77,7 +81,8 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 			return
 		}
 
-		msg, err := s.ChannelMessage(e.ChannelID, e.MessageID); if err != nil {
+		msg, err := s.ChannelMessage(e.ChannelID, e.MessageID)
+		if err != nil {
 			sentry.LogWithContext(err, sentry.ErrorContext{
 				Guild:   e.GuildID,
 				User:    e.UserID,
@@ -87,25 +92,55 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 			return
 		}
 
+		// Get guild obj
+		guild, err := s.State.Guild(e.GuildID)
+		if err != nil {
+			guild, err = s.Guild(e.GuildID)
+			if err != nil {
+				sentry.ErrorWithContext(err, sentry.ErrorContext{
+					Guild:   e.GuildID,
+					User:    e.UserID,
+					Channel: e.ChannelID,
+					Shard:   s.ShardID,
+				})
+				return
+			}
+		}
+
 		isPremium := make(chan bool)
 		go utils.IsPremiumGuild(utils.CommandContext{
 			Session: s,
-			Guild: e.GuildID,
 			GuildId: guildId,
+			Guild: guild,
 		}, isPremium)
 
+		member, err := s.State.Member(e.GuildID, e.UserID)
+		if err != nil {
+			member, err = s.GuildMember(e.GuildID, e.UserID)
+			if err != nil {
+				sentry.LogWithContext(err, sentry.ErrorContext{
+					Guild:   e.GuildID,
+					User:    e.UserID,
+					Channel: e.ChannelID,
+					Shard:   s.ShardID,
+				})
+				return
+			}
+		}
+
 		ctx := utils.CommandContext{
-			Session: s,
-			User: *user,
-			UserID: userId,
-			Guild: e.GuildID,
-			GuildId: guildId,
-			Channel: e.ChannelID,
-			Message: *msg,
-			Root: "new",
-			Args: make([]string, 0),
-			IsPremium: <-isPremium,
+			Session:     s,
+			User:        *user,
+			UserID:      userId,
+			Guild:       guild,
+			GuildId:     guildId,
+			Channel:     e.ChannelID,
+			Message:     *msg,
+			Root:        "new",
+			Args:        make([]string, 0),
+			IsPremium:   <-isPremium,
 			ShouldReact: false,
+			Member:      member,
 		}
 
 		go command.OpenCommand{}.Execute(ctx)

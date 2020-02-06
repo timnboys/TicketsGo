@@ -6,6 +6,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
+	"strings"
 )
 
 type AddAdminCommand struct {
@@ -16,7 +17,7 @@ func (AddAdminCommand) Name() string {
 }
 
 func (AddAdminCommand) Description() string {
-	return "Grants a user admin privileges"
+	return "Grants a user or role admin privileges"
 }
 
 func (AddAdminCommand) Aliases() []string {
@@ -28,17 +29,42 @@ func (AddAdminCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (AddAdminCommand) Execute(ctx utils.CommandContext) {
-	if len(ctx.Message.Mentions) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user to grant admin privileges to")
+	if len(ctx.Args) == 0 {
+		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to grant admin privileges to")
 		ctx.ReactWithCross()
 		return
 	}
 
-	for _, mention := range ctx.Message.Mentions {
-		go database.AddAdmin(ctx.Guild, mention.ID)
+	byMention := false
+	var roleId string
+
+	if len(ctx.Message.Mentions) > 0 {
+		byMention = true
+		for _, mention := range ctx.Message.Mentions {
+			go database.AddAdmin(ctx.Guild.ID, mention.ID)
+		}
+	} else {
+		roleName := strings.ToLower(ctx.Args[0])
+
+		// Get role ID from name
+		for _, role := range ctx.Guild.Roles {
+			if strings.ToLower(role.Name) == roleName {
+				roleId = role.ID
+				break
+			}
+		}
+
+		// Verify a valid role was mentioned
+		if roleId == "" {
+			ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to grant admin privileges to")
+			ctx.ReactWithCross()
+			return
+		}
+
+		go database.AddAdminRole(ctx.Guild.ID, roleId)
 	}
 
-	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
+	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
 		ctx.ReactWithCross()
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
@@ -47,6 +73,7 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 	openTicketsChan := make(chan []*int64)
 	go database.GetOpenTicketChannelIds(guildId, openTicketsChan)
 
+	// Update permissions for existing tickets
 	for _, channelId := range <-openTicketsChan {
 		var overwrites []*discordgo.PermissionOverwrite
 		ch, err := ctx.Session.Channel(strconv.Itoa(int(*channelId))); if err != nil {
@@ -55,10 +82,21 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 
 		overwrites = ch.PermissionOverwrites
 
-		for _, mention := range ctx.Message.Mentions {
+		if byMention {
+			// If adding individual admins, apply each override individually
+			for _, mention := range ctx.Message.Mentions {
+				overwrites = append(overwrites, &discordgo.PermissionOverwrite{
+					ID: mention.ID,
+					Type: "member",
+					Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
+					Deny: 0,
+				})
+			}
+		} else {
+			// If adding a role as an admin, apply overrides to role
 			overwrites = append(overwrites, &discordgo.PermissionOverwrite{
-				ID: mention.ID,
-				Type: "member",
+				ID:    roleId,
+				Type:  "role",
 				Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
 				Deny: 0,
 			})

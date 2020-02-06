@@ -10,20 +10,20 @@ type CommandContext struct {
 	Session     *discordgo.Session
 	User        discordgo.User
 	UserID      int64
-	Guild       string
 	GuildId     int64
+	Guild       *discordgo.Guild
 	Channel     string
 	Message     discordgo.Message
 	Root        string
 	Args        []string
 	IsPremium   bool
 	ShouldReact bool
-	OwnerId     string
+	Member      *discordgo.Member
 }
 
 func (ctx *CommandContext) ToErrorContext() sentry.ErrorContext {
 	return sentry.ErrorContext{
-		Guild:       ctx.Guild,
+		Guild:       ctx.Guild.ID,
 		User:        ctx.User.ID,
 		Channel:     ctx.Channel,
 		Shard:       ctx.Session.ShardID,
@@ -50,31 +50,32 @@ func (ctx *CommandContext) ReactWithCross() {
 }
 
 func (ctx *CommandContext) GetPermissionLevel(ch chan PermissionLevel) {
-	GetPermissionLevel(ctx.Session, ctx.Guild, ctx.User.ID, ch)
+	GetPermissionLevel(ctx.Session, ctx.Member, ch)
 }
 
 func (ctx *CommandContext) ChannelMemberHasPermission(channel, user string, permission Permission, ch chan bool) {
 	hasAdmin := make(chan bool)
-	go ChannelMemberHasPermission(ctx.Session, ctx.Guild, channel, user, Administrator, hasAdmin)
+	go ChannelMemberHasPermission(ctx.Session, ctx.Guild.ID, channel, user, Administrator, hasAdmin)
 	if <-hasAdmin {
 		ch <- true
 	} else {
-		ChannelMemberHasPermission(ctx.Session, ctx.Guild, channel, user, permission, ch)
+		ChannelMemberHasPermission(ctx.Session, ctx.Guild.ID, channel, user, permission, ch)
 	}
 }
 
 func (ctx *CommandContext) MemberHasPermission(user string, permission Permission, ch chan bool) {
 	hasAdmin := make(chan bool)
-	go MemberHasPermission(ctx.Session, ctx.Guild, user, Administrator, hasAdmin)
+	go MemberHasPermission(ctx.Session, ctx.Guild.ID, user, Administrator, hasAdmin)
 	if <-hasAdmin {
 		ch <- true
 	} else {
-		go MemberHasPermission(ctx.Session, ctx.Guild, user, permission, ch)
+		go MemberHasPermission(ctx.Session, ctx.Guild.ID, user, permission, ch)
 	}
 }
 
 func (ctx *CommandContext) GetCachedPermissions(ch string) []*discordgo.PermissionOverwrite {
-	channel, err := ctx.Session.State.Channel(ch); if err != nil {
+	channel, err := ctx.Session.State.Channel(ch)
+	if err != nil {
 		return make([]*discordgo.PermissionOverwrite, 0)
 	}
 

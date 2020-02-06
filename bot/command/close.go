@@ -35,7 +35,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
+	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
@@ -63,7 +63,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 
 	// Check the user is permitted to close the ticket
 	permissionLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Session, ctx.Guild, ctx.User.ID, permissionLevelChan)
+	go utils.GetPermissionLevel(ctx.Session, ctx.Member, permissionLevelChan)
 	permissionLevel := <-permissionLevelChan
 
 	idChan := make(chan int)
@@ -85,7 +85,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	hasPerm := make(chan bool)
-	go utils.MemberHasPermission(ctx.Session, ctx.Guild, utils.Id, utils.ManageChannels, hasPerm)
+	go utils.MemberHasPermission(ctx.Session, ctx.Guild.ID, utils.Id, utils.ManageChannels, hasPerm)
 
 	if !<-hasPerm {
 		ctx.ReactWithCross()
@@ -185,24 +185,14 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 
 		// Notify user and send logs in DMs
 		if !silentClose {
-			guild, err := ctx.Session.State.Guild(ctx.Guild);
-			if err != nil {
-				// Not cached
-				guild, err = ctx.Session.Guild(ctx.Guild);
-				if err != nil {
-					sentry.ErrorWithContext(err, ctx.ToErrorContext())
-					return
-				}
-			}
-
 			var content string
 			// Create message content
 			if userId == owner {
-				content = fmt.Sprintf("You closed your ticket (`#ticket-%d`) in `%s`", id, guild.Name)
+				content = fmt.Sprintf("You closed your ticket (`#ticket-%d`) in `%s`", id, ctx.Guild.Name)
 			} else if len(ctx.Args) == 0 {
-				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s", id, guild.Name, ctx.User.Mention())
+				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s", id, ctx.Guild.Name, ctx.User.Mention())
 			} else {
-				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s with reason `%s`", id, guild.Name, ctx.User.Mention(), reason)
+				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s with reason `%s`", id, ctx.Guild.Name, ctx.User.Mention(), reason)
 			}
 
 			privateMessage, err := ctx.Session.UserChannelCreate(strconv.Itoa(int(owner)))

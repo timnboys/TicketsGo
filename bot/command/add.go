@@ -65,14 +65,14 @@ func (AddCommand) Execute(ctx utils.CommandContext) {
 	go database.GetTicketId(ticket, ticketIdChan)
 	ticketId := <- ticketIdChan
 
-	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
+	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
 	// Verify that the user is allowed to modify the ticket
 	permLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Session, ctx.Guild, ctx.User.ID, permLevelChan)
+	go utils.GetPermissionLevel(ctx.Session, ctx.Member, permLevelChan)
 	permLevel := <-permLevelChan
 
 	ownerChan := make(chan int64)

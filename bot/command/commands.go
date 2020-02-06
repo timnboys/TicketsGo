@@ -21,5 +21,6 @@ var Commands = []Command{
 	RemoveSupportCommand{},
 	SetupCommand{},
 	StatsCommand{},
+	ViewStaffCommand{},
 	VoteCommand{},
 }

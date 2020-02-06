@@ -21,7 +21,7 @@ type ProxyResponse struct {
 var premiumCache = cache.New(10 * time.Minute, 10 * time.Minute)
 
 func IsPremiumGuild(ctx CommandContext, ch chan bool) {
-	premium, ok := premiumCache.Get(ctx.Guild)
+	premium, ok := premiumCache.Get(ctx.Guild.ID)
 
 	if ok {
 		ch<-premium.(bool)
@@ -33,20 +33,11 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 	go database.IsPremium(ctx.GuildId, keyLookup)
 
 	if <-keyLookup {
-		premiumCache.Set(ctx.Guild, true, 10 * time.Minute)
+		premiumCache.Set(ctx.Guild.ID, true, 10 * time.Minute)
 		ch<-true
 	} else {
-		// Get guild object
-		guild, err := ctx.Session.State.Guild(ctx.Guild); if err != nil {
-			guild, err = ctx.Session.Guild(ctx.Guild); if err != nil {
-				sentry.ErrorWithContext(err, ctx.ToErrorContext())
-				ch<-false
-				return
-			}
-		}
-
 		// Lookup votes
-		ownerId, err := strconv.ParseInt(guild.OwnerID, 10, 64); if err != nil {
+		ownerId, err := strconv.ParseInt(ctx.Guild.OwnerID, 10, 64); if err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			ch <- false
 			return
@@ -57,7 +48,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 		if <-hasVoted {
 			ch <- true
 
-			premiumCache.Set(ctx.Guild, true, 10 * time.Minute)
+			premiumCache.Set(ctx.Guild.ID, true, 10 * time.Minute)
 
 			return
 		}
@@ -67,7 +58,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 			Timeout: time.Second * 3,
 		}
 
-		url := fmt.Sprintf("%s/ispremium?key=%s&id=%s", config.Conf.Bot.PremiumLookupProxyUrl, config.Conf.Bot.PremiumLookupProxyKey, guild.OwnerID)
+		url := fmt.Sprintf("%s/ispremium?key=%s&id=%s", config.Conf.Bot.PremiumLookupProxyUrl, config.Conf.Bot.PremiumLookupProxyKey, ctx.Guild.OwnerID)
 		req, err := http.NewRequest("GET", url, nil)
 
 		res, err := client.Do(req); if err != nil {
@@ -90,7 +81,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 			return
 		}
 
-		premiumCache.Set(ctx.Guild, proxyResponse.Premium, 10 * time.Minute)
+		premiumCache.Set(ctx.Guild.ID, proxyResponse.Premium, 10 * time.Minute)
 
 		ch <-proxyResponse.Premium
 	}

@@ -34,7 +34,7 @@ func (OpenCommand) PermissionLevel() utils.PermissionLevel {
 func (OpenCommand) Execute(ctx utils.CommandContext) {
 	ch := make(chan int64)
 
-	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
+	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
@@ -147,7 +147,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	// Make sure there's not > 50 channels in a category
 	if useCategory {
-		channels, err := ctx.Session.GuildChannels(ctx.Guild);
+		channels, err := ctx.Session.GuildChannels(ctx.Guild.ID);
 		if err != nil {
 			channels = make([]*discordgo.Channel, 0)
 		}
@@ -178,7 +178,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	// Apply permission overwrites
 	overwrites := make([]*discordgo.PermissionOverwrite, 0)
 	overwrites = append(overwrites, &discordgo.PermissionOverwrite{ // @everyone
-		ID: ctx.Guild,
+		ID: ctx.Guild.ID,
 		Type: "role",
 		Allow: 0,
 		Deny: utils.SumPermissions(utils.ViewChannel),
@@ -189,7 +189,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	// Get support reps
 	supportChan := make(chan []int64)
-	go database.GetSupport(ctx.Guild, supportChan)
+	go database.GetSupport(ctx.Guild.ID, supportChan)
 	support := <- supportChan
 	for _, user := range support {
 		allowed = append(allowed, strconv.Itoa(int(user)))
@@ -197,7 +197,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	// Get admins
 	adminChan := make(chan []int64)
-	go database.GetAdmins(ctx.Guild, adminChan)
+	go database.GetAdmins(ctx.Guild.ID, adminChan)
 	admin := <- adminChan
 	for _, user := range admin {
 		allowed = append(allowed, strconv.Itoa(int(user)))
@@ -225,7 +225,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		data.ParentID = strconv.Itoa(int(category))
 	}
 
-	c, err := ctx.Session.GuildChannelCreateComplex(ctx.Guild, data)
+	c, err := ctx.Session.GuildChannelCreateComplex(ctx.Guild.ID, data)
 	if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return

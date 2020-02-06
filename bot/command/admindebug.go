@@ -30,17 +30,9 @@ func (AdminDebugCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
-	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
+	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
-	}
-
-	guild, err := ctx.Session.State.Guild(ctx.Guild); if err != nil {
-		// Not cached
-		guild, err = ctx.Session.Guild(ctx.Guild); if err != nil {
-			sentry.ErrorWithContext(err, ctx.ToErrorContext())
-			return
-		}
 	}
 
 	// Get if SQL is connected
@@ -56,7 +48,7 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 	go database.GetCategory(guildId, ticketCategoryChan)
 	ticketCategoryId := <- ticketCategoryChan
 	var ticketCategory string
-	for _, channel := range guild.Channels {
+	for _, channel := range ctx.Guild.Channels {
 		if channel.ID == strconv.Itoa(int(ticketCategoryId)) { // Don't need to compare channel types
 			ticketCategory = channel.Name
 		}
@@ -64,15 +56,15 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 
 	// Get owner
 	invalidOwner := false
-	owner, err := ctx.Session.State.Member(guild.ID, guild.OwnerID); if err != nil {
-		owner, err = ctx.Session.GuildMember(guild.ID, guild.OwnerID); if err != nil {
+	owner, err := ctx.Session.State.Member(ctx.Guild.ID, ctx.Guild.OwnerID); if err != nil {
+		owner, err = ctx.Session.GuildMember(ctx.Guild.ID, ctx.Guild.OwnerID); if err != nil {
 			invalidOwner = true
 		}
 	}
 
 	var ownerFormatted string
-	if invalidOwner {
-		ownerFormatted = guild.OwnerID
+	if invalidOwner || owner == nil {
+		ownerFormatted = ctx.Guild.OwnerID
 	} else {
 		ownerFormatted = fmt.Sprintf("%s#%s", owner.User.Username, owner.User.Discriminator)
 	}

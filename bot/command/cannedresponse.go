@@ -35,7 +35,7 @@ func (CannedResponseCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	guildId, err := strconv.ParseInt(ctx.Guild, 10, 64); if err != nil {
+	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}

@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
+	"strings"
 )
 
 type RemoveSupportCommand struct {
@@ -14,7 +14,7 @@ func (RemoveSupportCommand) Name() string {
 }
 
 func (RemoveSupportCommand) Description() string {
-	return "Revokes a user's support representative privileges"
+	return "Revokes a user's or role's support representative privileges"
 }
 
 func (RemoveSupportCommand) Aliases() []string {
@@ -26,32 +26,49 @@ func (RemoveSupportCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (RemoveSupportCommand) Execute(ctx utils.CommandContext) {
-	if len(ctx.Message.Mentions) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user to revoke support representative privileges from")
+	if len(ctx.Args) == 0 {
+		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to revoke support representative privileges from")
 		ctx.ReactWithCross()
 		return
 	}
 
-	// Get guild obj
-	guild, err := ctx.Session.Guild(ctx.Guild); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		ctx.ReactWithCross()
-		return
-	}
+	var roleId string
+	if len(ctx.Message.Mentions) > 0 { // Individual users
+		for _, mention := range ctx.Message.Mentions {
+			// Verify that we're allowed to perform the remove operation
+			if ctx.Guild.OwnerID == mention.ID {
+				ctx.SendEmbed(utils.Red, "Error", "The guild owner must be an admin")
+				continue
+			}
 
-	for _, mention := range ctx.Message.Mentions {
-		if guild.OwnerID == mention.ID {
-			ctx.SendEmbed(utils.Red, "Error", "The guild owner must be an admin")
-			continue
+			if ctx.User.ID == mention.ID {
+				ctx.SendEmbed(utils.Red, "Error", "You cannot revoke your own privileges")
+				continue
+			}
+
+			go database.RemoveSupport(ctx.Guild.ID, mention.ID)
+		}
+	} else { // Role
+		roleName := strings.ToLower(ctx.Args[0])
+
+		// Get role ID from name
+		for _, role := range ctx.Guild.Roles {
+			if strings.ToLower(role.Name) == roleName {
+				roleId = role.ID
+				break
+			}
 		}
 
-		if ctx.User.ID == mention.ID {
-			ctx.SendEmbed(utils.Red, "Error", "You cannot revoke your own privileges")
-			continue
+		// Verify a valid role was mentioned
+		if roleId == "" {
+			ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to revoke support representative privileges from")
+			ctx.ReactWithCross()
+			return
 		}
 
-		go database.RemoveSupport(ctx.Guild, mention.ID)
+		go database.RemoveSupportRole(ctx.Guild.ID, roleId)
 	}
+
 	ctx.ReactWithCheck()
 }
 

@@ -35,7 +35,7 @@ func (PurgeCommand) Execute(ctx utils.CommandContext) {
 	if len(ctx.Args) == 0 {
 		ctx.SendEmbed(utils.Red, "Error", `You must specify a length of time for which tickets must not have had a reply to purge.
 M = Month, W = Week, d = Day, h = Hour, m = Minute
-For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time period of ` + "`1M3W2h`")
+For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time period of `+"`1M3W2h`")
 		return
 	}
 
@@ -52,11 +52,16 @@ For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time peri
 	res := timeRegex.FindAllStringSubmatch(period, -1)
 	for index, value := range res[0] {
 		switch index {
-			case 1: months = positiveIntOrZero(value)
-			case 2: weeks = positiveIntOrZero(value)
-			case 3: days = positiveIntOrZero(value)
-			case 4: hours = positiveIntOrZero(value)
-			case 5: minutes = positiveIntOrZero(value)
+		case 1:
+			months = positiveIntOrZero(value)
+		case 2:
+			weeks = positiveIntOrZero(value)
+		case 3:
+			days = positiveIntOrZero(value)
+		case 4:
+			hours = positiveIntOrZero(value)
+		case 5:
+			minutes = positiveIntOrZero(value)
 		}
 	}
 
@@ -82,7 +87,8 @@ For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time peri
 		}
 
 		lastMsg := msgs[0]
-		time, err := lastMsg.Timestamp.Parse(); if err != nil {
+		time, err := lastMsg.Timestamp.Parse()
+		if err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			continue
 		}
@@ -100,7 +106,7 @@ For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time peri
 				Args:        strings.Split(reason, " "),
 				IsPremium:   ctx.IsPremium,
 				ShouldReact: ctx.ShouldReact,
-				OwnerId:     ctx.OwnerId,
+				Member:      ctx.Member,
 			}
 
 			go CloseCommand{}.Execute(fakeContext)

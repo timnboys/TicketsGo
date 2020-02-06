@@ -6,6 +6,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 	"strings"
@@ -21,12 +22,12 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		return
 	}
 
-	guildId, err := strconv.ParseInt(e.GuildID, 10, 64);
+	guildId, err := strconv.ParseInt(e.GuildID, 10, 64)
 	if err != nil {
 		return
 	}
 
-	userId, err := strconv.ParseInt(e.Author.ID, 10, 64);
+	userId, err := strconv.ParseInt(e.Author.ID, 10, 64)
 	if err != nil {
 		return
 	}
@@ -95,10 +96,26 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		}
 	}
 
+	// Get guild obj
+	guild, err := s.State.Guild(e.GuildID)
+	if err != nil {
+		guild, err = s.Guild(e.GuildID)
+		if err != nil {
+			sentry.ErrorWithContext(err, sentry.ErrorContext{
+				Guild:   e.GuildID,
+				User:    e.Author.ID,
+				Channel: e.ChannelID,
+				Shard:   s.ShardID,
+				Command: root,
+			})
+			return
+		}
+	}
+
 	premiumChan := make(chan bool)
 	go utils.IsPremiumGuild(utils.CommandContext{
 		Session: s,
-		Guild: e.GuildID,
+		Guild:   guild,
 		GuildId: guildId,
 	}, premiumChan)
 	premiumGuild := <-premiumChan
@@ -107,14 +124,15 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		Session:     s,
 		User:        *e.Author,
 		UserID:      userId,
-		Guild:       e.GuildID,
 		GuildId:     guildId,
+		Guild:       guild,
 		Channel:     e.ChannelID,
 		Message:     *e.Message,
 		Root:        root,
 		Args:        args,
 		IsPremium:   premiumGuild,
 		ShouldReact: true,
+		Member:      e.Member,
 	}
 
 	// Ensure user isn't blacklisted

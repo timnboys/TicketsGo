@@ -46,7 +46,7 @@ func OnFirstResponse(s *discordgo.Session, e *discordgo.MessageCreate) {
 
 	// Only count replies from support reps
 	permLevel := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(s, e.GuildID, e.Author.ID, permLevel)
+	go utils.GetPermissionLevel(s, e.Member, permLevel)
 	if <-permLevel > 0 {
 		// Make sure that the channel is a ticket
 		isTicket := make(chan bool)
