@@ -30,6 +30,11 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		return
 	}
 
+	// In DMs
+	if e.GuildID == "" {
+		return
+	}
+
 	guildId, err := strconv.ParseInt(e.GuildID, 10, 64); if err != nil {
 		sentry.ErrorWithContext(err, sentry.ErrorContext{
 			Guild:   e.GuildID,
