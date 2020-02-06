@@ -33,12 +33,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 	go database.IsPremium(ctx.GuildId, keyLookup)
 
 	if <-keyLookup {
-		err := premiumCache.Add(ctx.Guild, true, 10 * time.Minute)
-
-		if err != nil {
-			sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		}
-
+		premiumCache.Set(ctx.Guild, true, 10 * time.Minute)
 		ch<-true
 	} else {
 		// Get guild object
@@ -62,11 +57,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 		if <-hasVoted {
 			ch <- true
 
-			err = premiumCache.Add(ctx.Guild, true, 10 * time.Minute)
-
-			if err != nil {
-				sentry.ErrorWithContext(err, ctx.ToErrorContext())
-			}
+			premiumCache.Set(ctx.Guild, true, 10 * time.Minute)
 
 			return
 		}
@@ -99,10 +90,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 			return
 		}
 
-		// I think we can safely ignore this error as it's caused by a race condition
-		// which doesn't have any negative effects - it'd mean we have to lock the entire map
-		// while performing a lookup
-		_ = premiumCache.Add(ctx.Guild, proxyResponse.Premium, 10 * time.Minute)
+		premiumCache.Set(ctx.Guild, proxyResponse.Premium, 10 * time.Minute)
 
 		ch <-proxyResponse.Premium
 	}
