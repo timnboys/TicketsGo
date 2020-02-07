@@ -50,6 +50,7 @@ func Setup() {
 		Prefix{},
 		PremiumGuilds{},
 		PremiumKeys{},
+		RolePermissions{},
 		TicketArchive{},
 		TicketFirstResponse{},
 		TicketLimit{},
