@@ -49,7 +49,7 @@ func (RemoveSupportCommand) Execute(ctx utils.CommandContext) {
 			go database.RemoveSupport(ctx.Guild.ID, mention.ID)
 		}
 	} else { // Role
-		roleName := strings.ToLower(ctx.Args[0])
+		roleName := strings.ToLower(strings.Join(ctx.Args, " "))
 
 		// Get role ID from name
 		for _, role := range ctx.Guild.Roles {
