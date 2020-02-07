@@ -118,7 +118,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	ticketCount := 0
 	ticketsChan := make(chan map[int64]int)
-	go database.GetTicketsOpenedBy(guildId, userId, ticketsChan)
+	go database.GetOpenTicketsOpenedBy(guildId, userId, ticketsChan)
 	tickets := <-ticketsChan
 	ticketCount = len(tickets)
 
