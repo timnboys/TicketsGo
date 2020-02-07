@@ -184,32 +184,54 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		Deny: utils.SumPermissions(utils.ViewChannel),
 	})
 
-	// Create list of people who should be added to the ticket
-	allowed := make([]string, 0)
+	// Create list of members & roles who should be added to the ticket
+	allowedUsers := make([]string, 0)
+	allowedRoles := make([]string, 0)
 
 	// Get support reps
-	supportChan := make(chan []int64)
-	go database.GetSupport(ctx.Guild.ID, supportChan)
-	support := <- supportChan
-	for _, user := range support {
-		allowed = append(allowed, strconv.Itoa(int(user)))
+	supportUsers := make(chan []int64)
+	go database.GetSupport(ctx.Guild.ID, supportUsers)
+	for _, user := range <-supportUsers {
+		allowedUsers = append(allowedUsers, strconv.Itoa(int(user)))
+	}
+
+	// Get support roles
+	supportRoles := make(chan []int64)
+	go database.GetSupportRoles(ctx.Guild.ID, supportRoles)
+	for _, role := range <-supportRoles {
+		allowedRoles = append(allowedRoles, strconv.Itoa(int(role)))
 	}
 
 	// Get admins
-	adminChan := make(chan []int64)
-	go database.GetAdmins(ctx.Guild.ID, adminChan)
-	admin := <- adminChan
-	for _, user := range admin {
-		allowed = append(allowed, strconv.Itoa(int(user)))
+	adminUsers := make(chan []int64)
+	go database.GetAdmins(ctx.Guild.ID, adminUsers)
+	for _, user := range <-adminUsers {
+		allowedUsers = append(allowedUsers, strconv.Itoa(int(user)))
+	}
+
+	// Get admins roles
+	adminRoles := make(chan []int64)
+	go database.GetAdminRoles(ctx.Guild.ID, adminRoles)
+	for _, user := range <-adminRoles {
+		allowedRoles = append(allowedRoles, strconv.Itoa(int(user)))
 	}
 
 	// Add ourselves and the sender
-	allowed = append(allowed, utils.Id, ctx.User.ID)
+	allowedUsers = append(allowedUsers, utils.Id, ctx.User.ID)
 
-	for _, member := range allowed {
+	for _, member := range allowedUsers {
 		overwrites = append(overwrites, &discordgo.PermissionOverwrite{
 			ID: member,
 			Type: "member",
+			Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
+			Deny: 0,
+		})
+	}
+
+	for _, role := range allowedRoles {
+		overwrites = append(overwrites, &discordgo.PermissionOverwrite{
+			ID: role,
+			Type: "role",
 			Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
 			Deny: 0,
 		})
