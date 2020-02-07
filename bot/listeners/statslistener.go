@@ -10,9 +10,11 @@ import (
 
 func OnFirstResponse(s *discordgo.Session, e *discordgo.MessageCreate) {
 	// Make sure this is a guild
-	if e.GuildID == "" {
+	if e.GuildID == "" || e.Member == nil {
 		return
 	}
+
+	e.Member.User = e.Author
 
 	channelId, err := strconv.ParseInt(e.ChannelID, 10, 64); if err != nil {
 		sentry.ErrorWithContext(err, sentry.ErrorContext{
