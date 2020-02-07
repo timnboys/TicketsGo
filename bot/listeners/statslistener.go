@@ -15,6 +15,7 @@ func OnFirstResponse(s *discordgo.Session, e *discordgo.MessageCreate) {
 	}
 
 	e.Member.User = e.Author
+	e.Member.GuildID = e.GuildID
 
 	channelId, err := strconv.ParseInt(e.ChannelID, 10, 64); if err != nil {
 		sentry.ErrorWithContext(err, sentry.ErrorContext{

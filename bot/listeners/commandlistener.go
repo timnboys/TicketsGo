@@ -121,6 +121,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 	premiumGuild := <-premiumChan
 
 	e.Member.User = e.Author
+	e.Member.GuildID = e.GuildID
 
 	ctx := utils.CommandContext{
 		Session:     s,
