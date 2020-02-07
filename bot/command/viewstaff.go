@@ -42,6 +42,9 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 		fieldContent += fmt.Sprintf("• <@%d> (`%d`)\n", adminUserId, adminUserId)
 		fieldContent = strings.TrimSuffix(fieldContent, "\n")
 	}
+	if fieldContent == "" {
+		fieldContent = "No admin users"
+	}
 	embed.AddField("Admin Users", fieldContent, true)
 	fieldContent = ""
 
@@ -60,6 +63,9 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 		fieldContent += fmt.Sprintf("• %s (`%d`)\n", role.Name, adminRoleId)
 		fieldContent = strings.TrimSuffix(fieldContent, "\n")
 	}
+	if fieldContent == "" {
+		fieldContent = "No admin roles"
+	}
 	embed.AddField("Admin Roles", fieldContent, true)
 	fieldContent = ""
 
@@ -71,6 +77,9 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	for _, supportUserId := range <-supportUsers {
 		fieldContent += fmt.Sprintf("• <@%d> (`%d`)\n", supportUserId, supportUserId)
 		fieldContent = strings.TrimSuffix(fieldContent, "\n")
+	}
+	if fieldContent == "" {
+		fieldContent = "No support representatives"
 	}
 	embed.AddField("Support Representatives", fieldContent, true)
 	fieldContent = ""
@@ -89,6 +98,9 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 
 		fieldContent += fmt.Sprintf("• %s (`%d`)\n", role.Name, supportRoleId)
 		fieldContent = strings.TrimSuffix(fieldContent, "\n")
+	}
+	if fieldContent == "" {
+		fieldContent = "No support representative roles"
 	}
 	embed.AddField("Support Roles", fieldContent, true)
 	fieldContent = ""
