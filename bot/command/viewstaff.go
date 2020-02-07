@@ -73,7 +73,7 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 
 	// Add field for support representatives
 	supportUsers := make(chan []int64)
-	go database.GetSupportRoles(ctx.Guild.ID, supportUsers)
+	go database.GetSupport(ctx.Guild.ID, supportUsers)
 	for _, supportUserId := range <-supportUsers {
 		fieldContent += fmt.Sprintf("• <@%d> (`%d`)\n", supportUserId, supportUserId)
 		fieldContent = strings.TrimSuffix(fieldContent, "\n")
@@ -86,7 +86,7 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 
 	// Add field for admin roles
 	supportRoles := make(chan []int64)
-	go database.GetAdminRoles(ctx.Guild.ID, supportRoles)
+	go database.GetSupportRoles(ctx.Guild.ID, supportRoles)
 	for _, supportRoleId := range <-supportRoles {
 		// Resolve role ID to name
 		role, err := ctx.Session.State.Role(ctx.Guild.ID, strconv.Itoa(int(supportRoleId))); if err != nil {
@@ -105,8 +105,11 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	embed.AddField("Support Roles", fieldContent, true)
 	fieldContent = ""
 
-	if _, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed); err != nil {
+	msg, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed)
+	if err != nil {
 		sentry.LogWithContext(err, ctx.ToErrorContext())
+	} else {
+		utils.DeleteAfter(utils.SentMessage{Session: ctx.Session, Message: msg}, 60)
 	}
 }
 
