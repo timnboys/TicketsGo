@@ -104,6 +104,18 @@ func IsTicketChannel(channel int64, ch chan bool) {
 	ch <- count > 0
 }
 
+func GetTicketById(guild int64, id int, ch chan Ticket) {
+	var node Ticket
+	Db.Where(Ticket{Guild: guild, Id: id}).Take(&node)
+	ch <- node
+}
+
+func GetTicketByChannel(channel int64, ch chan Ticket) {
+	var node Ticket
+	Db.Where(Ticket{Channel: &channel}).Take(&node)
+	ch <- node
+}
+
 func GetTicketId(channel int64, ch chan int) {
 	var node Ticket
 	Db.Where(Ticket{Channel: &channel}).Take(&node)

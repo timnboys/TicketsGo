@@ -66,19 +66,16 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	go utils.GetPermissionLevel(ctx.Session, ctx.Member, permissionLevelChan)
 	permissionLevel := <-permissionLevelChan
 
-	idChan := make(chan int)
-	go database.GetTicketId(channelId, idChan)
-	id := <-idChan
-
-	ownerChan := make(chan int64)
-	go database.GetOwner(id, guildId, ownerChan)
-	owner := <-ownerChan
+	// Get ticket struct
+	ticketChan := make(chan database.Ticket)
+	go database.GetTicketByChannel(channelId, ticketChan)
+	ticket := <-ticketChan
 
 	usersCanCloseChan := make(chan bool)
 	go database.IsUserCanClose(guildId, usersCanCloseChan)
 	usersCanClose := <-usersCanCloseChan
 
-	if (permissionLevel == 0 && strconv.Itoa(int(owner)) != ctx.User.ID) || (permissionLevel == 0 && !usersCanClose) {
+	if (permissionLevel == utils.Everyone && strconv.Itoa(int(ticket.Owner)) != ctx.User.ID) || (permissionLevel == utils.Everyone && !usersCanClose) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "You are not permitted to close this ticket")
 		return
@@ -131,6 +128,13 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		logs += fmt.Sprintf("[%s][%s] %s: %s\n", date, msg.ID, msg.Author.Username, msg.Content)
 	}
 
+	// Set ticket state as closed and delete channel
+	go database.Close(guildId, ticket.Id)
+	if _, err = ctx.Session.ChannelDelete(ctx.Channel); err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
+
+	// Send logs to archive channel
 	archiveChannelChan := make(chan int64)
 	go database.GetArchiveChannel(guildId, archiveChannelChan)
 	archiveChannelId := strconv.Itoa(int(<-archiveChannelChan))
@@ -145,7 +149,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	if channelExists {
-		msg := fmt.Sprintf("Archive of `#ticket-%d` (closed by %s#%s)", id, ctx.User.Username, ctx.User.Discriminator)
+		msg := fmt.Sprintf("Archive of `#ticket-%d` (closed by %s#%s)", ticket.Id, ctx.User.Username, ctx.User.Discriminator)
 		if reason != "" {
 			msg += fmt.Sprintf(" with reason `%s`", reason)
 		}
@@ -154,7 +158,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 			Content: msg,
 			Files: []*discordgo.File{
 				{
-					Name: fmt.Sprintf("ticket-%d.txt", id),
+					Name: fmt.Sprintf("ticket-%d.txt", ticket.Id),
 					ContentType: "text/plain",
 					Reader: strings.NewReader(logs),
 				},
@@ -175,10 +179,10 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 			uuid := <-uuidChan
 
 			userNameChan := make(chan string)
-			go database.GetUsername(owner, userNameChan)
+			go database.GetUsername(ticket.Owner, userNameChan)
 			userName := <-userNameChan
 
-			go database.AddArchive(uuid, guildId, owner, userName, id, m.Attachments[0].URL)
+			go database.AddArchive(uuid, guildId, ticket.Owner, userName, ticket.Id, m.Attachments[0].URL)
 		} else {
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
@@ -187,22 +191,22 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		if !silentClose {
 			var content string
 			// Create message content
-			if userId == owner {
-				content = fmt.Sprintf("You closed your ticket (`#ticket-%d`) in `%s`", id, ctx.Guild.Name)
+			if userId == ticket.Owner {
+				content = fmt.Sprintf("You closed your ticket (`#ticket-%d`) in `%s`", ticket.Id, ctx.Guild.Name)
 			} else if len(ctx.Args) == 0 {
-				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s", id, ctx.Guild.Name, ctx.User.Mention())
+				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s", ticket.Id, ctx.Guild.Name, ctx.User.Mention())
 			} else {
-				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s with reason `%s`", id, ctx.Guild.Name, ctx.User.Mention(), reason)
+				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s with reason `%s`", ticket.Id, ctx.Guild.Name, ctx.User.Mention(), reason)
 			}
 
-			privateMessage, err := ctx.Session.UserChannelCreate(strconv.Itoa(int(owner)))
+			privateMessage, err := ctx.Session.UserChannelCreate(strconv.Itoa(int(ticket.Owner)))
 			// Only send the msg if we could create the channel
 			if err == nil {
 				data := discordgo.MessageSend{
 					Content: content,
 					Files: []*discordgo.File{
 						{
-							Name:        fmt.Sprintf("ticket-%d.txt", id),
+							Name:        fmt.Sprintf("ticket-%d.txt", ticket.Id),
 							ContentType: "text/plain",
 							Reader:      strings.NewReader(logs),
 						},
@@ -212,12 +216,6 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 				// Errors occur when users have privacy settings high
 				_, _ = ctx.Session.ChannelMessageSendComplex(privateMessage.ID, &data)
 			}
-		}
-
-		// Set ticket state as closed and delete channel
-		go database.Close(guildId, id)
-		if _, err = ctx.Session.ChannelDelete(ctx.Channel); err != nil {
-			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		}
 	}
 }
