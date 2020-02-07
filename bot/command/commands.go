@@ -1,7 +1,7 @@
 package command
 
 var Commands = []Command{
-	AboutCommand{},
+	SyncCommand{},
 	AddCommand{},
 	AddAdminCommand{},
 	AddSupportCommand{},
@@ -21,6 +21,7 @@ var Commands = []Command{
 	RemoveSupportCommand{},
 	SetupCommand{},
 	StatsCommand{},
+	SyncCommand{},
 	ViewStaffCommand{},
 	VoteCommand{},
 }

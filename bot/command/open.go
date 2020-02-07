@@ -119,14 +119,8 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	ticketCount := 0
 	ticketsChan := make(chan map[int64]int)
 	go database.GetTicketsOpenedBy(guildId, userId, ticketsChan)
-	for channel, id := range <-ticketsChan {
-		_, err:= ctx.Session.State.Channel(strconv.Itoa(int(channel)))
-		if err != nil { // An admin has deleted the channel manually
-			go database.Close(guildId, id)
-		} else {
-			ticketCount += 1
-		}
-	}
+	tickets := <-ticketsChan
+	ticketCount = len(tickets)
 
 	if ticketCount >= ticketLimit {
 		if ctx.ShouldReact {
@@ -147,8 +141,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	// Make sure there's not > 50 channels in a category
 	if useCategory {
-		channels, err := ctx.Session.GuildChannels(ctx.Guild.ID);
-		if err != nil {
+		channels, err := ctx.Session.GuildChannels(ctx.Guild.ID); if err != nil {
 			channels = make([]*discordgo.Channel, 0)
 		}
 
@@ -202,7 +195,8 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		allowedRoles = append(allowedRoles, strconv.Itoa(int(role)))
 	}
 
-	// Get admins
+	// All admins also have support permissions
+	/*// Get admins
 	adminUsers := make(chan []int64)
 	go database.GetAdmins(ctx.Guild.ID, adminUsers)
 	for _, user := range <-adminUsers {
@@ -214,7 +208,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	go database.GetAdminRoles(ctx.Guild.ID, adminRoles)
 	for _, user := range <-adminRoles {
 		allowedRoles = append(allowedRoles, strconv.Itoa(int(user)))
-	}
+	}*/
 
 	// Add ourselves and the sender
 	allowedUsers = append(allowedUsers, utils.Id, ctx.User.ID)

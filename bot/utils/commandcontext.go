@@ -41,6 +41,15 @@ func (ctx *CommandContext) SendEmbedNoDelete(colour Colour, title, content strin
 	SendEmbed(ctx.Session, ctx.Channel, colour, title, content, 0, ctx.IsPremium)
 }
 
+func (ctx *CommandContext) SendMessage(content string) {
+	msg, err := ctx.Session.ChannelMessageSend(ctx.Channel, content)
+	if err != nil {
+		sentry.LogWithContext(err, ctx.ToErrorContext())
+	} else {
+		DeleteAfter(SentMessage{Session: ctx.Session, Message: msg}, 60)
+	}
+}
+
 func (ctx *CommandContext) ReactWithCheck() {
 	ReactWithCheck(ctx.Session, &ctx.Message)
 }
