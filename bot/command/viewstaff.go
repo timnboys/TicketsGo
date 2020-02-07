@@ -40,8 +40,8 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	go database.GetAdmins(ctx.Guild.ID, adminUsers)
 	for _, adminUserId := range <-adminUsers {
 		fieldContent += fmt.Sprintf("• <@%d> (`%d`)\n", adminUserId, adminUserId)
-		fieldContent = strings.TrimSuffix(fieldContent, "\n")
 	}
+	fieldContent = strings.TrimSuffix(fieldContent, "\n")
 	if fieldContent == "" {
 		fieldContent = "No admin users"
 	}
@@ -61,8 +61,8 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 		}
 
 		fieldContent += fmt.Sprintf("• %s (`%d`)\n", role.Name, adminRoleId)
-		fieldContent = strings.TrimSuffix(fieldContent, "\n")
 	}
+	fieldContent = strings.TrimSuffix(fieldContent, "\n")
 	if fieldContent == "" {
 		fieldContent = "No admin roles"
 	}
@@ -76,8 +76,8 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	go database.GetSupport(ctx.Guild.ID, supportUsers)
 	for _, supportUserId := range <-supportUsers {
 		fieldContent += fmt.Sprintf("• <@%d> (`%d`)\n", supportUserId, supportUserId)
-		fieldContent = strings.TrimSuffix(fieldContent, "\n")
 	}
+	fieldContent = strings.TrimSuffix(fieldContent, "\n")
 	if fieldContent == "" {
 		fieldContent = "No support representatives"
 	}
@@ -97,8 +97,8 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 		}
 
 		fieldContent += fmt.Sprintf("• %s (`%d`)\n", role.Name, supportRoleId)
-		fieldContent = strings.TrimSuffix(fieldContent, "\n")
 	}
+	fieldContent = strings.TrimSuffix(fieldContent, "\n")
 	if fieldContent == "" {
 		fieldContent = "No support representative roles"
 	}
