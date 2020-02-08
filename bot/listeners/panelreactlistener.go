@@ -128,6 +128,16 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 			}
 		}
 
+		channelId, err := strconv.ParseInt(e.ChannelID, 10, 64); if err != nil {
+			sentry.LogWithContext(err, sentry.ErrorContext{
+				Guild:   e.GuildID,
+				User:    e.UserID,
+				Channel: e.ChannelID,
+				Shard:   s.ShardID,
+			})
+			return
+		}
+
 		ctx := utils.CommandContext{
 			Session:     s,
 			User:        *user,
@@ -135,6 +145,7 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 			Guild:       guild,
 			GuildId:     guildId,
 			Channel:     e.ChannelID,
+			ChannelId:   channelId,
 			Message:     *msg,
 			Root:        "new",
 			Args:        make([]string, 0),

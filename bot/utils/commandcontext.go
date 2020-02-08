@@ -13,6 +13,7 @@ type CommandContext struct {
 	GuildId     int64
 	Guild       *discordgo.Guild
 	Channel     string
+	ChannelId   int64
 	Message     discordgo.Message
 	Root        string
 	Args        []string

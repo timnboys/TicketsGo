@@ -101,6 +101,7 @@ For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time peri
 				Guild:       ctx.Guild,
 				GuildId:     ctx.GuildId,
 				Channel:     channelId,
+				ChannelId:   *ticket.Channel,
 				Message:     ctx.Message,
 				Root:        "close",
 				Args:        strings.Split(reason, " "),

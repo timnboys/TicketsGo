@@ -44,7 +44,7 @@ func Setup() {
 		CannedResponse{},
 		ChannelCategory{},
 		Channel{},
-		Panels{},
+		Panel{},
 		PanelSettings{},
 		Permissions{},
 		PingEveryone{},

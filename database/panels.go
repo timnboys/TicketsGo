@@ -1,23 +1,37 @@
 package database
 
-type Panels struct {
+type Panel struct {
 	MessageId int64 `gorm:"column:MESSAGEID"`
-	GuildId int64 `gorm:"column:GUILDID"` // Might be useful in the future so we store it
+	ChannelId int64 `gorm:"column:CHANNELID"`
+	GuildId   int64 `gorm:"column:GUILDID"` // Might be useful in the future so we store it
 }
 
-func (Panels) TableName() string {
+func (Panel) TableName() string {
 	return "panels"
 }
 
-func AddPanel(messageId int64, guildId int64) {
-	Db.Create(&Panels{
+func AddPanel(messageId, channelId, guildId int64) {
+	Db.Create(&Panel{
 		MessageId: messageId,
-		GuildId: guildId,
+		ChannelId: channelId,
+		GuildId:   guildId,
 	})
 }
 
 func IsPanel(messageId int64, ch chan bool) {
 	var count int
-	Db.Table(Panels{}.TableName()).Where(Panels{MessageId: messageId}).Count(&count)
+	Db.Table(Panel{}.TableName()).Where(Panel{MessageId: messageId}).Count(&count)
 	ch <- count > 0
+}
+
+func GetPanelsByGuild(guildId int64, ch chan []Panel) {
+	var panels []Panel
+	Db.Where(Panel{GuildId: guildId}).Find(&panels)
+	ch <- panels
+}
+
+func DeletePanel(msgId int64) {
+	var node Panel
+	Db.Where(Panel{MessageId: msgId}).Take(&node)
+	Db.Delete(&node)
 }

@@ -44,12 +44,17 @@ func (SyncCommand) Execute(ctx utils.CommandContext) {
 	ctx.SendMessage("Scanning for deleted ticket channels...")
 	updated := make(chan int)
 	go processDeletedTickets(ctx, updated)
-	ctx.SendMessage(fmt.Sprintf("Updated **%d** channels", <-updated))
+	ctx.SendMessage(fmt.Sprintf("Completed **%d** ticket state synchronisation", <-updated))
 
 	// Process any deleted cached channels
 	ctx.SendMessage("Scanning for deleted cached channels...")
 	processCachedChannels(ctx)
 	ctx.SendMessage("Completed synchronisation with cache")
+
+	// Check any panels still exist
+	ctx.SendMessage("Scanning for deleted panels...")
+	processDeletedPanels(ctx)
+	ctx.SendMessage("Completed panel state synchronisation")
 }
 
 func processDeletedTickets(ctx utils.CommandContext, res chan int) {
@@ -70,6 +75,28 @@ func processDeletedTickets(ctx utils.CommandContext, res chan int) {
 	}
 
 	res <-updated
+}
+
+func processDeletedPanels(ctx utils.CommandContext) {
+	panels := make(chan []database.Panel)
+	go database.GetPanelsByGuild(ctx.GuildId, panels)
+
+	for _, panel := range <-panels {
+		// Pre-channel ID logging panel - we'll just leave it for now.
+		if panel.ChannelId == 0 {
+			continue
+		}
+
+		// Check cache first to prevent extra requests to discord
+		channelId := strconv.Itoa(int(panel.ChannelId))
+		msgId := strconv.Itoa(int(panel.MessageId))
+		if _, err := ctx.Session.State.Message(channelId, msgId); err != nil {
+			if _, err := ctx.Session.ChannelMessage(channelId, msgId); err != nil {
+				// Message no longer exists
+				go database.DeletePanel(panel.MessageId)
+			}
+		}
+	}
 }
 
 func processCachedChannels(ctx utils.CommandContext) {

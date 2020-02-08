@@ -27,13 +27,8 @@ func (PanelCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (PanelCommand) Execute(ctx utils.CommandContext) {
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
 	settingsChan := make(chan database.PanelSettings)
-	go database.GetPanelSettings(guildId, settingsChan)
+	go database.GetPanelSettings(ctx.GuildId, settingsChan)
 	settings := <-settingsChan
 
 	embed := utils.NewEmbed().
@@ -60,7 +55,7 @@ func (PanelCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	go database.AddPanel(msgId, guildId)
+	go database.AddPanel(msgId, ctx.ChannelId, ctx.GuildId)
 
 	ctx.ReactWithCheck()
 }

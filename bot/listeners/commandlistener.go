@@ -123,6 +123,17 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 	e.Member.User = e.Author
 	e.Member.GuildID = e.GuildID
 
+	channelId, err := strconv.ParseInt(e.ChannelID, 10, 64); if err != nil {
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   e.GuildID,
+			User:    e.Author.ID,
+			Channel: e.ChannelID,
+			Shard:   s.ShardID,
+			Command: root,
+		})
+		return
+	}
+
 	ctx := utils.CommandContext{
 		Session:     s,
 		User:        *e.Author,
@@ -130,6 +141,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		GuildId:     guildId,
 		Guild:       guild,
 		Channel:     e.ChannelID,
+		ChannelId:   channelId,
 		Message:     *e.Message,
 		Root:        root,
 		Args:        args,
