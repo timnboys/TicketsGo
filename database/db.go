@@ -43,6 +43,7 @@ func Setup() {
 		Blacklist{},
 		CannedResponse{},
 		ChannelCategory{},
+		Channel{},
 		Panels{},
 		PanelSettings{},
 		Permissions{},

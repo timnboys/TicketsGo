@@ -16,7 +16,9 @@ func Start(ch chan os.Signal) {
 	discord := dshardmanager.New(fmt.Sprintf("Bot %s", config.Conf.Bot.Token))
 	discord.SetNumShards(config.Conf.Bot.Sharding.Total)
 
+	discord.AddHandler(listeners.OnChannelCreate)
 	discord.AddHandler(listeners.OnChannelDelete)
+	discord.AddHandler(listeners.OnChannelUpdate)
 	discord.AddHandler(listeners.OnCommand)
 	discord.AddHandler(listeners.OnFirstResponse)
 	discord.AddHandler(listeners.OnGuildCreate)

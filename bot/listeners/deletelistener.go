@@ -23,4 +23,6 @@ func OnChannelDelete(s *discordgo.Session, e *discordgo.ChannelDelete) {
 	if <-isTicket {
 		go database.CloseByChannel(channelId)
 	}
+
+	go database.DeleteChannel(channelId)
 }
