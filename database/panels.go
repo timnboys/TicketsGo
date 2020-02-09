@@ -1,7 +1,5 @@
 package database
 
-import "github.com/TicketsBot/GoPanel/database"
-
 type Panel struct {
 	MessageId int64 `gorm:"column:MESSAGEID"`
 	ChannelId int64 `gorm:"column:CHANNELID"`
@@ -18,7 +16,7 @@ func (Panel) TableName() string {
 }
 
 func AddPanel(messageId, channelId, guildId int64, title, content string, colour int, targetCategory int64, reactionEmote string) {
-	database.Database.Create(&Panel{
+	Db.Create(&Panel{
 		MessageId: messageId,
 		ChannelId: channelId,
 		GuildId:   guildId,
@@ -33,24 +31,22 @@ func AddPanel(messageId, channelId, guildId int64, title, content string, colour
 
 func IsPanel(messageId int64, ch chan bool) {
 	var count int
-	database.Database.Table(Panel{}.TableName()).Where(Panel{MessageId: messageId}).Count(&count)
+	Db.Table(Panel{}.TableName()).Where(Panel{MessageId: messageId}).Count(&count)
 	ch <- count > 0
 }
 
 func GetPanelByMessageId(messageId int64, ch chan Panel) {
 	var panel Panel
-	database.Database.Where(Panel{MessageId: messageId}).Take(&panel)
+	Db.Where(Panel{MessageId: messageId}).Take(&panel)
 	ch <- panel
 }
 
 func GetPanelsByGuild(guildId int64, ch chan []Panel) {
 	var panels []Panel
-	database.Database.Where(Panel{GuildId: guildId}).Find(&panels)
+	Db.Where(Panel{GuildId: guildId}).Find(&panels)
 	ch <- panels
 }
 
 func DeletePanel(msgId int64) {
-	var node Panel
-	database.Database.Where(Panel{MessageId: msgId}).Take(&node)
-	database.Database.Delete(&node)
+	Db.Where(Panel{MessageId: msgId}).Delete(Panel{})
 }

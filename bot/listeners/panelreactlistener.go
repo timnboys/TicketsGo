@@ -40,15 +40,14 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		return
 	}
 
-	isPanel := make(chan bool)
-	go database.IsPanel(msgId, isPanel)
-	if <-isPanel { // TODO: Just get the panel straight away and check if it's nil
-		emoji := e.Emoji.Name // This is the actual unicode emoji (https://discordapp.com/developers/docs/resources/emoji#emoji-object-gateway-reaction-standard-emoji-example)
+	// Get panel from DB
+	panelChan := make(chan database.Panel)
+	go database.GetPanelByMessageId(msgId, panelChan)
+	panel := <-panelChan
+	blank := database.Panel{}
 
-		// Get panel from DB
-		panelChan := make(chan database.Panel)
-		go database.GetPanelByMessageId(msgId, panelChan)
-		panel := <-panelChan
+	if panel != blank {
+		emoji := e.Emoji.Name // This is the actual unicode emoji (https://discordapp.com/developers/docs/resources/emoji#emoji-object-gateway-reaction-standard-emoji-example)
 
 		// Check the right emoji ahs been used
 		if panel.ReactionEmote != emoji && !(panel.ReactionEmote == "" && emoji == "📩") {
