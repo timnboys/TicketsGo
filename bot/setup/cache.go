@@ -47,10 +47,10 @@ func (u *SetupUser) Finish() {
 
 	msg := "The setup has been complete!\n" +
 		"You can add / remove support staff / admins using:\n" +
-		"`t!addadmin @User`\n" +
-		"`t!removadmin @User`\n" +
-		"`t!addsupport @User`\n" +
-		"`t!removesupprt @User`\n" +
+		"`t!addadmin [@User / Role Name]`\n" +
+		"`t!removadmin [@User / Role Name]`\n" +
+		"`t!addsupport [@User / Role Name]`\n" +
+		"`t!removesupprt [@User / Role Name]`\n" +
 		"You can access more settings on the web panel at <https://panel.ticketsbot.net>"
 
 	// Psuedo-premium
