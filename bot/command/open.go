@@ -149,7 +149,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	// Generate subject
 	subject := "No subject given"
-	if ctx.IsFromPanel { // If we're using a panel, use the panel title as the subject
+	if ctx.IsFromPanel && panel.Title != "" { // If we're using a panel, use the panel title as the subject
 		subject = panel.Title
 	} else {
 		if len(ctx.Args) > 0 {
