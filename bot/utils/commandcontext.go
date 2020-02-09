@@ -15,11 +15,13 @@ type CommandContext struct {
 	Channel     string
 	ChannelId   int64
 	Message     discordgo.Message
+	MessageId   int64
 	Root        string
 	Args        []string
 	IsPremium   bool
 	ShouldReact bool
 	Member      *discordgo.Member
+	IsFromPanel bool
 }
 
 func (ctx *CommandContext) ToErrorContext() sentry.ErrorContext {

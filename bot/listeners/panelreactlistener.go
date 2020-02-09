@@ -10,25 +10,22 @@ import (
 )
 
 func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
+	errorContext := sentry.ErrorContext{
+		Guild:   e.GuildID,
+		User:    e.UserID,
+		Channel: e.ChannelID,
+		Shard:   s.ShardID,
+	}
+
 	msgId, err := strconv.ParseInt(e.MessageID, 10, 64)
 	if err != nil {
-		sentry.ErrorWithContext(err, sentry.ErrorContext{
-			Guild:   e.GuildID,
-			User:    e.UserID,
-			Channel: e.ChannelID,
-			Shard:   s.ShardID,
-		})
+		sentry.ErrorWithContext(err, errorContext)
 		return
 	}
 
 	userId, err := strconv.ParseInt(e.UserID, 10, 64)
 	if err != nil {
-		sentry.ErrorWithContext(err, sentry.ErrorContext{
-			Guild:   e.GuildID,
-			User:    e.UserID,
-			Channel: e.ChannelID,
-			Shard:   s.ShardID,
-		})
+		sentry.ErrorWithContext(err, errorContext)
 		return
 	}
 
@@ -39,26 +36,28 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 
 	guildId, err := strconv.ParseInt(e.GuildID, 10, 64)
 	if err != nil {
-		sentry.ErrorWithContext(err, sentry.ErrorContext{
-			Guild:   e.GuildID,
-			User:    e.UserID,
-			Channel: e.ChannelID,
-			Shard:   s.ShardID,
-		})
+		sentry.ErrorWithContext(err, errorContext)
 		return
 	}
 
 	isPanel := make(chan bool)
 	go database.IsPanel(msgId, isPanel)
-	if <-isPanel {
+	if <-isPanel { // TODO: Just get the panel straight away and check if it's nil
+		emoji := e.Emoji.Name // This is the actual unicode emoji (https://discordapp.com/developers/docs/resources/emoji#emoji-object-gateway-reaction-standard-emoji-example)
+
+		// Get panel from DB
+		panelChan := make(chan database.Panel)
+		go database.GetPanelByMessageId(msgId, panelChan)
+		panel := <-panelChan
+
+		// Check the right emoji ahs been used
+		if panel.ReactionEmote != emoji && !(panel.ReactionEmote == "" && emoji == "📩") {
+			return
+		}
+
 		user, err := s.User(e.UserID)
 		if err != nil {
-			sentry.ErrorWithContext(err, sentry.ErrorContext{
-				Guild:   e.GuildID,
-				User:    e.UserID,
-				Channel: e.ChannelID,
-				Shard:   s.ShardID,
-			})
+			sentry.ErrorWithContext(err, errorContext)
 			return
 		}
 
@@ -66,13 +65,9 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 			return
 		}
 
-		if err = s.MessageReactionRemove(e.ChannelID, e.MessageID, "📩", e.UserID); err != nil {
-			sentry.LogWithContext(err, sentry.ErrorContext{
-				Guild:   e.GuildID,
-				User:    e.UserID,
-				Channel: e.ChannelID,
-				Shard:   s.ShardID,
-			})
+		// Remove the reaction from the message
+		if err = s.MessageReactionRemove(e.ChannelID, e.MessageID, emoji, e.UserID); err != nil {
+			sentry.LogWithContext(err, errorContext)
 		}
 
 		blacklisted := make(chan bool)
@@ -81,28 +76,12 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 			return
 		}
 
-		msg, err := s.ChannelMessage(e.ChannelID, e.MessageID)
-		if err != nil {
-			sentry.LogWithContext(err, sentry.ErrorContext{
-				Guild:   e.GuildID,
-				User:    e.UserID,
-				Channel: e.ChannelID,
-				Shard:   s.ShardID,
-			})
-			return
-		}
-
 		// Get guild obj
 		guild, err := s.State.Guild(e.GuildID)
 		if err != nil {
 			guild, err = s.Guild(e.GuildID)
 			if err != nil {
-				sentry.ErrorWithContext(err, sentry.ErrorContext{
-					Guild:   e.GuildID,
-					User:    e.UserID,
-					Channel: e.ChannelID,
-					Shard:   s.ShardID,
-				})
+				sentry.ErrorWithContext(err, errorContext)
 				return
 			}
 		}
@@ -111,30 +90,21 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		go utils.IsPremiumGuild(utils.CommandContext{
 			Session: s,
 			GuildId: guildId,
-			Guild: guild,
+			Guild:   guild,
 		}, isPremium)
 
 		member, err := s.State.Member(e.GuildID, e.UserID)
 		if err != nil {
 			member, err = s.GuildMember(e.GuildID, e.UserID)
 			if err != nil {
-				sentry.LogWithContext(err, sentry.ErrorContext{
-					Guild:   e.GuildID,
-					User:    e.UserID,
-					Channel: e.ChannelID,
-					Shard:   s.ShardID,
-				})
+				sentry.LogWithContext(err, errorContext)
 				return
 			}
 		}
 
-		channelId, err := strconv.ParseInt(e.ChannelID, 10, 64); if err != nil {
-			sentry.LogWithContext(err, sentry.ErrorContext{
-				Guild:   e.GuildID,
-				User:    e.UserID,
-				Channel: e.ChannelID,
-				Shard:   s.ShardID,
-			})
+		channelId, err := strconv.ParseInt(e.ChannelID, 10, 64)
+		if err != nil {
+			sentry.LogWithContext(err, errorContext)
 			return
 		}
 
@@ -146,12 +116,13 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 			GuildId:     guildId,
 			Channel:     e.ChannelID,
 			ChannelId:   channelId,
-			Message:     *msg,
+			MessageId:   msgId,
 			Root:        "new",
 			Args:        make([]string, 0),
 			IsPremium:   <-isPremium,
 			ShouldReact: false,
 			Member:      member,
+			IsFromPanel: true,
 		}
 
 		go command.OpenCommand{}.Execute(ctx)

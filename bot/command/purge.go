@@ -103,11 +103,13 @@ For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time peri
 				Channel:     channelId,
 				ChannelId:   *ticket.Channel,
 				Message:     ctx.Message,
+				MessageId:   ctx.MessageId,
 				Root:        "close",
 				Args:        strings.Split(reason, " "),
 				IsPremium:   ctx.IsPremium,
 				ShouldReact: ctx.ShouldReact,
 				Member:      ctx.Member,
+				IsFromPanel: false,
 			}
 
 			go CloseCommand{}.Execute(fakeContext)

@@ -96,18 +96,20 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		}
 	}
 
+	errorContext := sentry.ErrorContext{
+		Guild:   e.GuildID,
+		User:    e.Author.ID,
+		Channel: e.ChannelID,
+		Shard:   s.ShardID,
+		Command: root,
+	}
+
 	// Get guild obj
 	guild, err := s.State.Guild(e.GuildID)
 	if err != nil {
 		guild, err = s.Guild(e.GuildID)
 		if err != nil {
-			sentry.ErrorWithContext(err, sentry.ErrorContext{
-				Guild:   e.GuildID,
-				User:    e.Author.ID,
-				Channel: e.ChannelID,
-				Shard:   s.ShardID,
-				Command: root,
-			})
+			sentry.ErrorWithContext(err, errorContext)
 			return
 		}
 	}
@@ -124,13 +126,12 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 	e.Member.GuildID = e.GuildID
 
 	channelId, err := strconv.ParseInt(e.ChannelID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, sentry.ErrorContext{
-			Guild:   e.GuildID,
-			User:    e.Author.ID,
-			Channel: e.ChannelID,
-			Shard:   s.ShardID,
-			Command: root,
-		})
+		sentry.ErrorWithContext(err, errorContext)
+		return
+	}
+
+	msgId, err := strconv.ParseInt(e.Message.ID, 10, 64); if err != nil {
+		sentry.ErrorWithContext(err, errorContext)
 		return
 	}
 
@@ -143,11 +144,13 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		Channel:     e.ChannelID,
 		ChannelId:   channelId,
 		Message:     *e.Message,
+		MessageId:   msgId,
 		Root:        root,
 		Args:        args,
 		IsPremium:   premiumGuild,
 		ShouldReact: true,
 		Member:      e.Member,
+		IsFromPanel: false,
 	}
 
 	// Ensure user isn't blacklisted

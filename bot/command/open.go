@@ -39,13 +39,30 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	go database.GetCategory(guildId, ch)
-	category := <- ch
+	// Get the panel struct, if we're using one
+	var panel database.Panel
+	if ctx.IsFromPanel {
+		panelChan := make(chan database.Panel)
+		go database.GetPanelByMessageId(ctx.MessageId, panelChan)
+		panel = <-panelChan
+	}
+
+	// If we're using a panel, then we need to create the ticket in the specified cataegory
+	var category int64
+	if ctx.IsFromPanel {
+		category = panel.TargetCategory
+	} else { // else we can just use the default category
+		go database.GetCategory(guildId, ch)
+		category = <- ch
+	}
 
 	// Make sure the category exists
 	if category != 0 {
-		if _, err = ctx.Session.Channel(strconv.Itoa(int(category))); err != nil {
-			category = 0
+		categoryStr := strconv.Itoa(int(category))
+		if _, err = ctx.Session.State.Channel(categoryStr); err != nil {
+			if _, err = ctx.Session.Channel(categoryStr); err != nil {
+				category = 0
+			}
 		}
 	}
 
@@ -132,11 +149,15 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	// Generate subject
 	subject := "No subject given"
-	if len(ctx.Args) > 0 {
-		subject = strings.Join(ctx.Args, " ")
-	}
-	if len(subject) > 256 {
-		subject = subject[0:255]
+	if ctx.IsFromPanel { // If we're using a panel, use the panel title as the subject
+		subject = panel.Title
+	} else {
+		if len(ctx.Args) > 0 {
+			subject = strings.Join(ctx.Args, " ")
+		}
+		if len(subject) > 256 {
+			subject = subject[0:255]
+		}
 	}
 
 	// Make sure there's not > 50 channels in a category
@@ -195,21 +216,6 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		allowedRoles = append(allowedRoles, strconv.Itoa(int(role)))
 	}
 
-	// All admins also have support permissions
-	/*// Get admins
-	adminUsers := make(chan []int64)
-	go database.GetAdmins(ctx.Guild.ID, adminUsers)
-	for _, user := range <-adminUsers {
-		allowedUsers = append(allowedUsers, strconv.Itoa(int(user)))
-	}
-
-	// Get admins roles
-	adminRoles := make(chan []int64)
-	go database.GetAdminRoles(ctx.Guild.ID, adminRoles)
-	for _, user := range <-adminRoles {
-		allowedRoles = append(allowedRoles, strconv.Itoa(int(user)))
-	}*/
-
 	// Add ourselves and the sender
 	allowedUsers = append(allowedUsers, utils.Id, ctx.User.ID)
 
@@ -261,34 +267,9 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	
 	// %average_response%
 	if ctx.IsPremium && strings.Contains(welcomeMessage, "%average_response%") {
-		responseTimesChan := make(chan map[string]int64)
-		go database.GetGuildResponseTimes(guildId, responseTimesChan)
-		responseTimes := <-responseTimesChan
-
-		openTimesChan := make(chan map[string]*int64)
-		go database.GetOpenTimes(guildId, openTimesChan)
-		openTimes := <-openTimesChan
-
-		current := time.Now().UnixNano() / int64(time.Millisecond)
-
-		var weekly int64
-		var weeklyCounter int
-		for uuid, t := range responseTimes {
-			openTime := openTimes[uuid]
-			if openTime == nil {
-				continue
-			}
-
-			if current - *openTime < 60 * 60 * 24 * 7 * 1000 {
-				weekly += t
-				weeklyCounter++
-			}
-		}
-		if weeklyCounter > 0 {
-			weekly = weekly / int64(weeklyCounter)
-		}
-
-		welcomeMessage = strings.Replace(welcomeMessage, "%average_response%", utils.FormatTime(weekly), -1)
+		weeklyResponseTime := make(chan int64)
+		go calculateWeeklyResponseTime(ctx, weeklyResponseTime)
+		welcomeMessage = strings.Replace(welcomeMessage, "%average_response%", utils.FormatTime(<-weeklyResponseTime), -1)
 	}
 
 	// %user%
@@ -342,4 +323,35 @@ func (OpenCommand) AdminOnly() bool {
 
 func (OpenCommand) HelperOnly() bool {
 	return false
+}
+
+func calculateWeeklyResponseTime(ctx utils.CommandContext, res chan int64) {
+	responseTimesChan := make(chan map[string]int64)
+	go database.GetGuildResponseTimes(ctx.GuildId, responseTimesChan)
+	responseTimes := <-responseTimesChan
+
+	openTimesChan := make(chan map[string]*int64)
+	go database.GetOpenTimes(ctx.GuildId, openTimesChan)
+	openTimes := <-openTimesChan
+
+	current := time.Now().UnixNano() / int64(time.Millisecond)
+
+	var weekly int64
+	var weeklyCounter int
+	for uuid, t := range responseTimes {
+		openTime := openTimes[uuid]
+		if openTime == nil {
+			continue
+		}
+
+		if current - *openTime < 60 * 60 * 24 * 7 * 1000 {
+			weekly += t
+			weeklyCounter++
+		}
+	}
+	if weeklyCounter > 0 {
+		weekly = weekly / int64(weeklyCounter)
+	}
+
+	res <- weekly
 }

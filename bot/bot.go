@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/listeners"
+	"github.com/TicketsBot/TicketsGo/bot/listeners/messagequeue"
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
@@ -33,6 +34,8 @@ func Start(ch chan os.Signal) {
 	if err := discord.Start(); err != nil {
 		panic(err)
 	}
+
+	go messagequeue.ListenPanelCreations(discord)
 
 	if self, err := discord.Session(0).User("@me"); err == nil {
 		if self != nil {

@@ -38,7 +38,6 @@ func LogWithContext(e error, ctx ErrorContext) {
 	})
 }
 
-
 func ErrorWithContext(e error, ctx ErrorContext) {
 	perms, _ := json.Marshal(ctx.Permissions)
 

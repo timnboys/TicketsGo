@@ -27,6 +27,16 @@ func (PanelCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (PanelCommand) Execute(ctx utils.CommandContext) {
+	// Check the panel quota
+	if !ctx.IsPremium {
+		panels := make(chan []database.Panel)
+		go database.GetPanelsByGuild(ctx.GuildId, panels)
+		if len(<-panels) > 1 {
+			ctx.SendEmbed(utils.Red, "Error", "You have hit your panel quota. Delete a panel on the web UI (<https://panel.ticketsbot.net>, or purchase premium at <https://ticketsbot.net/premium> to create unlimited panels")
+			return
+		}
+	}
+
 	settingsChan := make(chan database.PanelSettings)
 	go database.GetPanelSettings(ctx.GuildId, settingsChan)
 	settings := <-settingsChan
@@ -55,7 +65,10 @@ func (PanelCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	go database.AddPanel(msgId, ctx.ChannelId, ctx.GuildId)
+	defaultCategory := make(chan int64)
+	go database.GetCategory(ctx.GuildId, defaultCategory)
+
+	go database.AddPanel(msgId, ctx.ChannelId, ctx.GuildId, settings.Title, settings.Content, settings.Colour, <-defaultCategory, "envelope_with_arrow")
 
 	ctx.ReactWithCheck()
 }
