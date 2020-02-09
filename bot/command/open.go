@@ -47,9 +47,9 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		panel = <-panelChan
 	}
 
-	// If we're using a panel, then we need to create the ticket in the specified cataegory
+	// If we're using a panel, then we need to create the ticket in the specified category
 	var category int64
-	if ctx.IsFromPanel {
+	if ctx.IsFromPanel && panel.TargetCategory != 0 {
 		category = panel.TargetCategory
 	} else { // else we can just use the default category
 		go database.GetCategory(guildId, ch)
