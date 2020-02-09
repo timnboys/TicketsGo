@@ -237,8 +237,19 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		})
 	}
 
+	// Create ticket name
+	var name string
+
+	namingScheme := make(chan database.NamingScheme)
+	go database.GetTicketNamingScheme(guildId, namingScheme)
+	if <-namingScheme == database.Username {
+		name = fmt.Sprintf("ticket-%s", ctx.User.Username)
+	} else {
+		name = fmt.Sprintf("ticket-%d", id)
+	}
+
 	data := discordgo.GuildChannelCreateData{
-		Name: fmt.Sprintf("ticket-%d", id),
+		Name: name,
 		Type: discordgo.ChannelTypeGuildText,
 		Topic: subject,
 		PermissionOverwrites: overwrites,
