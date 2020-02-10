@@ -22,6 +22,10 @@ func storeChannel(channel *discordgo.Channel) {
 }
 
 func OnChannelCreate(s *discordgo.Session, e *discordgo.ChannelCreate) {
+	if e.GuildID == "" {
+		return
+	}
+
 	storeChannel(e.Channel)
 }
 
