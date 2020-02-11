@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/TicketsBot/TicketsGo/bot/listeners"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -32,13 +33,15 @@ func (SyncCommand) PermissionLevel() utils.PermissionLevel {
 var cooldown = cache.New(time.Minute * 5, time.Minute * 1)
 
 func (SyncCommand) Execute(ctx utils.CommandContext) {
-	cooldownEnd, ok := cooldown.Get(ctx.Guild.ID)
-	if ok && cooldownEnd.(int64) > time.Now().UnixNano() { // Expiry search only runs once a minute
-		ctx.SendEmbed(utils.Red, "Sync", "This command is currently in cooldown")
-		return
-	}
+	if !listeners.IsBotAdmin(ctx.User.ID) && !listeners.IsBotHelper(ctx.User.ID) {
+		cooldownEnd, ok := cooldown.Get(ctx.Guild.ID)
+		if ok && cooldownEnd.(int64) > time.Now().UnixNano() { // Expiry search only runs once a minute
+			ctx.SendEmbed(utils.Red, "Sync", "This command is currently in cooldown")
+			return
+		}
 
-	cooldown.Set(ctx.Guild.ID, time.Now().Add(time.Minute * 5).UnixNano(), time.Minute * 5)
+		cooldown.Set(ctx.Guild.ID, time.Now().Add(time.Minute*5).UnixNano(), time.Minute*5)
+	}
 
 	// Process deleted tickets
 	ctx.SendMessage("Scanning for deleted ticket channels...")

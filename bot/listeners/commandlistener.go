@@ -170,13 +170,13 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 			return
 		}
 
-		if c.AdminOnly() && !isBotAdmin(e.Author.ID) {
+		if c.AdminOnly() && !IsBotAdmin(e.Author.ID) {
 			ctx.ReactWithCross()
 			ctx.SendEmbed(utils.Red, "Error", utils.NO_PERMISSION)
 			return
 		}
 
-		if c.HelperOnly() && !isBotHelper(e.Author.ID) && !isBotAdmin(e.Author.ID) {
+		if c.HelperOnly() && !IsBotHelper(e.Author.ID) && !IsBotAdmin(e.Author.ID) {
 			ctx.ReactWithCross()
 			ctx.SendEmbed(utils.Red, "Error", utils.NO_PERMISSION)
 			return
