@@ -48,7 +48,13 @@ func (SyncCommand) Execute(ctx utils.CommandContext) {
 
 	// Process any deleted cached channels
 	ctx.SendMessage("Scanning for deleted cached channels...")
-	processCachedChannels(ctx)
+	processDeletedCachedChannels(ctx)
+	ctx.SendMessage("Completed synchronisation with cache")
+
+	// Process any new channels that must be cached
+
+	ctx.SendMessage("Scanning for new channels to cache...")
+	processNewCachedChannels(ctx)
 	ctx.SendMessage("Completed synchronisation with cache")
 
 	// Check any panels still exist
@@ -99,7 +105,7 @@ func processDeletedPanels(ctx utils.CommandContext) {
 	}
 }
 
-func processCachedChannels(ctx utils.CommandContext) {
+func processDeletedCachedChannels(ctx utils.CommandContext) {
 	// Get all cached channels for the guild
 	cachedChannelsChan := make(chan []database.Channel)
 	go database.GetCachedChannelsByGuild(ctx.GuildId, cachedChannelsChan)
@@ -149,6 +155,30 @@ func processCachedChannels(ctx utils.CommandContext) {
 	for _, channel := range toRemove {
 		go database.DeleteChannel(channel.ChannelId)
 	}
+}
+
+func processNewCachedChannels(ctx utils.CommandContext) {
+	// Get refreshed channel objects from Discord
+	raw, err := ctx.Session.GuildChannels(ctx.Guild.ID); if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		return
+	}
+
+	channels := make([]database.Channel, 0)
+	for _, channel := range raw {
+		channelId, err := strconv.ParseInt(channel.ID, 10, 64); if err != nil {
+			sentry.LogWithContext(err, ctx.ToErrorContext())
+			continue
+		}
+
+		channels = append(channels, database.Channel{
+			ChannelId: channelId,
+			GuildId:   ctx.GuildId,
+			Name:      channel.Name,
+			Type:      int(channel.Type),
+		})
+	}
+	go database.InsertChannels(channels)
 }
 
 func (SyncCommand) Parent() interface{} {
