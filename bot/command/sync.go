@@ -163,7 +163,7 @@ func processDeletedCachedChannels(ctx utils.CommandContext) {
 }
 
 func recacheChannels(ctx utils.CommandContext) {
-	// Delete current cache
+	// Delete current cache, sync
 	database.DeleteAllChannelsByGuild(ctx.GuildId)
 
 	// Get refreshed channel objects from Discord
@@ -171,6 +171,8 @@ func recacheChannels(ctx utils.CommandContext) {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
+
+	fmt.Println(raw)
 
 	channels := make([]database.Channel, 0)
 	for _, channel := range raw {
