@@ -2,14 +2,17 @@ package listeners
 
 import (
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
+	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
+	"strconv"
 )
 
 // Fires when we receive a guild
 func OnGuildCreate(s *discordgo.Session, e *discordgo.GuildCreate) {
 	servercounter.UpdateCache(s.ShardID, len(s.State.Guilds))
 
-	/*guildId, err := strconv.ParseInt(e.Guild.ID, 10, 64); if err != nil {
+	guildId, err := strconv.ParseInt(e.Guild.ID, 10, 64); if err != nil {
 		sentry.Error(err)
 		return
 	}
@@ -29,5 +32,5 @@ func OnGuildCreate(s *discordgo.Session, e *discordgo.GuildCreate) {
 		})
 	}
 
-	go database.InsertChannels(channels)*/
+	go database.InsertChannels(channels)
 }
