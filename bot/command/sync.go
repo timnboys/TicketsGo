@@ -165,7 +165,7 @@ func processDeletedCachedChannels(ctx utils.CommandContext) {
 
 func recacheChannels(ctx utils.CommandContext) {
 	// Delete current cache
-	go database.DeleteAllChannelsByGuild(ctx.GuildId)
+	database.DeleteAllChannelsByGuild(ctx.GuildId)
 
 	// Get refreshed channel objects from Discord
 	raw, err := ctx.Session.GuildChannels(ctx.Guild.ID); if err != nil {
