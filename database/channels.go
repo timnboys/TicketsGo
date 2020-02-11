@@ -43,7 +43,7 @@ func GetCachedChannelsByGuild(guildId int64, res chan []Channel) {
 }
 
 func InsertChannels(data []Channel) {
-	records := make([]interface{}, 0)
+	records := make([]Channel, 0)
 	for _, record := range data {
 		records = append(records, record)
 	}
@@ -64,6 +64,7 @@ func bulkInsertChannels(data []Channel) {
 			temp = make([]Channel, 0)
 		}
 	}
+	chunks = append(chunks, temp)
 
 	for _, chunk := range chunks {
 		values := make([]string, 0)
@@ -78,6 +79,7 @@ func bulkInsertChannels(data []Channel) {
 		}
 
 		statement := fmt.Sprintf("INSERT INTO Channel(CHANNELID, GUILDID, NAME, CHANNELTYPE) VALUES %s ON DUPLICATE KEY UPDATE NAME=VALUES(NAME);", strings.Join(values, ","))
+		fmt.Println(statement)
 		if _, err := Db.DB.DB().Exec(statement, args...); err != nil {
 			sentry.Error(err)
 		}

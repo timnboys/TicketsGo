@@ -172,8 +172,6 @@ func recacheChannels(ctx utils.CommandContext) {
 		return
 	}
 
-	fmt.Println(raw)
-
 	channels := make([]database.Channel, 0)
 	for _, channel := range raw {
 		channelId, err := strconv.ParseInt(channel.ID, 10, 64); if err != nil {
@@ -188,6 +186,7 @@ func recacheChannels(ctx utils.CommandContext) {
 			Type:      int(channel.Type),
 		})
 	}
+
 	go database.InsertChannels(channels)
 }
 

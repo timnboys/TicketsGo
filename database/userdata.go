@@ -51,6 +51,7 @@ func bulkInsertUserData(data []UserData) {
 			temp = make([]UserData, 0)
 		}
 	}
+	chunks = append(chunks, temp)
 
 	for _, chunk := range chunks {
 		values := make([]string, 0)
