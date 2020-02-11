@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"github.com/TicketsBot/TicketsGo/bot/listeners"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -33,7 +32,7 @@ func (SyncCommand) PermissionLevel() utils.PermissionLevel {
 var cooldown = cache.New(time.Minute * 5, time.Minute * 1)
 
 func (SyncCommand) Execute(ctx utils.CommandContext) {
-	if !listeners.IsBotAdmin(ctx.User.ID) && !listeners.IsBotHelper(ctx.User.ID) {
+	if !utils.IsBotAdmin(ctx.User.ID) && !utils.IsBotHelper(ctx.User.ID) {
 		cooldownEnd, ok := cooldown.Get(ctx.Guild.ID)
 		if ok && cooldownEnd.(int64) > time.Now().UnixNano() { // Expiry search only runs once a minute
 			ctx.SendEmbed(utils.Red, "Sync", "This command is currently in cooldown")

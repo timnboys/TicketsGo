@@ -1,4 +1,4 @@
-package listeners
+package utils
 
 import "github.com/TicketsBot/TicketsGo/config"
 
