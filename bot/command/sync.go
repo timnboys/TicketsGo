@@ -47,13 +47,13 @@ func (SyncCommand) Execute(ctx utils.CommandContext) {
 	ctx.SendMessage(fmt.Sprintf("Completed **%d** ticket state synchronisation", <-updated))
 
 	// Process any deleted cached channels
-	ctx.SendMessage("Scanning for deleted cached channels...")
-	processDeletedCachedChannels(ctx)
-	ctx.SendMessage("Completed synchronisation with cache")
+	//ctx.SendMessage("Scanning for deleted cached channels...")
+	//processDeletedCachedChannels(ctx)
+	//ctx.SendMessage("Completed synchronisation with cache")
 
 	// Process any new channels that must be cached
-	ctx.SendMessage("Scanning for new channels to cache...")
-	processNewCachedChannels(ctx)
+	ctx.SendMessage("Recaching channels...")
+	recacheChannels(ctx)
 	ctx.SendMessage("Completed synchronisation with cache")
 
 	// Check any panels still exist
@@ -160,7 +160,10 @@ func processDeletedCachedChannels(ctx utils.CommandContext) {
 	}
 }
 
-func processNewCachedChannels(ctx utils.CommandContext) {
+func recacheChannels(ctx utils.CommandContext) {
+	// Delete current cache
+	go database.DeleteAllChannelsByGuild(ctx.GuildId)
+
 	// Get refreshed channel objects from Discord
 	raw, err := ctx.Session.GuildChannels(ctx.Guild.ID); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())

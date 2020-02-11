@@ -32,6 +32,10 @@ func DeleteChannel(channelId int64) {
 	Db.Where(Channel{ChannelId: channelId}).Delete(Channel{})
 }
 
+func DeleteAllChannelsByGuild(guildId int64) {
+	Db.Where(Channel{GuildId: guildId}).Delete(Channel{})
+}
+
 func GetCachedChannelsByGuild(guildId int64, res chan []Channel) {
 	var nodes []Channel
 	Db.Where(Channel{GuildId: guildId}).Find(&nodes)
