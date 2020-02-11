@@ -52,7 +52,6 @@ func (SyncCommand) Execute(ctx utils.CommandContext) {
 	ctx.SendMessage("Completed synchronisation with cache")
 
 	// Process any new channels that must be cached
-
 	ctx.SendMessage("Scanning for new channels to cache...")
 	processNewCachedChannels(ctx)
 	ctx.SendMessage("Completed synchronisation with cache")
@@ -118,7 +117,11 @@ func processDeletedCachedChannels(ctx utils.CommandContext) {
 	}
 
 	// Make a duplicate slice of cached channels which we will remove IDs from as we go - remaining IDs have been deleted
-	toRemove := append(cachedChannels[:0:0], cachedChannels...)
+	toRemove := make([]database.Channel, 0)
+	// Prevent panic
+	if len(cachedChannels) > 0 {
+		toRemove = append(cachedChannels[:0:0], cachedChannels...)
+	}
 
 	for _, existingChannel := range channels {
 		// Remove from toRemove slice & find cached object

@@ -29,9 +29,7 @@ func StoreChannel(channelId, guildId int64, name string, channelType int) {
 }
 
 func DeleteChannel(channelId int64) {
-	var node Channel
-	Db.Where(Channel{ChannelId: channelId}).Take(&node)
-	Db.Delete(&node)
+	Db.Where(Channel{ChannelId: channelId}).Delete(Channel{})
 }
 
 func GetCachedChannelsByGuild(guildId int64, res chan []Channel) {
