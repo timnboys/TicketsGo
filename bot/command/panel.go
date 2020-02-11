@@ -68,7 +68,7 @@ func (PanelCommand) Execute(ctx utils.CommandContext) {
 	defaultCategory := make(chan int64)
 	go database.GetCategory(ctx.GuildId, defaultCategory)
 
-	go database.AddPanel(msgId, ctx.ChannelId, ctx.GuildId, settings.Title, settings.Content, settings.Colour, <-defaultCategory, "envelope_with_arrow")
+	go database.AddPanel(msgId, ctx.ChannelId, ctx.GuildId, settings.Title, settings.Content, settings.Colour, <-defaultCategory, "📩")
 
 	ctx.ReactWithCheck()
 }
