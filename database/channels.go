@@ -79,7 +79,6 @@ func bulkInsertChannels(data []Channel) {
 		}
 
 		statement := fmt.Sprintf("INSERT INTO Channel(CHANNELID, GUILDID, NAME, CHANNELTYPE) VALUES %s ON DUPLICATE KEY UPDATE NAME=VALUES(NAME);", strings.Join(values, ","))
-		fmt.Println(statement)
 		if _, err := Db.DB.DB().Exec(statement, args...); err != nil {
 			sentry.Error(err)
 		}
