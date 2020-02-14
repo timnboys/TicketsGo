@@ -54,11 +54,15 @@ func (ctx *CommandContext) SendMessage(content string) {
 }
 
 func (ctx *CommandContext) ReactWithCheck() {
-	ReactWithCheck(ctx.Session, &ctx.Message)
+	if ctx.ShouldReact {
+		ReactWithCheck(ctx.Session, &ctx.Message)
+	}
 }
 
 func (ctx *CommandContext) ReactWithCross() {
-	ReactWithCross(ctx.Session, ctx.Message)
+	if ctx.ShouldReact {
+		ReactWithCross(ctx.Session, ctx.Message)
+	}
 }
 
 func (ctx *CommandContext) GetPermissionLevel(ch chan PermissionLevel) {

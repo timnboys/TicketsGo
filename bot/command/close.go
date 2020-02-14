@@ -90,7 +90,9 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	ctx.ReactWithCheck()
+	if ctx.ShouldReact {
+		ctx.ReactWithCheck()
+	}
 
 	// Archive
 	msgs := make([]*discordgo.Message, 0)

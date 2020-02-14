@@ -29,6 +29,10 @@ type SentMessage struct {
 }
 
 func SendEmbed(session *discordgo.Session, channel string, colour Colour, title, content string, deleteAfter int, isPremium bool) {
+	_ = SendEmbedWithResponse(session, channel, colour, title, content, deleteAfter, isPremium)
+}
+
+func SendEmbedWithResponse(session *discordgo.Session, channel string, colour Colour, title, content string, deleteAfter int, isPremium bool) *discordgo.Message {
 	embed := NewEmbed().
 		SetColor(int(colour)).
 		AddField(title, content, false)
@@ -38,7 +42,8 @@ func SendEmbed(session *discordgo.Session, channel string, colour Colour, title,
 	}
 
 	// Explicitly ignore error because it's usually a 403 (missing permissions)
-	msg, err := session.ChannelMessageSendEmbed(channel, embed.MessageEmbed); if err != nil {
+	msg, err := session.ChannelMessageSendEmbed(channel, embed.MessageEmbed);
+	if err != nil {
 		sentry.LogWithContext(err, sentry.ErrorContext{
 			Channel: channel,
 			Shard:   session.ShardID,
@@ -49,6 +54,8 @@ func SendEmbed(session *discordgo.Session, channel string, colour Colour, title,
 	if deleteAfter > 0 {
 		DeleteAfter(SentMessage{session, msg}, deleteAfter)
 	}
+
+	return msg
 }
 
 func DeleteAfter(msg SentMessage, secs int) {

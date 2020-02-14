@@ -34,11 +34,6 @@ func (OpenCommand) PermissionLevel() utils.PermissionLevel {
 func (OpenCommand) Execute(ctx utils.CommandContext) {
 	ch := make(chan int64)
 
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
 	// Get the panel struct, if we're using one
 	var panel database.Panel
 	if ctx.IsFromPanel {
@@ -52,14 +47,14 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	if ctx.IsFromPanel && panel.TargetCategory != 0 {
 		category = panel.TargetCategory
 	} else { // else we can just use the default category
-		go database.GetCategory(guildId, ch)
+		go database.GetCategory(ctx.GuildId, ch)
 		category = <- ch
 	}
 
 	// Make sure the category exists
 	if category != 0 {
 		categoryStr := strconv.Itoa(int(category))
-		if _, err = ctx.Session.State.Channel(categoryStr); err != nil {
+		if _, err := ctx.Session.State.Channel(categoryStr); err != nil {
 			if _, err = ctx.Session.Channel(categoryStr); err != nil {
 				category = 0
 			}
@@ -125,7 +120,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	// Make sure ticket count is whithin ticket limit
 	ticketLimitChan := make(chan int)
-	go database.GetTicketLimit(guildId, ticketLimitChan)
+	go database.GetTicketLimit(ctx.GuildId, ticketLimitChan)
 	ticketLimit := <- ticketLimitChan
 
 	userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
@@ -135,7 +130,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	ticketCount := 0
 	openedTicketsChan := make(chan []string)
-	go database.GetOpenTicketsOpenedBy(guildId, userId, openedTicketsChan)
+	go database.GetOpenTicketsOpenedBy(ctx.GuildId, userId, openedTicketsChan)
 	openedTickets := <-openedTicketsChan
 	ticketCount = len(openedTickets)
 
@@ -186,62 +181,16 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	// Create channel
 	idChan := make(chan int)
-	go database.CreateTicket(guildId, userId, idChan)
+	go database.CreateTicket(ctx.GuildId, userId, idChan)
 	id := <- idChan
 
-	// Apply permission overwrites
-	overwrites := make([]*discordgo.PermissionOverwrite, 0)
-	overwrites = append(overwrites, &discordgo.PermissionOverwrite{ // @everyone
-		ID: ctx.Guild.ID,
-		Type: "role",
-		Allow: 0,
-		Deny: utils.SumPermissions(utils.ViewChannel),
-	})
-
-	// Create list of members & roles who should be added to the ticket
-	allowedUsers := make([]string, 0)
-	allowedRoles := make([]string, 0)
-
-	// Get support reps
-	supportUsers := make(chan []int64)
-	go database.GetSupport(ctx.Guild.ID, supportUsers)
-	for _, user := range <-supportUsers {
-		allowedUsers = append(allowedUsers, strconv.Itoa(int(user)))
-	}
-
-	// Get support roles
-	supportRoles := make(chan []int64)
-	go database.GetSupportRoles(ctx.Guild.ID, supportRoles)
-	for _, role := range <-supportRoles {
-		allowedRoles = append(allowedRoles, strconv.Itoa(int(role)))
-	}
-
-	// Add ourselves and the sender
-	allowedUsers = append(allowedUsers, utils.Id, ctx.User.ID)
-
-	for _, member := range allowedUsers {
-		overwrites = append(overwrites, &discordgo.PermissionOverwrite{
-			ID: member,
-			Type: "member",
-			Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
-			Deny: 0,
-		})
-	}
-
-	for _, role := range allowedRoles {
-		overwrites = append(overwrites, &discordgo.PermissionOverwrite{
-			ID: role,
-			Type: "role",
-			Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
-			Deny: 0,
-		})
-	}
+	overwrites := createOverwrites(ctx)
 
 	// Create ticket name
 	var name string
 
 	namingScheme := make(chan database.NamingScheme)
-	go database.GetTicketNamingScheme(guildId, namingScheme)
+	go database.GetTicketNamingScheme(ctx.GuildId, namingScheme)
 	if <-namingScheme == database.Username {
 		name = fmt.Sprintf("ticket-%s", ctx.User.Username)
 	} else {
@@ -269,32 +218,13 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
-	go database.SetTicketChannel(id, guildId, channelId)
+	go database.SetTicketChannel(id, ctx.GuildId, channelId)
 
-	// Send welcome message
-	welcomeMessageChan := make(chan string)
-	go database.GetWelcomeMessage(guildId, welcomeMessageChan)
-	welcomeMessage := <- welcomeMessageChan
-	
-	// %average_response%
-	if ctx.IsPremium && strings.Contains(welcomeMessage, "%average_response%") {
-		weeklyResponseTime := make(chan int64)
-		go calculateWeeklyResponseTime(ctx, weeklyResponseTime)
-		welcomeMessage = strings.Replace(welcomeMessage, "%average_response%", utils.FormatTime(<-weeklyResponseTime), -1)
-	}
-
-	// %user%
-	welcomeMessage = strings.Replace(welcomeMessage, "%user%", ctx.User.Mention(), -1)
-
-	if welcomeMessage == "" {
-		welcomeMessage = "No message specified"
-	}
-
-	utils.SendEmbed(ctx.Session, c.ID, utils.Green, subject, welcomeMessage, 0, ctx.IsPremium)
+	sendWelcomeMessage(ctx, c, subject, id)
 
 	// Ping @everyone
 	pingEveryoneChan := make(chan bool)
-	go database.IsPingEveryone(guildId, pingEveryoneChan)
+	go database.IsPingEveryone(ctx.GuildId, pingEveryoneChan)
 	pingEveryone := <- pingEveryoneChan
 
 	if pingEveryone {
@@ -365,4 +295,94 @@ func calculateWeeklyResponseTime(ctx utils.CommandContext, res chan int64) {
 	}
 
 	res <- weekly
+}
+
+func sendWelcomeMessage(ctx utils.CommandContext, channel *discordgo.Channel, subject string, ticketId int) {
+	// Send welcome message
+	welcomeMessageChan := make(chan string)
+	go database.GetWelcomeMessage(ctx.GuildId, welcomeMessageChan)
+	welcomeMessage := <- welcomeMessageChan
+
+	// %average_response%
+	if ctx.IsPremium && strings.Contains(welcomeMessage, "%average_response%") {
+		weeklyResponseTime := make(chan int64)
+		go calculateWeeklyResponseTime(ctx, weeklyResponseTime)
+		welcomeMessage = strings.Replace(welcomeMessage, "%average_response%", utils.FormatTime(<-weeklyResponseTime), -1)
+	}
+
+	// %user%
+	welcomeMessage = strings.Replace(welcomeMessage, "%user%", ctx.User.Mention(), -1)
+
+	if welcomeMessage == "" {
+		welcomeMessage = "No message specified"
+	}
+
+	// Send welcome message
+	if msg := utils.SendEmbedWithResponse(ctx.Session, channel.ID, utils.Green, subject, welcomeMessage, 0, ctx.IsPremium); msg != nil {
+		// Add close reaction to the welcome message
+		err := ctx.Session.MessageReactionAdd(channel.ID, msg.ID, "🔒")
+		if err != nil {
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		} else {
+			// Parse message ID
+			messageId, err := strconv.ParseInt(msg.ID, 10, 64)
+			if err != nil {
+				sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			} else {
+				go database.SetWelcomeMessageId(ticketId, ctx.GuildId, messageId)
+			}
+		}
+	}
+}
+
+func createOverwrites(ctx utils.CommandContext) []*discordgo.PermissionOverwrite {
+	// Apply permission overwrites
+	overwrites := make([]*discordgo.PermissionOverwrite, 0)
+	overwrites = append(overwrites, &discordgo.PermissionOverwrite{ // @everyone
+		ID: ctx.Guild.ID,
+		Type: "role",
+		Allow: 0,
+		Deny: utils.SumPermissions(utils.ViewChannel),
+	})
+
+	// Create list of members & roles who should be added to the ticket
+	allowedUsers := make([]string, 0)
+	allowedRoles := make([]string, 0)
+
+	// Get support reps
+	supportUsers := make(chan []int64)
+	go database.GetSupport(ctx.Guild.ID, supportUsers)
+	for _, user := range <-supportUsers {
+		allowedUsers = append(allowedUsers, strconv.Itoa(int(user)))
+	}
+
+	// Get support roles
+	supportRoles := make(chan []int64)
+	go database.GetSupportRoles(ctx.Guild.ID, supportRoles)
+	for _, role := range <-supportRoles {
+		allowedRoles = append(allowedRoles, strconv.Itoa(int(role)))
+	}
+
+	// Add ourselves and the sender
+	allowedUsers = append(allowedUsers, utils.Id, ctx.User.ID)
+
+	for _, member := range allowedUsers {
+		overwrites = append(overwrites, &discordgo.PermissionOverwrite{
+			ID: member,
+			Type: "member",
+			Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
+			Deny: 0,
+		})
+	}
+
+	for _, role := range allowedRoles {
+		overwrites = append(overwrites, &discordgo.PermissionOverwrite{
+			ID: role,
+			Type: "role",
+			Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
+			Deny: 0,
+		})
+	}
+
+	return overwrites
 }

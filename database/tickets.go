@@ -8,14 +8,15 @@ import (
 )
 
 type Ticket struct {
-	Uuid     string `gorm:"column:UUID;type:varchar(36);unique;primary_key"`
-	Id       int    `gorm:"column:ID"`
-	Guild    int64  `gorm:"column:GUILDID"`
-	Channel  *int64  `gorm:"column:CHANNELID;nullable"`
-	Owner    int64  `gorm:"column:OWNERID"`
-	Members  string `gorm:"column:MEMBERS;type:text"`
-	IsOpen   bool   `gorm:"column:OPEN"`
-	OpenTime *int64 `gorm:"column:OPENTIME;nullable"`
+	Uuid             string `gorm:"column:UUID;type:varchar(36);unique;primary_key"`
+	Id               int    `gorm:"column:ID"`
+	Guild            int64  `gorm:"column:GUILDID"`
+	Channel          *int64 `gorm:"column:CHANNELID;nullable"`
+	Owner            int64  `gorm:"column:OWNERID"`
+	Members          string `gorm:"column:MEMBERS;type:text"`
+	IsOpen           bool   `gorm:"column:OPEN"`
+	OpenTime         *int64 `gorm:"column:OPENTIME;nullable"`
+	WelcomeMessageId *int64 `gorm:"column:"WELCOMEMESSAGEID";nullable"`
 }
 
 func (Ticket) TableName() string {
@@ -241,4 +242,9 @@ func Close(guild int64, ticket int) {
 func CloseByChannel(channel int64) {
 	node := Ticket{Channel: &channel}
 	Db.Model(&node).Where(node).Update("OPEN", false)
+}
+
+func SetWelcomeMessageId(ticketId int, guildId, msgId int64) {
+	node := Ticket{Guild: guildId, Id: ticketId}
+	Db.Model(&node).Where(node).Update("WELCOMEMESSAGEID", msgId)
 }
