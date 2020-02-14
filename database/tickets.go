@@ -16,7 +16,7 @@ type Ticket struct {
 	Members          string `gorm:"column:MEMBERS;type:text"`
 	IsOpen           bool   `gorm:"column:OPEN"`
 	OpenTime         *int64 `gorm:"column:OPENTIME;nullable"`
-	WelcomeMessageId *int64 `gorm:"column:"WELCOMEMESSAGEID";nullable"`
+	WelcomeMessageId *int64 `gorm:"column:WELCOMEMESSAGEID;nullable"`
 }
 
 func (Ticket) TableName() string {
