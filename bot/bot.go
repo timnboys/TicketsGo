@@ -37,6 +37,7 @@ func Start(ch chan os.Signal) {
 	}
 
 	go messagequeue.ListenPanelCreations(discord)
+	go messagequeue.ListenTicketClose(discord)
 
 	if self, err := discord.Session(0).User("@me"); err == nil {
 		if self != nil {

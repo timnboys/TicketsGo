@@ -111,6 +111,12 @@ func GetTicketById(guild int64, id int, ch chan Ticket) {
 	ch <- node
 }
 
+func GetTicketByUuid(uuid string, ch chan Ticket) {
+	var node Ticket
+	Db.Where(Ticket{Uuid: uuid}).Take(&node)
+	ch <- node
+}
+
 func GetTicketByChannel(channel int64, ch chan Ticket) {
 	var node Ticket
 	Db.Where(Ticket{Channel: &channel}).Take(&node)
