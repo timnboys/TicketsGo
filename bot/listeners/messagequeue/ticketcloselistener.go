@@ -78,7 +78,7 @@ func ListenTicketClose(shardManager *dshardmanager.Manager) {
 			GuildId:     ticket.Guild,
 			Channel:     strconv.Itoa(int(*ticket.Channel)),
 			ChannelId:   *ticket.Channel,
-			MessageId:   nil,
+			MessageId:   0,
 			Root:        "close",
 			Args:        make([]string, 0),
 			IsPremium:   <-isPremium,
