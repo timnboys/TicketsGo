@@ -8,6 +8,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/jonas747/dshardmanager"
 	"strconv"
+	"strings"
 )
 
 func ListenTicketClose(shardManager *dshardmanager.Manager) {
@@ -70,6 +71,9 @@ func ListenTicketClose(shardManager *dshardmanager.Manager) {
 			}
 		}
 
+		// Add reason to args
+		reason := strings.Split(payload.Reason, " ")
+
 		ctx := utils.CommandContext{
 			Session:     s,
 			User:        *member.User,
@@ -80,7 +84,7 @@ func ListenTicketClose(shardManager *dshardmanager.Manager) {
 			ChannelId:   *ticket.Channel,
 			MessageId:   0,
 			Root:        "close",
-			Args:        make([]string, 0),
+			Args:        reason,
 			IsPremium:   <-isPremium,
 			ShouldReact: false,
 			Member:      member,
