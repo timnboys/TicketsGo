@@ -9,6 +9,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -30,6 +31,8 @@ func (OpenCommand) Aliases() []string {
 func (OpenCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
+
+var idLocks = make(map[int64]*sync.Mutex)
 
 func (OpenCommand) Execute(ctx utils.CommandContext) {
 	ch := make(chan int64)
@@ -179,10 +182,19 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		ctx.ReactWithCheck()
 	}
 
+	// ID lock
+	lock := idLocks[ctx.GuildId]
+	if lock == nil {
+		lock = &sync.Mutex{}
+	}
+	idLocks[ctx.GuildId] = lock
+
 	// Create channel
+	lock.Lock()
 	idChan := make(chan int)
 	go database.CreateTicket(ctx.GuildId, userId, idChan)
 	id := <- idChan
+	lock.Unlock()
 
 	overwrites := createOverwrites(ctx)
 
