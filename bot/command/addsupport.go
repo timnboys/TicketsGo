@@ -75,6 +75,13 @@ func (AddSupportCommand) Execute(ctx utils.CommandContext) {
 
 	// Update permissions for existing tickets
 	for _, channelId := range <-openTicketsChan {
+		// Mitigation for a very rare panic that occurs when this command is run whilst a ticket is being opened, but
+		// the channel ID hasn't been set in the database yet, or if Discord is dead and won't let the channel
+		// be created.
+		if channelId == nil {
+			continue
+		}
+
 		var overwrites []*discordgo.PermissionOverwrite
 		ch, err := ctx.Session.Channel(strconv.Itoa(int(*channelId))); if err != nil {
 			continue
