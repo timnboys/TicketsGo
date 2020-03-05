@@ -60,6 +60,9 @@ func (PanelCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
+	// Send warning
+	ctx.SendMessage("**Note:** You should use the web UI (<https://panel.ticketsbot.net>) to create panels if you want to gain access to full customisation!")
+
 	msgId, err := strconv.ParseInt(msg.ID, 10, 64); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
