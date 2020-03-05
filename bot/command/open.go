@@ -290,14 +290,14 @@ func (OpenCommand) HelperOnly() bool {
 
 func createWebhook(ctx utils.CommandContext, channelId, uuid string) {
 	hasPermission := make(chan bool)
-	go utils.ChannelMemberHasPermission(ctx.Session, ctx.Guild.ID, channelId, ctx.Session.State.User.ID, utils.ManageWebhooks, hasPermission)
+	go utils.ChannelMemberHasPermission(ctx.Session, ctx.Guild.ID, channelId, ctx.Session.State.User.ID, utils.ManageWebhooks, hasPermission) // Do we actually need this?
 	if <-hasPermission {
 		webhook, err := ctx.Session.WebhookCreate(channelId, ctx.Session.State.User.Username, ctx.Session.State.User.Avatar); if err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			return
 		}
 
-		formatted := fmt.Sprintf("https://canary.discordapp.com/api/webhooks/%s/%s", webhook.ID, webhook.Token)
+		formatted := fmt.Sprintf("%s/%s", webhook.ID, webhook.Token)
 
 		ticketWebhook := database.TicketWebhook{
 			Uuid:       uuid,
