@@ -261,8 +261,11 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		ctx.SendEmbed(utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", c.Mention()))
 	}
 
-	go createWebhook(ctx, c.ID, ticketUuid.String())
 	go statsd.IncrementKey(statsd.TICKETS)
+
+	if ctx.IsPremium {
+		go createWebhook(ctx, c.ID, ticketUuid.String())
+	}
 }
 
 func (OpenCommand) Parent() interface{} {
@@ -287,7 +290,7 @@ func (OpenCommand) HelperOnly() bool {
 
 func createWebhook(ctx utils.CommandContext, channelId, uuid string) {
 	hasPermission := make(chan bool)
-	utils.ChannelMemberHasPermission(ctx.Session, ctx.Guild.ID, channelId, ctx.Session.State.User.ID, utils.ManageWebhooks, hasPermission)
+	go utils.ChannelMemberHasPermission(ctx.Session, ctx.Guild.ID, channelId, ctx.Session.State.User.ID, utils.ManageWebhooks, hasPermission)
 	if <-hasPermission {
 		webhook, err := ctx.Session.WebhookCreate(channelId, ctx.Session.State.User.Username, ctx.Session.State.User.Avatar); if err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
