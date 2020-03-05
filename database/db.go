@@ -57,6 +57,7 @@ func Setup() {
 		TicketLimit{},
 		Ticket{},
 		TicketNamingScheme{},
+		TicketWebhook{},
 		UserCanClose{},
 		UserData{},
 		WelcomeMessage{},

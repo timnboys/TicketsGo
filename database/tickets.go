@@ -2,7 +2,6 @@ package database
 
 import (
 	"fmt"
-	"github.com/satori/go.uuid"
 	"strings"
 	"time"
 )
@@ -29,7 +28,7 @@ func GetNextId(guild int64, ch chan int) {
 	ch <- node.Id + 1
 }
 
-func CreateTicket(guild, owner int64, ch chan int) {
+func CreateTicket(uuid string, guild, owner int64, ch chan int) {
 	idChan := make(chan int)
 	go GetNextId(guild, idChan)
 	id := <-idChan
@@ -37,7 +36,7 @@ func CreateTicket(guild, owner int64, ch chan int) {
 	now := time.Now().UnixNano() / int64(time.Millisecond)
 
 	node := Ticket{
-		Uuid:     uuid.Must(uuid.NewV4()).String(),
+		Uuid:     uuid,
 		Id:       id,
 		Guild:    guild,
 		Channel:  nil,

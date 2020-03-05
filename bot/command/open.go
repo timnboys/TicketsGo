@@ -7,6 +7,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
+	uuid "github.com/satori/go.uuid"
 	"strconv"
 	"strings"
 	"sync"
@@ -190,9 +191,14 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	idLocks[ctx.GuildId] = lock
 
 	// Create channel
+	ticketUuid, err := uuid.NewV4(); if err != nil {
+		sentry.LogWithContext(err, ctx.ToErrorContext())
+		return
+	}
+
 	lock.Lock()
 	idChan := make(chan int)
-	go database.CreateTicket(ctx.GuildId, userId, idChan)
+	go database.CreateTicket(ticketUuid.String(), ctx.GuildId, userId, idChan)
 	id := <- idChan
 	lock.Unlock()
 
@@ -255,6 +261,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		ctx.SendEmbed(utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", c.Mention()))
 	}
 
+	go createWebhook(ctx, c.ID, ticketUuid.String())
 	go statsd.IncrementKey(statsd.TICKETS)
 }
 
@@ -276,6 +283,25 @@ func (OpenCommand) AdminOnly() bool {
 
 func (OpenCommand) HelperOnly() bool {
 	return false
+}
+
+func createWebhook(ctx utils.CommandContext, channelId, uuid string) {
+	hasPermission := make(chan bool)
+	utils.ChannelMemberHasPermission(ctx.Session, ctx.Guild.ID, channelId, ctx.Session.State.User.ID, utils.ManageWebhooks, hasPermission)
+	if <-hasPermission {
+		webhook, err := ctx.Session.WebhookCreate(channelId, ctx.Session.State.User.Username, ctx.Session.State.User.Avatar); if err != nil {
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			return
+		}
+
+		formatted := fmt.Sprintf("https://canary.discordapp.com/api/webhooks/%s/%s", webhook.ID, webhook.Token)
+
+		ticketWebhook := database.TicketWebhook{
+			Uuid:       uuid,
+			WebhookUrl: formatted,
+		}
+		ticketWebhook.AddWebhook()
+	}
 }
 
 func calculateWeeklyResponseTime(ctx utils.CommandContext, res chan int64) {
@@ -379,10 +405,17 @@ func createOverwrites(ctx utils.CommandContext) []*discordgo.PermissionOverwrite
 	allowedUsers = append(allowedUsers, utils.Id, ctx.User.ID)
 
 	for _, member := range allowedUsers {
+		allow := []utils.Permission{utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks}
+
+		// Give ourselves permissions to create webbooks
+		if member == ctx.Session.State.User.ID {
+			allow = append(allow, utils.ManageWebhooks)
+		}
+
 		overwrites = append(overwrites, &discordgo.PermissionOverwrite{
 			ID: member,
 			Type: "member",
-			Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
+			Allow: utils.SumPermissions(allow...),
 			Deny: 0,
 		})
 	}

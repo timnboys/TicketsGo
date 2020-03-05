@@ -150,6 +150,9 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		}
 	}
 
+	// Save space - delete the webhook
+	go database.DeleteWebhookByUuid(ticket.Uuid)
+
 	if channelExists {
 		msg := fmt.Sprintf("Archive of `#ticket-%d` (closed by %s#%s)", ticket.Id, ctx.User.Username, ctx.User.Discriminator)
 		if reason != "" {
