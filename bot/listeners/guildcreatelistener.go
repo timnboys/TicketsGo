@@ -15,7 +15,7 @@ func OnGuildCreate(s *discordgo.Session, e *discordgo.GuildCreate) {
 
 	cached, err := s.State.Guild(e.Guild.ID)
 	isJoin := false
-	if err != nil || cached == nil || cached.Unavailable {
+	if err == nil || cached == nil || cached.Unavailable {
 		isJoin = true
 	}
 
