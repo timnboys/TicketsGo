@@ -32,7 +32,7 @@ func (RemoveAdminCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	var roleId string
+	roles := make([]string, 0)
 	if len(ctx.Message.Mentions) > 0 {
 		for _, mention := range ctx.Message.Mentions {
 			if ctx.Guild.OwnerID == mention.ID {
@@ -47,25 +47,34 @@ func (RemoveAdminCommand) Execute(ctx utils.CommandContext) {
 
 			go database.RemoveAdmin(ctx.Guild.ID, mention.ID)
 		}
+	} else if len(ctx.Message.MentionRoles) > 0 {
+		for _, mention := range ctx.Message.MentionRoles {
+			roles = append(roles, mention)
+		}
 	} else {
 		roleName := strings.ToLower(strings.Join(ctx.Args, " "))
 
 		// Get role ID from name
+		valid := false
 		for _, role := range ctx.Guild.Roles {
 			if strings.ToLower(role.Name) == roleName {
-				roleId = role.ID
+				roles = append(roles, role.ID)
+				valid = true
 				break
 			}
 		}
 
 		// Verify a valid role was mentioned
-		if roleId == "" {
+		if !valid {
 			ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to revoke admin privileges from")
 			ctx.ReactWithCross()
 			return
 		}
+	}
 
-		go database.RemoveAdminRole(ctx.Guild.ID, roleId)
+	// Remove roles from DB
+	for _, role := range roles {
+		go database.RemoveAdminRole(ctx.Guild.ID, role)
 	}
 
 	ctx.ReactWithCheck()

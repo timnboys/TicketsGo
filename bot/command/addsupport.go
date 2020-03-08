@@ -35,43 +35,46 @@ func (AddSupportCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	byMention := false
-	var roleId string
+	user := false
+	roles := make([]string, 0)
 
 	if len(ctx.Message.Mentions) > 0 {
-		byMention = true
+		user = true
 		for _, mention := range ctx.Message.Mentions {
 			go database.AddSupport(ctx.Guild.ID, mention.ID)
+		}
+	} else if len(ctx.Message.MentionRoles) > 0 {
+		for _, mention := range ctx.Message.MentionRoles {
+			roles = append(roles, mention)
 		}
 	} else {
 		roleName := strings.ToLower(strings.Join(ctx.Args, " "))
 
 		// Get role ID from name
+		valid := false
 		for _, role := range ctx.Guild.Roles {
 			if strings.ToLower(role.Name) == roleName {
-				roleId = role.ID
+				valid = true
+				roles = append(roles, role.ID)
 				break
 			}
 		}
 
 		// Verify a valid role was mentioned
-		if roleId == "" {
-			ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to grant support representative to")
+		if !valid {
+			ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to grant support representative privileges to")
 			ctx.ReactWithCross()
 			return
 		}
-
-		go database.AddSupportRole(ctx.Guild.ID, roleId)
 	}
 
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		ctx.ReactWithCross()
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
+	// Add roles to DB
+	for _, role := range roles {
+		go database.AddSupportRole(ctx.Guild.ID, role)
 	}
 
 	openTicketsChan := make(chan []*int64)
-	go database.GetOpenTicketChannelIds(guildId, openTicketsChan)
+	go database.GetOpenTicketChannelIds(ctx.GuildId, openTicketsChan)
 
 	// Update permissions for existing tickets
 	for _, channelId := range <-openTicketsChan {
@@ -89,8 +92,8 @@ func (AddSupportCommand) Execute(ctx utils.CommandContext) {
 
 		overwrites = ch.PermissionOverwrites
 
-		if byMention {
-			// If adding individual support representative, apply each override individually
+		if user {
+			// If adding individual admins, apply each override individually
 			for _, mention := range ctx.Message.Mentions {
 				overwrites = append(overwrites, &discordgo.PermissionOverwrite{
 					ID: mention.ID,
@@ -100,13 +103,15 @@ func (AddSupportCommand) Execute(ctx utils.CommandContext) {
 				})
 			}
 		} else {
-			// If adding a role as an support representative, apply overrides to role
-			overwrites = append(overwrites, &discordgo.PermissionOverwrite{
-				ID:    roleId,
-				Type:  "role",
-				Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
-				Deny: 0,
-			})
+			// If adding a role as an admin, apply overrides to role
+			for _, role := range roles {
+				overwrites = append(overwrites, &discordgo.PermissionOverwrite{
+					ID:    role,
+					Type:  "role",
+					Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
+					Deny: 0,
+				})
+			}
 		}
 
 		data := discordgo.ChannelEdit{
