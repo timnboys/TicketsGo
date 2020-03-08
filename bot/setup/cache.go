@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/patrickmn/go-cache"
 	"time"
@@ -45,13 +46,16 @@ func (u *SetupUser) Next() {
 func (u *SetupUser) Finish() {
 	setupCache.Delete(u.ToString())
 
-	msg := "The setup has been complete!\n" +
+	msg := fmt.Sprintf("The setup has been completed!\n" +
 		"You can add / remove support staff / admins using:\n" +
 		"`t!addadmin [@User / Role Name]`\n" +
 		"`t!removadmin [@User / Role Name]`\n" +
 		"`t!addsupport [@User / Role Name]`\n" +
 		"`t!removesupprt [@User / Role Name]`\n" +
-		"You can access more settings on the web panel at <https://panel.ticketsbot.net>"
+		"You can access more settings on the web panel at <https://panel.ticketsbot.net>\n" +
+		"You should also consider creating a panel by visiting https://panel.ticketsbot.net/manage/%s/panels",
+		u.Guild,
+	)
 
 	// Psuedo-premium
 	utils.SendEmbed(u.Session, u.Channel, utils.Green, "Setup", msg, 30, true)

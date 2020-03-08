@@ -1,10 +1,8 @@
 package command
 
 import (
+	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
-	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
-	"strconv"
 )
 
 type PanelCommand struct {
@@ -27,7 +25,10 @@ func (PanelCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (PanelCommand) Execute(ctx utils.CommandContext) {
-	// Check the panel quota
+	msg := fmt.Sprintf("Visit https://panel.ticketsbot.net/manage/%d/panels to configure a panel", ctx.GuildId)
+	ctx.SendEmbed(utils.Green, "Panel", msg)
+
+	/*// Check the panel quota
 	if !ctx.IsPremium {
 		panels := make(chan []database.Panel)
 		go database.GetPanelsByGuild(ctx.GuildId, panels)
@@ -73,7 +74,7 @@ func (PanelCommand) Execute(ctx utils.CommandContext) {
 
 	go database.AddPanel(msgId, ctx.ChannelId, ctx.GuildId, settings.Title, settings.Content, settings.Colour, <-defaultCategory, "📩")
 
-	ctx.ReactWithCheck()
+	ctx.ReactWithCheck()*/
 }
 
 func (PanelCommand) Parent() interface{} {
