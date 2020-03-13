@@ -2,7 +2,6 @@ package database
 
 import (
 	"fmt"
-	modmail "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	"github.com/TicketsBot/TicketsGo/config"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
@@ -62,7 +61,6 @@ func Setup() {
 		UserCanClose{},
 		UserData{},
 		WelcomeMessage{},
-		modmail.ModMailSession{},
 		)
 }
 

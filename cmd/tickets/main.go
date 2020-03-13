@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/TicketsBot/TicketsGo/bot"
+	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
@@ -19,6 +20,7 @@ func main() {
 
 	database.Connect()
 	database.Setup()
+	modmaildatabase.Setup()
 
 	cache.Client = cache.NewRedisClient()
 
