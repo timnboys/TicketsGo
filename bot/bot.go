@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/listeners"
 	"github.com/TicketsBot/TicketsGo/bot/listeners/messagequeue"
+	utils2 "github.com/TicketsBot/TicketsGo/bot/modmail/utils"
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
@@ -39,6 +40,7 @@ func Start(ch chan os.Signal) {
 
 	go messagequeue.ListenPanelCreations(discord)
 	go messagequeue.ListenTicketClose(discord)
+	go utils2.ListenGuildRequests(discord)
 
 	if self, err := discord.Session(0).User("@me"); err == nil {
 		if self != nil {

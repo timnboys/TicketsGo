@@ -1,0 +1,1 @@
+The ModMail functionality of the bot has been separated into a separate package to avoid clutter

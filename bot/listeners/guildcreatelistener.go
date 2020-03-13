@@ -1,6 +1,7 @@
 package listeners
 
 import (
+	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
@@ -52,5 +53,23 @@ func OnGuildCreate(s *discordgo.Session, e *discordgo.GuildCreate) {
 		}
 
 		go database.InsertChannels(channels)
+
+		sendOwnerMessage(s, e.Guild)
 	}
+}
+
+func sendOwnerMessage(shard *discordgo.Session, guild *discordgo.Guild) {
+	// Create DM channel
+	channel, err := shard.UserChannelCreate(guild.OwnerID); if err != nil { // User probably has DMs disabled
+		return
+	}
+
+	message := fmt.Sprintf("Thanks for inviting Tickets to %s!\n" +
+		"To get set up, start off by running `t!setup` to configure the bot. You may then wish to visit the web UI (https://panel.ticketsbot.net/manage/%s to access further configurations, " +
+		"as well as to create a panel (reactable embed that automatically opens a ticket).\n" +
+		"If you require further assistance, you may wish to read the information section on our website (https://ticketsbot.net), or if you prefer, feel free to join our support server at discord.gg/VtV3rSk to ask any questions you may have, " +
+		"or to provide feedback to use (especially if you choose to switch to a competitor - we'd love to know how we can improve).",
+		guild.Name, guild.ID)
+
+	_, _ = shard.ChannelMessageSend(channel.ID, message)
 }
