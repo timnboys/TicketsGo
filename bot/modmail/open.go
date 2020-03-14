@@ -126,8 +126,34 @@ func OpenModMailTicket(shard *discordgo.Session, guild modmailutils.UserGuild, u
 		return err
 	}
 
+	// Create webhook
+	go createWebhook(shard, guildId, channel.ID, id.String())
+
 	go modmaildatabase.CreateModMailSession(id.String(), guild.Id, userId, channelId)
 	return nil
+}
+
+func createWebhook(shard *discordgo.Session, guildId, channelId, uuid string) {
+	hasPermission := make(chan bool)
+	go utils.ChannelMemberHasPermission(shard, guildId, channelId, shard.State.User.ID, utils.ManageWebhooks, hasPermission) // Do we actually need this?
+	if <-hasPermission {
+		webhook, err := shard.WebhookCreate(channelId, shard.State.User.Username, shard.State.User.Avatar); if err != nil {
+			sentry.ErrorWithContext(err, sentry.ErrorContext{
+				Guild:   guildId,
+				Shard:   shard.ShardID,
+				Command: "open",
+			})
+			return
+		}
+
+		formatted := fmt.Sprintf("%s/%s", webhook.ID, webhook.Token)
+
+		ticketWebhook := database.TicketWebhook{
+			Uuid:       uuid,
+			WebhookUrl: formatted,
+		}
+		ticketWebhook.AddWebhook()
+	}
 }
 
 func createOverwrites(guildId string) []*discordgo.PermissionOverwrite {

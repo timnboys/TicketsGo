@@ -2,6 +2,8 @@ package command
 
 import (
 	"fmt"
+	"github.com/TicketsBot/TicketsGo/bot/modmail"
+	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -30,22 +32,25 @@ func (CloseCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (CloseCommand) Execute(ctx utils.CommandContext) {
-	channelId, err := strconv.ParseInt(ctx.Channel, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
+	// Verify this is a ticket or modmail channel
+	isTicketChan := make(chan bool)
+	go database.IsTicketChannel(ctx.ChannelId, isTicketChan)
+	isTicket := <-isTicketChan
 
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
+	if !isTicket {
+		// Delegate to modmail executor if this is a modmail channel
+		// TODO: Improve command executor to differentiate between modmail and ticket channels
+		modmailSessionChan := make(chan *modmaildatabase.ModMailSession)
+		go modmaildatabase.GetModMailSessionByStaffChannel(ctx.ChannelId, modmailSessionChan)
+		modmailSession := <-modmailSessionChan
 
-	isTicket := make(chan bool)
-	go database.IsTicketChannel(channelId, isTicket)
+		if modmailSession != nil {
+			modmail.HandleClose(modmailSession, ctx)
+		} else {
+			ctx.ReactWithCross()
+			ctx.SendEmbed(utils.Red, "Error", "This is not a ticket channel")
+		}
 
-	if !<-isTicket {
-		ctx.ReactWithCross()
-		ctx.SendEmbed(utils.Red, "Error", "This is not a ticket channel")
 		return
 	}
 
@@ -68,11 +73,11 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 
 	// Get ticket struct
 	ticketChan := make(chan database.Ticket)
-	go database.GetTicketByChannel(channelId, ticketChan)
+	go database.GetTicketByChannel(ctx.ChannelId, ticketChan)
 	ticket := <-ticketChan
 
 	usersCanCloseChan := make(chan bool)
-	go database.IsUserCanClose(guildId, usersCanCloseChan)
+	go database.IsUserCanClose(ctx.GuildId, usersCanCloseChan)
 	usersCanClose := <-usersCanCloseChan
 
 	if (permissionLevel == utils.Everyone && strconv.Itoa(int(ticket.Owner)) != ctx.User.ID) || (permissionLevel == utils.Everyone && !usersCanClose) {
@@ -131,18 +136,18 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	// Set ticket state as closed and delete channel
-	go database.Close(guildId, ticket.Id)
-	if _, err = ctx.Session.ChannelDelete(ctx.Channel); err != nil {
+	go database.Close(ctx.GuildId, ticket.Id)
+	if _, err := ctx.Session.ChannelDelete(ctx.Channel); err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 	}
 
 	// Send logs to archive channel
 	archiveChannelChan := make(chan int64)
-	go database.GetArchiveChannel(guildId, archiveChannelChan)
+	go database.GetArchiveChannel(ctx.GuildId, archiveChannelChan)
 	archiveChannelId := strconv.Itoa(int(<-archiveChannelChan))
 
 	channelExists := true
-	_, err = ctx.Session.State.Channel(archiveChannelId); if err != nil {
+	_, err := ctx.Session.State.Channel(archiveChannelId); if err != nil {
 		// Not cached
 		_, err = ctx.Session.Channel(archiveChannelId); if err != nil {
 			// Channel doesn't exist
@@ -180,14 +185,14 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		if err == nil {
 			// Add archive to DB
 			uuidChan := make(chan string)
-			go database.GetTicketUuid(channelId, uuidChan)
+			go database.GetTicketUuid(ctx.ChannelId, uuidChan)
 			uuid := <-uuidChan
 
 			userNameChan := make(chan string)
 			go database.GetUsername(ticket.Owner, userNameChan)
 			userName := <-userNameChan
 
-			go database.AddArchive(uuid, guildId, ticket.Owner, userName, ticket.Id, m.Attachments[0].URL)
+			go database.AddArchive(uuid, ctx.GuildId, ticket.Owner, userName, ticket.Id, m.Attachments[0].URL)
 		} else {
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}

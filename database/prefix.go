@@ -1,7 +1,5 @@
 package database
 
-import "strconv"
-
 type Prefix struct {
 	GuildId int64  `gorm:"column:GUILDID;unique;primary_key"`
 	Prefix  string `gorm:"column:PREFIX;type:varchar(8)"`
@@ -16,17 +14,11 @@ func SetPrefix(guild int64, prefix string) {
 	Db.Where(Prefix{GuildId: guild}).Assign(Prefix{Prefix: prefix}).FirstOrCreate(&node)
 }
 
-func GetPrefix(guild string, ch chan string) {
+func GetPrefix(guild int64, ch chan string) {
 	node := Prefix{
-            Prefix: "t!",
-        }
-
-
-	i, err := strconv.ParseInt(guild, 10, 64); if err != nil {
-		ch <- ""
-		return
+		Prefix: "t!",
 	}
 
-	Db.Where(Prefix{GuildId: i}).First(&node)
+	Db.Where(Prefix{GuildId: guild}).First(&node)
 	ch <- node.Prefix
 }

@@ -1,7 +1,6 @@
 package sentry
 
 import (
-	"encoding/json"
 	"github.com/bwmarrin/discordgo"
 	"github.com/getsentry/raven-go"
 	"github.com/go-errors/errors"
@@ -24,8 +23,6 @@ func Error(e error) {
 }
 
 func LogWithContext(e error, ctx ErrorContext) {
-	perms, _ := json.Marshal(ctx.Permissions)
-
 	wrapped := errors.New(e)
 	raven.Capture(ConstructPacket(wrapped, raven.INFO), map[string]string{
 		"guild":       ctx.Guild,
@@ -34,13 +31,10 @@ func LogWithContext(e error, ctx ErrorContext) {
 		"shard":       strconv.Itoa(ctx.Shard),
 		"command":     ctx.Command,
 		"premium":     strconv.FormatBool(ctx.Premium),
-		"permissions": string(perms),
 	})
 }
 
 func ErrorWithContext(e error, ctx ErrorContext) {
-	perms, _ := json.Marshal(ctx.Permissions)
-
 	wrapped := errors.New(e)
 	raven.Capture(ConstructErrorPacket(wrapped), map[string]string{
 		"guild":       ctx.Guild,
@@ -49,6 +43,5 @@ func ErrorWithContext(e error, ctx ErrorContext) {
 		"shard":       strconv.Itoa(ctx.Shard),
 		"command":     ctx.Command,
 		"premium":     strconv.FormatBool(ctx.Premium),
-		"permissions": string(perms),
 	})
 }

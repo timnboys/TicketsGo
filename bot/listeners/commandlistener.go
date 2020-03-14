@@ -33,7 +33,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 	}
 
 	ch := make(chan string)
-	go database.GetPrefix(e.GuildID, ch)
+	go database.GetPrefix(guildId, ch)
 
 	customPrefix := <-ch
 	defaultPrefix := config.Conf.Bot.Prefix
