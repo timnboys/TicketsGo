@@ -25,8 +25,13 @@ type CommandContext struct {
 }
 
 func (ctx *CommandContext) ToErrorContext() sentry.ErrorContext {
+	var guildId string
+	if ctx.Guild != nil {
+		guildId = ctx.Guild.ID
+	}
+
 	return sentry.ErrorContext{
-		Guild:       ctx.Guild.ID,
+		Guild:       guildId,
 		User:        ctx.User.ID,
 		Channel:     ctx.Channel,
 		Shard:       ctx.Session.ShardID,

@@ -39,7 +39,7 @@ func Connect() {
 
 func Setup() {
 	Db.AutoMigrate(
-		TicketArchive{},
+		ArchiveChannel{},
 		Blacklist{},
 		CannedResponse{},
 		ChannelCategory{},

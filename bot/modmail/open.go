@@ -13,10 +13,10 @@ import (
 	"strconv"
 )
 
-func OpenModMailTicket(shard *discordgo.Session, guild modmailutils.UserGuild, user *discordgo.User, userId int64) error {
+func OpenModMailTicket(shard *discordgo.Session, guild modmailutils.UserGuild, user *discordgo.User, userId int64) (string, error) {
 	id, err := uuid.NewV4(); if err != nil {
 		sentry.Error(err)
-		return errors.New("Failed to generate UUID")
+		return "", errors.New("Failed to generate UUID")
 	}
 
 	guildId := strconv.Itoa(int(guild.Id))
@@ -51,7 +51,7 @@ func OpenModMailTicket(shard *discordgo.Session, guild modmailutils.UserGuild, u
 			hasPermChan := make(chan bool)
 			go utils.MemberHasPermission(shard, guildId, utils.Id, perm, hasPermChan)
 			if !<-hasPermChan {
-				return errors.New("I do not have the correct permissions required to create the channel in the server")
+				return "", errors.New("I do not have the correct permissions required to create the channel in the server")
 			}
 		}
 	}
@@ -63,13 +63,13 @@ func OpenModMailTicket(shard *discordgo.Session, guild modmailutils.UserGuild, u
 		ch, err := shard.Channel(categoryStr); if err != nil {
 			useCategory = false
 			go database.DeleteCategory(guild.Id)
-			return errors.New("Ticket category has been deleted")
+			return "", errors.New("Ticket category has been deleted")
 		}
 
 		if ch.Type != discordgo.ChannelTypeGuildCategory {
 			useCategory = false
 			go database.DeleteCategory(guild.Id)
-			return errors.New("Ticket category is not a ticket category")
+			return "", errors.New("Ticket category is not a ticket category")
 		}
 
 		hasAdmin := make(chan bool)
@@ -79,7 +79,7 @@ func OpenModMailTicket(shard *discordgo.Session, guild modmailutils.UserGuild, u
 				hasPermChan := make(chan bool)
 				go utils.ChannelMemberHasPermission(shard, guildId, categoryStr, utils.Id, perm, hasPermChan)
 				if !<-hasPermChan {
-					return errors.New("I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions")
+					return "", errors.New("I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions")
 				}
 			}
 		}
@@ -99,7 +99,7 @@ func OpenModMailTicket(shard *discordgo.Session, guild modmailutils.UserGuild, u
 		}
 
 		if channelCount >= 50 {
-			return errors.New("There are too many tickets in the ticket category. Ask an admin to close some, or to move them to another category")
+			return "", errors.New("There are too many tickets in the ticket category. Ask an admin to close some, or to move them to another category")
 		}
 	}
 
@@ -118,19 +118,19 @@ func OpenModMailTicket(shard *discordgo.Session, guild modmailutils.UserGuild, u
 
 	channel, err := shard.GuildChannelCreateComplex(guildId, data); if err != nil {
 		sentry.Error(err)
-		return err
+		return "", err
 	}
 
 	channelId, err := strconv.ParseInt(channel.ID, 10, 64); if err != nil {
 		sentry.Error(err)
-		return err
+		return "", err
 	}
 
 	// Create webhook
 	go createWebhook(shard, guildId, channel.ID, id.String())
 
 	go modmaildatabase.CreateModMailSession(id.String(), guild.Id, userId, channelId)
-	return nil
+	return channel.ID, nil
 }
 
 func createWebhook(shard *discordgo.Session, guildId, channelId, uuid string) {

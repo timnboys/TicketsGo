@@ -1,6 +1,8 @@
 package listeners
 
 import (
+	"github.com/TicketsBot/TicketsGo/config"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"sync"
 )
@@ -16,6 +18,10 @@ func OnReady(s *discordgo.Session, e *discordgo.Ready) {
 	s.State.TrackPresences = false
 	s.State.TrackVoice = false
 	s.SyncEvents = false
+
+	if err := s.UpdateStatus(0, config.Conf.Bot.Game); err != nil {
+		sentry.Error(err)
+	}
 
 	ids := make([]string, 0)
 	for _, guild := range e.Guilds {

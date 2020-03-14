@@ -15,12 +15,15 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	reason := strings.Join(ctx.Args, " ")
 
 	// Check the user is permitted to close the ticket
-	permissionLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Session, ctx.Member, permissionLevelChan)
-	permissionLevel := <-permissionLevelChan
+	permissionLevel := utils.Everyone
+	if ctx.Member != nil {
+		permissionLevelChan := make(chan utils.PermissionLevel)
+		go utils.GetPermissionLevel(ctx.Session, ctx.Member, permissionLevelChan)
+		permissionLevel = <-permissionLevelChan
+	}
 
 	usersCanCloseChan := make(chan bool)
-	go database.IsUserCanClose(ctx.GuildId, usersCanCloseChan)
+	go database.IsUserCanClose(session.Guild, usersCanCloseChan)
 	usersCanClose := <-usersCanCloseChan
 
 	if (permissionLevel == utils.Everyone && session.User != ctx.UserID) || (permissionLevel == utils.Everyone && !usersCanClose) {
@@ -95,7 +98,7 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 
 	// Send logs to archive channel
 	archiveChannelChan := make(chan int64)
-	go database.GetArchiveChannel(ctx.GuildId, archiveChannelChan)
+	go database.GetArchiveChannel(session.Guild, archiveChannelChan)
 	archiveChannelId := strconv.Itoa(int(<-archiveChannelChan))
 
 	channelExists := true
@@ -127,11 +130,6 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 			},
 		}
 
-		userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
-			sentry.ErrorWithContext(err, ctx.ToErrorContext())
-			return
-		}
-
 		// Errors occur when the bot doesn't have permission
 		m, err := ctx.Session.ChannelMessageSendComplex(archiveChannelId, &data)
 		if err == nil {
@@ -150,22 +148,22 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		} else {
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
+	}
 
-		// Notify user and send logs in DMs
-		privateMessage, err := ctx.Session.UserChannelCreate(strconv.Itoa(int(session.User)))
-		if err == nil {
-			var content string
-			// Create message content
-			if userId == session.User {
-				content = fmt.Sprintf("You closed your modmail session in `%s`", ctx.Guild.Name)
-			} else if len(ctx.Args) == 0 {
-				content = fmt.Sprintf("Your modmail session in `%s` was closed by %s", ctx.Guild.Name, ctx.User.Mention())
-			} else {
-				content = fmt.Sprintf("Your modmail session in `%s` was closed by %s with reason `%s`", ctx.Guild.Name, ctx.User.Mention(), reason)
-			}
-
-			// Errors occur when users have privacy settings high
-			_, _ = ctx.Session.ChannelMessageSend(privateMessage.ID, content)
+	// Notify user and send logs in DMs
+	privateMessage, err := ctx.Session.UserChannelCreate(strconv.Itoa(int(session.User)))
+	if err == nil {
+		var content string
+		// Create message content
+		if ctx.UserID == session.User {
+			content = fmt.Sprintf("You closed your modmail session in `%s`", ctx.Guild.Name)
+		} else if len(ctx.Args) == 0 {
+			content = fmt.Sprintf("Your modmail session in `%s` was closed by %s", ctx.Guild.Name, ctx.User.Mention())
+		} else {
+			content = fmt.Sprintf("Your modmail session in `%s` was closed by %s with reason `%s`", ctx.Guild.Name, ctx.User.Mention(), reason)
 		}
+
+		// Errors occur when users have privacy settings high
+		_, _ = ctx.Session.ChannelMessageSend(privateMessage.ID, content)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/listeners"
 	"github.com/TicketsBot/TicketsGo/bot/listeners/messagequeue"
+	modmaillisteners "github.com/TicketsBot/TicketsGo/bot/modmail/listeners"
 	utils2 "github.com/TicketsBot/TicketsGo/bot/modmail/utils"
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
@@ -33,6 +34,9 @@ func Start(ch chan os.Signal) {
 	discord.AddHandler(listeners.OnSetupProgress)
 	discord.AddHandler(listeners.OnUserJoin)
 	discord.AddHandler(listeners.OnUserUpdate)
+
+	discord.AddHandler(modmaillisteners.OnDirectMessage)
+	discord.AddHandler(modmaillisteners.OnModMailChannelMessage)
 
 	if err := discord.Start(); err != nil {
 		panic(err)

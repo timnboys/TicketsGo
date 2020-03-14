@@ -10,6 +10,7 @@ prefix="t!"
 admins=["217617036749176833"]
 premium-lookup-proxy-url="http://localhost:3000"
 premium-lookup-proxy-key=""
+game="DM for help | t!help"
 helpers=[]
   [bot.sharding]
   total=1

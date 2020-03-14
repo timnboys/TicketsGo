@@ -3,6 +3,7 @@ package listeners
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/modmail/database"
+	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
@@ -10,6 +11,10 @@ import (
 
 func OnModMailChannelMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 	go func() {
+		if e.Author.ID == utils.Id {
+			return
+		}
+
 		if e.GuildID == "" { // Guilds only
 			return
 		}

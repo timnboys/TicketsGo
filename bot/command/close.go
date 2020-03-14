@@ -175,11 +175,6 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 			},
 		}
 
-		userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
-			sentry.ErrorWithContext(err, ctx.ToErrorContext())
-			return
-		}
-
 		// Errors occur when the bot doesn't have permission
 		m, err := ctx.Session.ChannelMessageSendComplex(archiveChannelId, &data)
 		if err == nil {
@@ -201,7 +196,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		if !silentClose {
 			var content string
 			// Create message content
-			if userId == ticket.Owner {
+			if ctx.UserID == ticket.Owner {
 				content = fmt.Sprintf("You closed your ticket (`#ticket-%d`) in `%s`", ticket.Id, ctx.Guild.Name)
 			} else if len(ctx.Args) == 0 {
 				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s", ticket.Id, ctx.Guild.Name, ctx.User.Mention())

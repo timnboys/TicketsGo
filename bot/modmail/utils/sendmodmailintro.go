@@ -7,14 +7,14 @@ import (
 	"strings"
 )
 
-func SendModMailIntro(ctx utils.CommandContext) {
+func SendModMailIntro(ctx utils.CommandContext, dmChannelId string) {
 	guildsChan := make(chan []UserGuild)
 	go GetMutualGuilds(ctx.UserID, guildsChan)
 	guilds := <-guildsChan
 
-	message := "```css\n"
+	message := "```fix\n"
 	for i, guild := range guilds {
-		message += fmt.Sprintf("**%d)** %s\n", i + 1, guild.Name)
+		message += fmt.Sprintf("%d) %s\n", i + 1, guild.Name)
 	}
 
 	message = strings.TrimSuffix(message, "\n")
@@ -27,7 +27,7 @@ func SendModMailIntro(ctx utils.CommandContext) {
 		SetDescription(message)
 
 	// Send message
-	_, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed); if err != nil {
+	_, err := ctx.Session.ChannelMessageSendEmbed(dmChannelId, embed.MessageEmbed); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}

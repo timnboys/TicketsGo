@@ -1,6 +1,8 @@
 package listeners
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/modmail"
 	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
@@ -10,8 +12,10 @@ import (
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
+	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func OnDirectMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
@@ -61,19 +65,21 @@ func OnDirectMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 			go modmailutils.GetMutualGuilds(ctx.UserID, guildsChan)
 			guilds := <-guildsChan
 
-			if len(ctx.Args) == 0 {
-				modmailutils.SendModMailIntro(ctx)
+			if len(e.Message.Content) == 0 {
+				modmailutils.SendModMailIntro(ctx, dmChannel.ID)
 				return
 			}
 
-			targetGuildId, err := strconv.Atoi(ctx.Args[0])
+			split := strings.Split(e.Message.Content, " ")
+
+			targetGuildId, err := strconv.Atoi(split[0])
 			if err != nil || targetGuildId < 1 || targetGuildId > len(guilds) + 1 {
-				modmailutils.SendModMailIntro(ctx)
+				modmailutils.SendModMailIntro(ctx, dmChannel.ID)
 				return
 			}
 
-			targetGuild := guilds[targetGuildId + 1]
-			err = modmail.OpenModMailTicket(s, targetGuild, e.Author, userId)
+			targetGuild := guilds[targetGuildId - 1]
+			staffChannel, err := modmail.OpenModMailTicket(s, targetGuild, e.Author, userId)
 			if err == nil {
 				utils.SendEmbed(s, dmChannel.ID, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), 0, true)
 
@@ -83,14 +89,15 @@ func OnDirectMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 				welcomeMessage := <-welcomeMessageChan
 
 				utils.SendEmbed(s, dmChannel.ID, utils.Green, "Modmail", welcomeMessage, 0, true)
+				utils.SendEmbed(s, staffChannel, utils.Green, "Modmail", welcomeMessage, 0, true)
 			} else {
 				utils.SendEmbed(s, dmChannel.ID, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), 30, true)
 			}
 		} else { // Forward message to guild or handle command
 			// Get guild object
-			guild, err := s.State.Guild(e.GuildID); if err != nil { // Not cached
+			guild, err := s.State.Guild(strconv.Itoa(int(session.Guild))); if err != nil { // Not cached
 				guild, err = s.Guild(e.GuildID); if err != nil { // TODO: Guild may have been deleted. Handle this better
-					utils.SendEmbed(s, dmChannel.ID, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), 30, true)
+					utils.SendEmbed(s, dmChannel.ID, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), 30, true)
 					return
 				}
 			}
@@ -124,14 +131,62 @@ func OnDirectMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 				case "close": modmail.HandleClose(session, ctx)
 				}
 			} else {
-				channel := strconv.Itoa(int(session.StaffChannel))
-				if _, err := s.ChannelMessageSend(channel, e.Message.ContentWithMentionsReplaced()); err != nil {
-					utils.SendEmbed(s, dmChannel.ID, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), 30, isPremium)
-					sentry.LogWithContext(err, ctx.ToErrorContext())
-				}
+				sendMessage(session, ctx, dmChannel.ID)
 			}
 		}
 	}()
+}
+
+func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandContext, dmChannel string) {
+	channel := strconv.Itoa(int(session.StaffChannel))
+
+	// Preferably send via a webhook
+	webhookChan := make(chan *string)
+	go database.GetWebhookByUuid(session.Uuid, webhookChan)
+	webhook := <-webhookChan
+
+	success := false
+	if webhook != nil {
+		success = executeWebhook(session.Uuid, *webhook, ctx.Message.ContentWithMentionsReplaced(), ctx.User.Username, ctx.User.AvatarURL("256"))
+	}
+
+	if !success {
+		if _, err := ctx.Session.ChannelMessageSend(channel, ctx.Message.ContentWithMentionsReplaced()); err != nil {
+			utils.SendEmbed(ctx.Session, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), 30, ctx.IsPremium)
+			sentry.LogWithContext(err, ctx.ToErrorContext())
+		}
+	}
+}
+
+func executeWebhook(uuid, webhook, content, username, avatarUrl string) bool {
+	body := map[string]interface{}{
+		"content":    content,
+		"username":   username,
+		"avatar_url": avatarUrl,
+	}
+	encoded, err := json.Marshal(&body); if err != nil {
+		return false
+	}
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://canary.discordapp.com/api/webhooks/%s", webhook), bytes.NewBuffer(encoded)); if err != nil {
+		return false
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	client.Timeout = 3 * time.Second
+
+	res, err := client.Do(req); if err != nil {
+		return false
+	}
+
+	if res.StatusCode == 404 || res.StatusCode == 403 {
+		go database.DeleteWebhookByUuid(uuid)
+	} else {
+		return true
+	}
+
+	return false
 }
 
 // TODO: Make this less hacky

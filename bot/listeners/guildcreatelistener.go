@@ -3,6 +3,7 @@ package listeners
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
+	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -65,11 +66,11 @@ func sendOwnerMessage(shard *discordgo.Session, guild *discordgo.Guild) {
 	}
 
 	message := fmt.Sprintf("Thanks for inviting Tickets to %s!\n" +
-		"To get set up, start off by running `t!setup` to configure the bot. You may then wish to visit the web UI (https://panel.ticketsbot.net/manage/%s to access further configurations, " +
-		"as well as to create a panel (reactable embed that automatically opens a ticket).\n" +
-		"If you require further assistance, you may wish to read the information section on our website (https://ticketsbot.net), or if you prefer, feel free to join our support server at discord.gg/VtV3rSk to ask any questions you may have, " +
+		"To get set up, start off by running `t!setup` to configure the bot. You may then wish to visit the [web UI](https://panel.ticketsbot.net/manage/%s/settings) to access further configurations, " +
+		"as well as to create a [panel](https://ticketsbot.net/panels) (reactable embed that automatically opens a ticket).\n" +
+		"If you require further assistance, you may wish to read the information section on our [website](https://ticketsbot.net), or if you prefer, feel free to join our [support server](https://discord.gg/VtV3rSk) to ask any questions you may have, " +
 		"or to provide feedback to use (especially if you choose to switch to a competitor - we'd love to know how we can improve).",
 		guild.Name, guild.ID)
 
-	_, _ = shard.ChannelMessageSend(channel.ID, message)
+	utils.SendEmbed(shard, channel.ID, utils.Green, "Ticekts", message, 0, false)
 }
