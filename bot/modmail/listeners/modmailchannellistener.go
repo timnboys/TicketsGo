@@ -8,7 +8,6 @@ import (
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
-	"strings"
 )
 
 func OnModMailChannelMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
