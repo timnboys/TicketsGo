@@ -51,7 +51,7 @@ func OnModMailChannelMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 		username := <-usernameChan
 
 		// TODO: Make this less hacky
-		if strings.HasPrefix(e.Message.Content, fmt.Sprintf("**%s**: ", username)) {
+		if e.Author.Username == username && e.WebhookID != "" {
 			return
 		}
 
