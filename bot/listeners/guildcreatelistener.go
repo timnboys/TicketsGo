@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
+	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -53,6 +54,7 @@ func OnGuildCreate(s *discordgo.Session, e *discordgo.GuildCreate) {
 			})
 		}
 
+		go cache.Client.CacheGuildProperties(e.Guild)
 		go database.InsertChannels(channels)
 
 		sendOwnerMessage(s, e.Guild)
@@ -72,5 +74,5 @@ func sendOwnerMessage(shard *discordgo.Session, guild *discordgo.Guild) {
 		"or to provide feedback to use (especially if you choose to switch to a competitor - we'd love to know how we can improve).",
 		guild.Name, guild.ID)
 
-	utils.SendEmbed(shard, channel.ID, utils.Green, "Ticekts", message, 0, false)
+	utils.SendEmbed(shard, channel.ID, utils.Green, "Tickets", message, 0, false)
 }

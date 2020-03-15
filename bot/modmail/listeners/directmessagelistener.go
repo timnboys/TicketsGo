@@ -8,6 +8,7 @@ import (
 	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	modmailutils "github.com/TicketsBot/TicketsGo/bot/modmail/utils"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
+	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -94,24 +95,22 @@ func OnDirectMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 				utils.SendEmbed(s, dmChannel.ID, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), 30, true)
 			}
 		} else { // Forward message to guild or handle command
-			// Get guild object
-			guild, err := s.State.Guild(strconv.Itoa(int(session.Guild))); if err != nil { // Not cached
-				guild, err = s.Guild(e.GuildID); if err != nil { // TODO: Guild may have been deleted. Handle this better
-					utils.SendEmbed(s, dmChannel.ID, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), 30, true)
-					return
-				}
-			}
+			// Create fake guild object
+			targetGuild := strconv.Itoa(int(session.Guild))
+			guildChan := make(chan discordgo.Guild)
+			go createFakeGuild(targetGuild, guildChan)
+			guild := <-guildChan
 
 			// Determine whether premium guild
 			premiumChan := make(chan bool)
 			go utils.IsPremiumGuild(utils.CommandContext{
 				GuildId: session.Guild,
-				Guild:   guild,
+				Guild:   &guild,
 			}, premiumChan)
 			isPremium := <-premiumChan
 
 			// Update context
-			ctx.Guild = guild
+			ctx.Guild = &guild
 			ctx.GuildId = session.Guild
 			ctx.IsPremium = isPremium
 			ctx.Channel = dmChannel.ID
@@ -222,4 +221,20 @@ func handleCommand(ctx utils.CommandContext, session *modmaildatabase.ModMailSes
 	ctx.Root = root
 
 	return ctx, true
+}
+
+func createFakeGuild(id string, res chan discordgo.Guild) {
+	name := make(chan string)
+	go cache.Client.GetGuildName(id, name)
+
+	owner := make(chan string)
+	go cache.Client.GetGuildOwner(id, owner)
+
+	guild := discordgo.Guild{
+		ID:      id,
+		Name:    <-name,
+		OwnerID: <-owner,
+	}
+
+	res <-guild
 }

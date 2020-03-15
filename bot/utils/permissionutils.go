@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -44,7 +45,7 @@ func GetPermissionLevel(session *discordgo.Session, member *discordgo.Member, ch
 	}
 
 	// Check user ID in cache
-	if cached, ok := permissionCache.Get(member.User.ID); ok {
+	if cached, ok := permissionCache.Get(getMemberId(member)); ok {
 		ch <- cached.(PermissionLevel)
 		return
 	}
@@ -54,7 +55,7 @@ func GetPermissionLevel(session *discordgo.Session, member *discordgo.Member, ch
 	go database.IsAdmin(member.GuildID, member.User.ID, adminUser)
 	if <-adminUser {
 		ch <- Admin
-		permissionCache.Set(member.User.ID, Admin, cacheTime)
+		permissionCache.Set(getMemberId(member), Admin, cacheTime)
 		return
 	}
 
@@ -64,7 +65,7 @@ func GetPermissionLevel(session *discordgo.Session, member *discordgo.Member, ch
 		if permLevel, ok := permissionCache.Get(userRole); ok {
 			if permLevel == Admin {
 				ch <- Admin
-				permissionCache.Set(member.User.ID, Admin, cacheTime)
+				permissionCache.Set(getMemberId(member), Admin, cacheTime)
 				return
 			}
 		}
@@ -81,10 +82,21 @@ func GetPermissionLevel(session *discordgo.Session, member *discordgo.Member, ch
 		for _, userRoleId := range member.Roles {
 			if adminRoleIdStr == userRoleId {
 				ch <- Admin
-				permissionCache.Set(member.User.ID, Admin, cacheTime)
+				permissionCache.Set(getMemberId(member), Admin, cacheTime)
 				return
 			}
 		}
+	}
+
+	// Check if user has Administrator permission
+	adminPermissionChan := make(chan bool)
+	go MemberHasPermission(session, member.GuildID, member.User.ID, Administrator, adminPermissionChan)
+	hasAdminPermission := <-adminPermissionChan
+
+	if hasAdminPermission {
+		ch <- Admin
+		permissionCache.Set(getMemberId(member), Admin, cacheTime)
+		return
 	}
 
 	// Check user perms for support
@@ -92,7 +104,7 @@ func GetPermissionLevel(session *discordgo.Session, member *discordgo.Member, ch
 	go database.IsSupport(member.GuildID, member.User.ID, supportUser)
 	if <-supportUser {
 		ch <- Support
-		permissionCache.Set(member.User.ID, Support, cacheTime)
+		permissionCache.Set(getMemberId(member), Support, cacheTime)
 		return
 	}
 
@@ -102,7 +114,7 @@ func GetPermissionLevel(session *discordgo.Session, member *discordgo.Member, ch
 		if permLevel, ok := permissionCache.Get(userRole); ok {
 			if permLevel == Support {
 				ch <- Support
-				permissionCache.Set(member.User.ID, Support, cacheTime)
+				permissionCache.Set(getMemberId(member), Support, cacheTime)
 				return
 			}
 		}
@@ -119,12 +131,16 @@ func GetPermissionLevel(session *discordgo.Session, member *discordgo.Member, ch
 		for _, userRoleId := range member.Roles {
 			if supportRoleIdStr == userRoleId {
 				ch <- Support
-				permissionCache.Set(member.User.ID, Support, cacheTime)
+				permissionCache.Set(getMemberId(member), Support, cacheTime)
 				return
 			}
 		}
 	}
 
 	ch <- Everyone
-	permissionCache.Set(member.User.ID, Everyone, cacheTime)
+	permissionCache.Set(getMemberId(member), Everyone, cacheTime)
+}
+
+func getMemberId(member *discordgo.Member) string {
+	return fmt.Sprintf("%s-%s", member.GuildID, member.User.ID)
 }
