@@ -2,11 +2,13 @@ package listeners
 
 import (
 	"fmt"
-	"github.com/TicketsBot/TicketsGo/bot/modmail/database"
+	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
+	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
+	"strings"
 )
 
 func OnModMailChannelMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
@@ -34,11 +36,22 @@ func OnModMailChannelMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 			return
 		}
 
-		sessionChan := make(chan *database.ModMailSession, 0)
-		go database.GetModMailSessionByStaffChannel(channelId, sessionChan)
+		sessionChan := make(chan *modmaildatabase.ModMailSession, 0)
+		go modmaildatabase.GetModMailSessionByStaffChannel(channelId, sessionChan)
 		session := <-sessionChan
 
 		if session == nil {
+			return
+		}
+
+		// Make sure we don't mirror the user's message back to them
+		// Get username
+		usernameChan := make(chan string)
+		go database.GetUsername(session.User, usernameChan)
+		username := <-usernameChan
+
+		// TODO: Make this less hacky
+		if strings.HasPrefix(e.Message.Content, fmt.Sprintf("**%s**: ", username)) {
 			return
 		}
 
