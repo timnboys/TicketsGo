@@ -19,7 +19,7 @@ type UserGuild struct {
 	Name  string
 }
 
-const timeout = 60 * time.Second
+const timeout = 4 * time.Second
 
 var guildCache = gocache.New(time.Minute, time.Minute)
 
