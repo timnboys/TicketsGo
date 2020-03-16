@@ -15,9 +15,10 @@ func NewRedisClient() RedisClient {
 	uri := ParseURI(config.Conf.Redis.Uri)
 
 	client := redis.NewClient(&redis.Options{
-		Addr:     uri.Addr,
-		Password: uri.Password,
-		PoolSize: config.Conf.Redis.Threads,
+		Addr:         uri.Addr,
+		Password:     uri.Password,
+		PoolSize:     config.Conf.Redis.Threads,
+		MinIdleConns: config.Conf.Redis.Threads,
 	})
 
 	return RedisClient{
