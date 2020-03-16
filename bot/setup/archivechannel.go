@@ -1,11 +1,14 @@
 package setup
 
 import (
+	"errors"
+	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"strconv"
+	"strings"
 )
 
 type ArchiveChannelStage struct {
@@ -47,27 +50,65 @@ func (ArchiveChannelStage) Process(session *discordgo.Session, msg discordgo.Mes
 		}
 	}
 
-	found := utils.ChannelMentionRegex.FindStringSubmatch(msg.Content)
-	if len(found) == 0 {
-		utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", "You need to mention a ticket channel to add the user(s) in", 15, true)
-		utils.ReactWithCross(session, msg)
-		return
-	}
+	var id string
 
-	id := found[1]
-	exists := false
-	for _, channel := range guild.Channels {
-		if channel.ID == id {
-			exists = true
-			break
+	// Prefer channel mention
+	if len(msg.MentionChannels) > 0 {
+		channel := msg.MentionChannels[0]
+		if channel == nil { // Shouldn't ever happen, but best to be safe
+			sentry.Error(errors.New("channel is nil"))
+			return
+		}
+
+		// Verify that the channel exists
+		exists := false
+		for _, channel := range guild.Channels {
+			if channel.ID == id {
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
+			utils.ReactWithCross(session, msg)
+			return
+		}
+
+		id = channel.ID
+	} else {
+		// Try to match channel name
+		split := strings.Split(msg.Content, " ")
+		name := split[0]
+
+		// Get channels from discord
+		channels, err := session.GuildChannels(msg.GuildID); if err != nil {
+			utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", fmt.Sprintf("An error occurred: `%s`", err.Error()), 15, true)
+			return
+		}
+
+		found := false
+		for _, channel := range channels {
+			if channel == nil { // Best to be safe
+				continue
+			}
+
+			if channel.Name == name {
+				found = true
+				id = channel.ID
+				break
+			}
+		}
+
+		if !found {
+			utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", "You need to mention a ticket channel to add the user(s) in", 15, true)
+			utils.ReactWithCross(session, msg)
+			return
 		}
 	}
 
-	archiveChannel, err := strconv.ParseInt(id, 10, 64)
-
-	if !exists || err != nil {
-		utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
-		utils.ReactWithCross(session, msg)
+	archiveChannel, err := strconv.ParseInt(id, 10, 64); if err != nil { // Shouldn't ever happen
+		sentry.Error(err)
 		return
 	}
 
