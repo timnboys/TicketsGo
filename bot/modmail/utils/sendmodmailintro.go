@@ -17,6 +17,10 @@ func SendModMailIntro(ctx utils.CommandContext, dmChannelId string) {
 		message += fmt.Sprintf("%d) %s\n", i + 1, guild.Name)
 	}
 
+	if len(guilds) == 0 {
+		message += "You do not have any mutual guilds with Tickets"
+	}
+
 	message = strings.TrimSuffix(message, "\n")
 	message += "```\nRespond with the ID of the server you want to open a ticket in, or react to this message"
 

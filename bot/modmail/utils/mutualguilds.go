@@ -2,12 +2,11 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/go-redis/redis"
 	"github.com/jonas747/dshardmanager"
+	"github.com/jwangsadinata/go-multimap/slicemultimap"
 	gocache "github.com/patrickmn/go-cache"
 	"strconv"
 	"sync"
@@ -15,8 +14,14 @@ import (
 )
 
 type UserGuild struct {
-	Id    int64
-	Name  string
+	Id   int64
+	Name string
+}
+
+type mutualGuildResponse struct {
+	UserId int64
+	Shard  int
+	Guilds []UserGuild
 }
 
 const timeout = 4 * time.Second
@@ -30,71 +35,42 @@ func GetMutualGuilds(userId int64, res chan []UserGuild) {
 	if ok {
 		res <- cached.([]UserGuild)
 		return
-	}
+	} else {
+		totalShards := config.Conf.Bot.Sharding.Total
+		ch := make(chan mutualGuildResponse)
 
-	shards := config.Conf.Bot.Sharding.Total
+		callbackLock.Lock()
+		callbackMap.Put(userId, ch)
+		callbackLock.Unlock()
 
-	var wg sync.WaitGroup
-	for i := 0; i < shards; i++ {
-		wg.Add(1)
-	}
+		guilds := make([]UserGuild, 0)
+		guildsLock := sync.Mutex{}
 
-	guilds := make(map[int][]UserGuild)
-	var guildsLock sync.Mutex
+		wg := sync.WaitGroup{}
+		wg.Add(totalShards)
 
-	go func() {
-		pubsub := cache.Client.Subscribe(fmt.Sprintf("tickets:userguilds:%d", userId))
-		for len(guilds) != shards {
-			msg, err := pubsub.ReceiveTimeout(timeout)
-			if err != nil {
-				sentry.Error(err)
-				continue
+		go func() {
+			for res := range ch {
+				guildsLock.Lock()
+				guilds = append(guilds, res.Guilds...)
+				guildsLock.Unlock()
+
+				wg.Done()
 			}
+		}()
 
-			switch msg := msg.(type) {
-			case *redis.Message:
-				{
-					var response map[int][]UserGuild
-					if err := json.Unmarshal([]byte(msg.Payload), &response); err != nil {
-						sentry.Error(err)
-						return
-					}
+		publishGuildRequest(userId)
+		CountdownWithTimeout(&wg, timeout)
 
-					for shard, shardGuilds := range response {
-						guildsLock.Lock()
+		callbackLock.Lock()
+		callbackMap.Remove(userId, ch)
+		callbackLock.Unlock()
 
-						// Check if we've already inserted this shard's guilds
-						already := false
-						for i, _ := range guilds {
-							if i == shard {
-								already = true
-							}
-						}
+		// Sort by guild ID
+		sorted := make([]UserGuild, 0)
+		for _, guild := range guilds {
+			max := int64(0)
 
-						if !already {
-							guilds[shard] = shardGuilds
-							wg.Done()
-						}
-
-						guildsLock.Unlock()
-					}
-				}
-			default:
-				continue
-			}
-		}
-	}()
-
-	publishGuildRequest(userId)
-
-	CountdownWithTimeout(&wg, timeout)
-
-	// Sort by guild ID
-	sorted := make([]UserGuild, 0)
-	for _, shardGuilds := range guilds {
-		max := int64(0)
-
-		for _, guild := range shardGuilds {
 			if guild.Id > max {
 				// Check that we haven't already added this guild
 				isAlreadySorted := false
@@ -110,27 +86,33 @@ func GetMutualGuilds(userId int64, res chan []UserGuild) {
 				}
 			}
 		}
-	}
 
-	guildCache.Set(key, sorted, gocache.DefaultExpiration)
-	res <- sorted
+		guildCache.Set(key, sorted, gocache.DefaultExpiration)
+		res <- sorted
+	}
 }
 
 func publishGuildRequest(userId int64) {
 	cache.Client.Publish("tickets:getuserguilds", strconv.Itoa(int(userId)))
 }
 
-func publishUserGuilds(userId string, guilds map[int][]UserGuild) {
-	encoded, err := json.Marshal(&guilds)
+func publishUserGuilds(userId int64, shard int, guilds []UserGuild) {
+	response := mutualGuildResponse{
+		UserId: userId,
+		Shard:  shard,
+		Guilds: guilds,
+	}
+
+	encoded, err := json.Marshal(&response)
 	if err != nil {
 		sentry.Error(err)
 		return
 	}
 
-	cache.Client.Publish(fmt.Sprintf("tickets:userguilds:%s", userId), string(encoded))
+	cache.Client.Publish("tickets:userguilds", string(encoded))
 }
 
-func ListenGuildRequests(manager *dshardmanager.Manager) {
+func ListenMutualGuildRequests(manager *dshardmanager.Manager) {
 	pubsub := cache.Client.Subscribe("tickets:getuserguilds")
 
 	for {
@@ -140,9 +122,17 @@ func ListenGuildRequests(manager *dshardmanager.Manager) {
 			continue
 		}
 
-		guilds := make(map[int][]UserGuild)
+		userId, err := strconv.ParseInt(msg.Payload, 10, 64); if err != nil {
+			sentry.Error(err)
+			continue
+		}
+
 		for _, shard := range manager.Sessions {
+			guilds := make([]UserGuild, 0)
+
+			// Loop over guilds managed by shard
 			for _, guild := range shard.State.Guilds {
+				// Verify that the user is a member of the guild
 			memberloop:
 				for _, member := range guild.Members {
 					if member.User.ID == msg.Payload {
@@ -152,17 +142,50 @@ func ListenGuildRequests(manager *dshardmanager.Manager) {
 							break memberloop
 						}
 
-						guilds[shard.ShardID] = append(guilds[shard.ShardID], UserGuild{
-							Id:    guildId,
-							Name:  guild.Name,
+						guilds = append(guilds, UserGuild{
+							Id:   guildId,
+							Name: guild.Name,
 						})
 
 						break memberloop
 					}
 				}
 			}
+
+			go publishUserGuilds(userId, shard.ShardID, guilds)
+		}
+	}
+}
+
+var(
+	callbackLock sync.Mutex
+	callbackMap  = slicemultimap.New()
+)
+
+func ListenMutualGuildResponses() {
+	pubsub := cache.Client.Subscribe("tickets:userguilds")
+
+	for {
+		msg, err := pubsub.ReceiveMessage()
+		if err != nil {
+			sentry.Error(err)
+			continue
 		}
 
-		publishUserGuilds(msg.Payload, guilds)
+		var response mutualGuildResponse
+		if err := json.Unmarshal([]byte(msg.Payload), &response); err != nil {
+			sentry.Error(err)
+			continue
+		}
+
+		callbackLock.Lock()
+		callbacks, found := callbackMap.Get(response.UserId)
+		if found {
+			for _, callback := range callbacks {
+				ch := callback.(chan mutualGuildResponse)
+				ch <- response
+			}
+		}
+		callbackLock.Unlock()
 	}
 }

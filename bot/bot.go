@@ -44,7 +44,8 @@ func Start(ch chan os.Signal) {
 
 	go messagequeue.ListenPanelCreations(discord)
 	go messagequeue.ListenTicketClose(discord)
-	go utils2.ListenGuildRequests(discord)
+	go utils2.ListenMutualGuildRequests(discord)
+	go utils2.ListenMutualGuildResponses()
 
 	if self, err := discord.Session(0).User("@me"); err == nil {
 		if self != nil {
