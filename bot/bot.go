@@ -36,6 +36,7 @@ func Start(ch chan os.Signal) {
 	discord.AddHandler(listeners.OnUserUpdate)
 
 	discord.AddHandler(modmaillisteners.OnDirectMessage)
+	discord.AddHandler(modmaillisteners.OnDirectMessageReact)
 	discord.AddHandler(modmaillisteners.OnModMailChannelMessage)
 
 	if err := discord.Start(); err != nil {

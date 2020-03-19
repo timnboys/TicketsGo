@@ -7,6 +7,18 @@ import (
 	"strings"
 )
 
+var Emojis = map[int]string{
+	1: "1️⃣",
+	2: "2️⃣",
+	3: "3️⃣",
+	4: "4️⃣",
+	5: "5️⃣",
+	6: "6️⃣",
+	7: "7️⃣",
+	8: "8️⃣",
+	9: "9️⃣",
+}
+
 func SendModMailIntro(ctx utils.CommandContext, dmChannelId string) {
 	guildsChan := make(chan []UserGuild)
 	go GetMutualGuilds(ctx.UserID, guildsChan)
@@ -31,8 +43,22 @@ func SendModMailIntro(ctx utils.CommandContext, dmChannelId string) {
 		SetDescription(message)
 
 	// Send message
-	_, err := ctx.Session.ChannelMessageSendEmbed(dmChannelId, embed.MessageEmbed); if err != nil {
+	msg, err := ctx.Session.ChannelMessageSendEmbed(dmChannelId, embed.MessageEmbed); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
+	}
+
+	// Apply reactions
+	max := len(guilds)
+	if max > 9 {
+		max = 9
+	}
+
+	if len(guilds) > 0 {
+		for i := 1; i <= max; i++ {
+			if err := ctx.Session.MessageReactionAdd(dmChannelId, msg.ID, emojis[i]); err != nil {
+				sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			}
+		}
 	}
 }
