@@ -18,7 +18,9 @@ func (PrefixStage) State() State {
 }
 
 func (PrefixStage) Prompt() string {
-	return "Type the prefix that you would like to use for the bot"
+	return "Type the prefix that you would like to use for the bot" +
+		"\nThe prefix is the characters that come *before* the command (excluding the actual command itself)" +
+		"\nExample: `t!`"
 }
 
 func (PrefixStage) Default() string {

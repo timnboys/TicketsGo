@@ -18,7 +18,7 @@ func (TicketLimitStage) State() State {
 }
 
 func (TicketLimitStage) Prompt() string {
-	return "Type the maximum amount of tickets that a user should be able to have open at once"
+	return "Specify the maximum amount of tickets that a user should be able to have open at once"
 }
 
 // This is not used

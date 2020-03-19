@@ -19,7 +19,8 @@ func (ArchiveChannelStage) State() State {
 }
 
 func (ArchiveChannelStage) Prompt() string {
-	return "Type the channel that you would like ticket archives to be posted in"
+	return "Please specify you wish ticket logs to be sent to after tickets have been closed" +
+		"\nExample: `#logs`"
 }
 
 func (ArchiveChannelStage) Default() string {
@@ -101,7 +102,7 @@ func (ArchiveChannelStage) Process(session *discordgo.Session, msg discordgo.Mes
 		}
 
 		if !found {
-			utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", "You need to mention a ticket channel to add the user(s) in", 15, true)
+			utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
 			utils.ReactWithCross(session, msg)
 			return
 		}

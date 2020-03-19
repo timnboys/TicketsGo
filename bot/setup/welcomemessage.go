@@ -16,7 +16,7 @@ func (WelcomeMessageStage) State() State {
 }
 
 func (WelcomeMessageStage) Prompt() string {
-	return "Type the message that should be sent by the bot when a ticket channel is opened"
+	return "Type the message that should be sent by the bot when a ticket is opened"
 }
 
 func (WelcomeMessageStage) Default() string {

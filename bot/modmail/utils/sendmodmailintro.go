@@ -56,7 +56,7 @@ func SendModMailIntro(ctx utils.CommandContext, dmChannelId string) {
 
 	if len(guilds) > 0 {
 		for i := 1; i <= max; i++ {
-			if err := ctx.Session.MessageReactionAdd(dmChannelId, msg.ID, emojis[i]); err != nil {
+			if err := ctx.Session.MessageReactionAdd(dmChannelId, msg.ID, Emojis[i]); err != nil {
 				sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			}
 		}
