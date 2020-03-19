@@ -45,6 +45,9 @@ func OnDirectMessageReact(s *discordgo.Session, e *discordgo.MessageReactionAdd)
 			return
 		}
 
+		// Remove reaction
+		_ = s.MessageReactionRemove(e.ChannelID, e.MessageID, e.Emoji.ID, e.UserID)
+
 		// Determine which guild we should open the channel in
 		guildsChan := make(chan []modmailutils.UserGuild)
 		go modmailutils.GetMutualGuilds(userId, guildsChan)
