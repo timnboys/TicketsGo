@@ -1,7 +1,6 @@
 package setup
 
 import (
-	"errors"
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
@@ -54,17 +53,14 @@ func (ArchiveChannelStage) Process(session *discordgo.Session, msg discordgo.Mes
 	var id string
 
 	// Prefer channel mention
-	if len(msg.MentionChannels) > 0 {
-		channel := msg.MentionChannels[0]
-		if channel == nil { // Shouldn't ever happen, but best to be safe
-			sentry.Error(errors.New("channel is nil"))
-			return
-		}
+	mentions := utils.ChannelMentionRegex.FindStringSubmatch(msg.Content)
+	if len(mentions) > 0 {
+		id = mentions[1]
 
 		// Verify that the channel exists
 		exists := false
 		for _, guildChannel := range guild.Channels {
-			if guildChannel.ID == channel.ID {
+			if guildChannel.ID == id {
 				exists = true
 				break
 			}
@@ -75,8 +71,6 @@ func (ArchiveChannelStage) Process(session *discordgo.Session, msg discordgo.Mes
 			utils.ReactWithCross(session, msg)
 			return
 		}
-
-		id = channel.ID
 	} else {
 		// Try to match channel name
 		split := strings.Split(msg.Content, " ")
