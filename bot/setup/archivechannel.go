@@ -63,8 +63,8 @@ func (ArchiveChannelStage) Process(session *discordgo.Session, msg discordgo.Mes
 
 		// Verify that the channel exists
 		exists := false
-		for _, channel := range guild.Channels {
-			if channel.ID == id {
+		for _, guildChannel := range guild.Channels {
+			if guildChannel.ID == channel.ID {
 				exists = true
 				break
 			}
