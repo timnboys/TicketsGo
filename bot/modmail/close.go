@@ -78,7 +78,14 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 			date = t.UTC().String()
 		}
 
-		logs += fmt.Sprintf("[%s][%s] %s: %s\n", date, msg.ID, msg.Author.Username, msg.Content)
+		content := msg.Content
+
+		// append attachments
+		for _, attachment := range msg.Attachments {
+			content += fmt.Sprintf(" %s", attachment.ProxyURL)
+		}
+
+		logs += fmt.Sprintf("[%s][%s] %s: %s\n", date, msg.ID, msg.Author.Username, content)
 	}
 
 	// Get channel name

@@ -132,7 +132,14 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 			date = t.UTC().String()
 		}
 
-		logs += fmt.Sprintf("[%s][%s] %s: %s\n", date, msg.ID, msg.Author.Username, msg.Content)
+		content := msg.Content
+
+		// append attachments
+		for _, attachment := range msg.Attachments {
+			content += fmt.Sprintf(" %s", attachment.ProxyURL)
+		}
+
+		logs += fmt.Sprintf("[%s][%s] %s: %s\n", date, msg.ID, msg.Author.Username, content)
 	}
 
 	// Set ticket state as closed and delete channel

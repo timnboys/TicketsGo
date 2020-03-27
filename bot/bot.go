@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/listeners"
 	"github.com/TicketsBot/TicketsGo/bot/listeners/messagequeue"
 	modmaillisteners "github.com/TicketsBot/TicketsGo/bot/modmail/listeners"
@@ -10,45 +9,64 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/jonas747/dshardmanager"
+	"github.com/bwmarrin/discordgo"
+	"github.com/rxdn/gdl/cache"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/objects"
 	"os"
 	"time"
 )
 
 func Start(ch chan os.Signal) {
-	discord := dshardmanager.New(fmt.Sprintf("Bot %s", config.Conf.Bot.Token))
-	discord.SetNumShards(config.Conf.Bot.Sharding.Total)
+	cacheFactory := cache.MemoryCacheFactory(cache.CacheOptions{
+		Guilds:      true,
+		Users:       true,
+		Channels:    true,
+		Roles:       true,
+		Emojis:      false,
+		VoiceStates: false,
+	})
 
-	discord.AddHandler(listeners.OnChannelCreate)
-	discord.AddHandler(listeners.OnChannelDelete)
-	discord.AddHandler(listeners.OnChannelUpdate)
-	discord.AddHandler(listeners.OnCloseReact)
-	discord.AddHandler(listeners.OnCommand)
-	discord.AddHandler(listeners.OnFirstResponse)
-	discord.AddHandler(listeners.OnMessage)
-	discord.AddHandler(listeners.OnGuildCreate)
-	discord.AddHandler(listeners.OnGuildCreateUserData)
-	discord.AddHandler(listeners.OnGuildLeave)
-	discord.AddHandler(listeners.OnPanelReact)
-	discord.AddHandler(listeners.OnReady)
-	discord.AddHandler(listeners.OnSetupProgress)
-	discord.AddHandler(listeners.OnUserJoin)
-	discord.AddHandler(listeners.OnUserUpdate)
+	shardManager := gateway.NewShardManager(config.Conf.Bot.Token, gateway.ShardOptions{
+		Total:   config.Conf.Bot.Sharding.Total,
+		Lowest:  config.Conf.Bot.Sharding.Lowest,
+		Highest: config.Conf.Bot.Sharding.Max,
+	}, cacheFactory)
 
-	discord.AddHandler(modmaillisteners.OnDirectMessage)
-	discord.AddHandler(modmaillisteners.OnDirectMessageReact)
-	discord.AddHandler(modmaillisteners.OnModMailChannelMessage)
+	shardManager.Presence = objects.BuildStatus(objects.ActivityTypePlaying, "DM for help | t!help")
 
-	if err := discord.Start(); err != nil {
+	shardManager.RegisterListeners(
+		listeners.OnChannelCreate,
+		listeners.OnChannelDelete,
+		listeners.OnCloseReact,
+		listeners.OnCommand,
+		listeners.OnFirstResponse,
+		listeners.OnMessage,
+		listeners.OnGuildCreate,
+		listeners.OnGuildCreateUserData,
+		listeners.OnGuildLeave,
+		listeners.OnPanelReact,
+		listeners.OnReady,
+		listeners.OnSetupProgress,
+		listeners.OnUserJoin,
+		listeners.OnUserUpdate,
+
+		modmaillisteners.OnDirectMessage,
+		modmaillisteners.OnDirectMessageReact,
+		modmaillisteners.OnModMailChannelMessage,
+	)
+
+	if err := shardManager.Connect(); err != nil {
 		panic(err)
 	}
 
-	go messagequeue.ListenPanelCreations(discord)
-	go messagequeue.ListenTicketClose(discord)
-	go utils2.ListenMutualGuildRequests(discord)
+	go messagequeue.ListenPanelCreations(shardManager)
+	go messagequeue.ListenTicketClose(shardManager)
+	go utils2.ListenMutualGuildRequests(shardManager)
 	go utils2.ListenMutualGuildResponses()
 
-	if self, err := discord.Session(0).User("@me"); err == nil {
+	discordgo.Session{}.User("")
+	if self, err := shardManager.Session(0).User("@me"); err == nil {
 		if self != nil {
 			utils.AvatarUrl = self.AvatarURL("128")
 			utils.Id = self.ID
@@ -65,7 +83,4 @@ func Start(ch chan os.Signal) {
 	}
 
 	<-ch
-	if err := discord.StopAll(); err != nil {
-		sentry.Error(err)
-	}
 }

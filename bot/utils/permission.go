@@ -36,9 +36,8 @@ const (
 	ManageWebhooks      Permission = 0x20000000
 	ManageEmojis        Permission = 0x40000000
 )
-
 func hasPermission(perms int, permission Permission) bool {
-	return perms&int(permission) != 0
+	return perms&int(permission) == int(permission)
 }
 
 func MemberHasPermission(session *discordgo.Session, guild string, user string, perm Permission, ch chan bool) {

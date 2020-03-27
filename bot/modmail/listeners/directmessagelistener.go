@@ -155,6 +155,26 @@ func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
 	}
+
+	// forward attachments
+	// don't re-upload attachments incase user has uploaded TOS breaking attachment
+	if len(ctx.Message.Attachments) > 0 {
+		var content string
+		if len(ctx.Message.Attachments) == 1 {
+			content = fmt.Sprintf("%s attached a file:", ctx.User.Mention())
+		} else {
+			content = fmt.Sprintf("%s attached files:", ctx.User.Mention())
+		}
+
+		for _, attachment := range ctx.Message.Attachments {
+			content += fmt.Sprintf("\n▶️ %s", attachment.ProxyURL)
+		}
+
+		if _, err := ctx.Session.ChannelMessageSend(channel, content); err != nil {
+			utils.SendEmbed(ctx.Session, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), 30, ctx.IsPremium)
+			sentry.LogWithContext(err, ctx.ToErrorContext())
+		}
+	}
 }
 
 func executeWebhook(uuid, webhook, content, username, avatarUrl string) bool {

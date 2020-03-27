@@ -172,7 +172,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 
 		if c.AdminOnly() && !utils.IsBotAdmin(e.Author.ID) {
 			ctx.ReactWithCross()
-			ctx.SendEmbed(utils.Red, "Error", utils.NO_PERMISSION)
+			ctx.SendEmbed(utils.Red, "Error", "This command is reserved for the bot owner only")
 			return
 		}
 

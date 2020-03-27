@@ -4,6 +4,8 @@ import (
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/payloads/events"
 	"sync"
 )
 
@@ -13,12 +15,7 @@ var(
 	JoinedGuildsLock sync.Mutex
 )
 
-func OnReady(s *discordgo.Session, e *discordgo.Ready) {
-	s.State.TrackEmojis = false
-	s.State.TrackPresences = false
-	s.State.TrackVoice = false
-	s.SyncEvents = false
-
+func OnReady(s *gateway.Shard, e *events.Ready) {
 	if err := s.UpdateStatus(0, config.Conf.Bot.Game); err != nil {
 		sentry.Error(err)
 	}
