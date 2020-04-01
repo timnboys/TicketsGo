@@ -13,49 +13,39 @@ import (
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/payloads/events"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 )
 
-func OnDirectMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
+func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 	go func() {
 		if e.Author.Bot {
 			return
 		}
 
-		if e.GuildID != "" { // DMs only
-			return
-		}
-
-		userId, err := strconv.ParseInt(e.Author.ID, 10, 64); if err != nil {
-			sentry.Error(err)
-			return
-		}
-
-		messageId, err := strconv.ParseInt(e.Message.ID, 10, 64); if err != nil {
-			sentry.Error(err)
+		if e.GuildId != 0 { // DMs only
 			return
 		}
 
 		ctx := utils.CommandContext{
 			Shard:       s,
-			User:        *e.Author,
-			UserID:      userId,
-			Message:     *e.Message,
-			MessageId:   messageId,
+			User:        e.Author,
+			Message:     e.Message,
 			IsPremium:   false,
 			ShouldReact: true,
 			Member:      e.Member,
 		}
 
 		sessionChan := make(chan *modmaildatabase.ModMailSession, 0)
-		go modmaildatabase.GetModMailSession(userId, sessionChan)
+		go modmaildatabase.GetModMailSession(e.Author.Id, sessionChan)
 		session := <-sessionChan
 
 		// Create DM channel
-		dmChannel, err := s.UserChannelCreate(e.Author.ID); if err != nil {
+		dmChannel, err := s.CreateDM(e.Author.Id); if err != nil {
 			sentry.LogWithContext(err, ctx.ToErrorContext()) // User probably has DMs disabled
 			return
 		}
@@ -63,11 +53,11 @@ func OnDirectMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 		// No active session
 		if session == nil {
 			guildsChan := make(chan []modmailutils.UserGuild)
-			go modmailutils.GetMutualGuilds(ctx.UserID, guildsChan)
+			go modmailutils.GetMutualGuilds(ctx.User.Id, guildsChan)
 			guilds := <-guildsChan
 
 			if len(e.Message.Content) == 0 {
-				modmailutils.SendModMailIntro(ctx, dmChannel.ID)
+				modmailutils.SendModMailIntro(ctx, dmChannel.Id)
 				return
 			}
 
@@ -75,7 +65,7 @@ func OnDirectMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 
 			targetGuildId, err := strconv.Atoi(split[0])
 			if err != nil || targetGuildId < 1 || targetGuildId > len(guilds) + 1 {
-				modmailutils.SendModMailIntro(ctx, dmChannel.ID)
+				modmailutils.SendModMailIntro(ctx, dmChannel.Id)
 				return
 			}
 

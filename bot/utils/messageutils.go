@@ -21,7 +21,7 @@ const (
 
 var (
 	AvatarUrl           string
-	Id                  string
+	Id                  uint64
 )
 
 type SentMessage struct {

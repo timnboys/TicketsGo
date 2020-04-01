@@ -4,16 +4,16 @@ import "github.com/TicketsBot/TicketsGo/database"
 
 type ModMailSession struct {
 	Uuid         string `gorm:"column:UUID;type:varchar(36);unique;primary_key"`
-	Guild        int64  `gorm:"column:GUILDID"`
-	User         int64  `gorm:"column:USERID"`
-	StaffChannel int64  `gorm:"column:CHANNELID;UN"`
+	Guild        uint64  `gorm:"column:GUILDID"`
+	User         uint64  `gorm:"column:USERID"`
+	StaffChannel uint64  `gorm:"column:CHANNELID;UN"`
 }
 
 func (ModMailSession) TableName() string {
 	return "modmailsessions"
 }
 
-func CreateModMailSession(uuid string, guild, user, channel int64) {
+func CreateModMailSession(uuid string, guild, user, channel uint64) {
 	node := ModMailSession{
 		Uuid:  uuid,
 		Guild: guild,
@@ -24,7 +24,7 @@ func CreateModMailSession(uuid string, guild, user, channel int64) {
 	database.Db.Create(&node)
 }
 
-func GetModMailSession(userId int64, ch chan *ModMailSession) {
+func GetModMailSession(userId uint64, ch chan *ModMailSession) {
 	var node ModMailSession
 	database.Db.Where(ModMailSession{User: userId}).Take(&node)
 
@@ -35,7 +35,7 @@ func GetModMailSession(userId int64, ch chan *ModMailSession) {
 	}
 }
 
-func GetModMailSessionByStaffChannel(channelId int64, ch chan *ModMailSession) {
+func GetModMailSessionByStaffChannel(channelId uint64, ch chan *ModMailSession) {
 	var node ModMailSession
 	database.Db.Where(ModMailSession{StaffChannel: channelId}).Take(&node)
 
@@ -46,6 +46,6 @@ func GetModMailSessionByStaffChannel(channelId int64, ch chan *ModMailSession) {
 	}
 }
 
-func CloseModMailSessions(userId int64) {
+func CloseModMailSessions(userId uint64) {
 	database.Db.Where(ModMailSession{User: userId}).Delete(ModMailSession{})
 }

@@ -5,148 +5,137 @@ import (
 	"fmt"
 	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	modmailutils "github.com/TicketsBot/TicketsGo/bot/modmail/utils"
-	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/objects/channel"
+	"github.com/rxdn/gdl/objects/user"
+	"github.com/rxdn/gdl/permission"
+	"github.com/rxdn/gdl/rest"
 	uuid "github.com/satori/go.uuid"
-	"strconv"
 )
 
-func OpenModMailTicket(shard *discordgo.Session, guild modmailutils.UserGuild, user *discordgo.User, userId int64) (string, error) {
-	id, err := uuid.NewV4(); if err != nil {
+func OpenModMailTicket(shard *gateway.Shard, guild modmailutils.UserGuild, user *user.User) (uint64, error) {
+	ticketId, err := uuid.NewV4()
+	if err != nil {
 		sentry.Error(err)
 		return "", errors.New("Failed to generate UUID")
 	}
 
-	guildId := strconv.Itoa(int(guild.Id))
-
 	// If we're using a panel, then we need to create the ticket in the specified category
-	categoryChan := make(chan int64)
+	categoryChan := make(chan uint64)
 	go database.GetCategory(guild.Id, categoryChan)
 	category := <-categoryChan
 
 	// Make sure the category exists
 	if category != 0 {
-		categoryStr := strconv.Itoa(int(category))
-		if _, err := shard.State.Channel(categoryStr); err != nil {
-			if _, err = shard.Channel(categoryStr); err != nil {
-				category = 0
-			}
+		if _, err := shard.GetChannel(category); err != nil {
+			category = 0
 		}
 	}
 
-	requiredPerms := []utils.Permission{
-		utils.ManageChannels,
-		utils.ManageRoles,
-		utils.ViewChannel,
-		utils.SendMessages,
-		utils.ReadMessageHistory,
+	requiredPerms := []permission.Permission{
+		permission.ManageChannels,
+		permission.ManageRoles,
+		permission.ViewChannel,
+		permission.SendMessages,
+		permission.ReadMessageHistory,
 	}
 
-	hasAdmin := make(chan bool)
-	go utils.MemberHasPermission(shard, guildId, utils.Id, utils.Administrator, hasAdmin)
-	if !<-hasAdmin {
-		for _, perm := range requiredPerms {
-			hasPermChan := make(chan bool)
-			go utils.MemberHasPermission(shard, guildId, utils.Id, perm, hasPermChan)
-			if !<-hasPermChan {
-				return "", errors.New("I do not have the correct permissions required to create the channel in the server")
-			}
+	hasAdmin := permission.HasPermissions(shard, guild.Id, shard.SelfId(), permission.Administrator)
+	if !hasAdmin {
+		if !permission.HasPermissions(shard, guild.Id, shard.SelfId(), requiredPerms...) {
+			return 0, errors.New("I do not have the correct permissions required to create the channel in the server")
 		}
 	}
 
-	categoryStr := strconv.Itoa(int(category))
 	useCategory := category != 0
 	if useCategory {
 		// Check if the category still exists
-		ch, err := shard.Channel(categoryStr); if err != nil {
+		ch, err := shard.GetChannel(category)
+		if err != nil {
 			useCategory = false
 			go database.DeleteCategory(guild.Id)
-			return "", errors.New("Ticket category has been deleted")
+			return 0, errors.New("Ticket category has been deleted")
 		}
 
-		if ch.Type != discordgo.ChannelTypeGuildCategory {
+		if ch.Type != channel.ChannelTypeGuildCategory {
 			useCategory = false
 			go database.DeleteCategory(guild.Id)
-			return "", errors.New("Ticket category is not a ticket category")
+			return 0, errors.New("Ticket category is not a ticket category")
 		}
 
-		hasAdmin := make(chan bool)
-		go utils.ChannelMemberHasPermission(shard, guildId, categoryStr, utils.Id, utils.Administrator, hasAdmin)
-		if !<-hasAdmin {
-			for _, perm := range requiredPerms {
-				hasPermChan := make(chan bool)
-				go utils.ChannelMemberHasPermission(shard, guildId, categoryStr, utils.Id, perm, hasPermChan)
-				if !<-hasPermChan {
-					return "", errors.New("I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions")
-				}
+		hasAdmin := permission.HasPermissionsChannel(shard, guild.Id, shard.SelfId(), category, permission.Administrator)
+		if !hasAdmin {
+			if !permission.HasPermissionsChannel(shard, guild.Id, shard.SelfId(), category, requiredPerms...) {
+				return 0, errors.New("I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions")
 			}
 		}
 	}
 
 	if useCategory {
-		channels, err := shard.GuildChannels(guildId); if err != nil {
-			channels = make([]*discordgo.Channel, 0)
+		channels, err := shard.GetGuildChannels(guild.Id)
+		if err != nil {
+			channels = make([]*channel.Channel, 0)
 		}
 
 		channelCount := 0
-		categoryRaw := strconv.Itoa(int(category))
 		for _, channel := range channels {
-			if channel.ParentID != "" && channel.ParentID == categoryRaw {
+			if channel.ParentId == category {
 				channelCount += 1
 			}
 		}
 
 		if channelCount >= 50 {
-			return "", errors.New("There are too many tickets in the ticket category. Ask an admin to close some, or to move them to another category")
+			return 0, errors.New("There are too many tickets in the ticket category. Ask an admin to close some, or to move them to another category")
 		}
 	}
 
 	// Create channel
 	name := fmt.Sprintf("modmail-%s", user.Username)
-	overwrites := createOverwrites(guildId)
+	overwrites := createOverwrites(shard, guild.Id)
 
-	data := discordgo.GuildChannelCreateData{
-		Name: name,
-		Type: discordgo.ChannelTypeGuildText,
+	data := rest.CreateChannelData{
+		Name:                 name,
+		Type:                 channel.ChannelTypeGuildText,
 		PermissionOverwrites: overwrites,
-	}
-	if useCategory {
-		data.ParentID = strconv.Itoa(int(category))
+		ParentId:             category, // If not using category, value will be 0 and omitempty
 	}
 
-	channel, err := shard.GuildChannelCreateComplex(guildId, data); if err != nil {
+	channel, err := shard.CreateGuildChannel(guild.Id, data)
+	if err != nil {
 		sentry.Error(err)
-		return "", err
-	}
-
-	channelId, err := strconv.ParseInt(channel.ID, 10, 64); if err != nil {
-		sentry.Error(err)
-		return "", err
+		return 0, err
 	}
 
 	// Create webhook
-	go createWebhook(shard, guildId, channel.ID, id.String())
+	go createWebhook(shard, guild.Id, channel.Id, ticketId.String())
 
-	go modmaildatabase.CreateModMailSession(id.String(), guild.Id, userId, channelId)
-	return channel.ID, nil
+	go modmaildatabase.CreateModMailSession(ticketId.String(), guild.Id, user.Id, channel.Id)
+	return channel.Id, nil
 }
 
-func createWebhook(shard *discordgo.Session, guildId, channelId, uuid string) {
-	hasPermission := make(chan bool)
-	go utils.ChannelMemberHasPermission(shard, guildId, channelId, shard.State.User.ID, utils.ManageWebhooks, hasPermission) // Do we actually need this?
-	if <-hasPermission {
-		webhook, err := shard.WebhookCreate(channelId, shard.State.User.Username, shard.State.User.Avatar); if err != nil {
+func createWebhook(shard *gateway.Shard, guildId, channelId uint64, uuid string) {
+	self := (*shard.Cache).GetSelf()
+	if self == nil {
+		return
+	}
+
+	if permission.HasPermissionsChannel(shard, guildId, channelId, self.Id, permission.ManageWebhooks) { // Do we actually need this?
+		webhook, err := shard.CreateWebhook(channelId, rest.WebhookData{
+			Username: self.Username,
+			Avatar:   self.Avatar,
+		})
+		if err != nil {
 			sentry.ErrorWithContext(err, sentry.ErrorContext{
 				Guild:   guildId,
-				Shard:   shard.ShardID,
+				Shard:   shard.ShardId,
 				Command: "open",
 			})
 			return
 		}
 
-		formatted := fmt.Sprintf("%s/%s", webhook.ID, webhook.Token)
+		formatted := fmt.Sprintf("%s/%s", webhook.Id, webhook.Token)
 
 		ticketWebhook := database.TicketWebhook{
 			Uuid:       uuid,
@@ -156,62 +145,61 @@ func createWebhook(shard *discordgo.Session, guildId, channelId, uuid string) {
 	}
 }
 
-func createOverwrites(guildId string) []*discordgo.PermissionOverwrite {
+func createOverwrites(shard *gateway.Shard, guildId uint64) []*channel.PermissionOverwrite {
 	// Apply permission overwrites
-	overwrites := make([]*discordgo.PermissionOverwrite, 0)
-	overwrites = append(overwrites, &discordgo.PermissionOverwrite{ // @everyone
-		ID: guildId,
-		Type: "role",
+	overwrites := make([]*channel.PermissionOverwrite, 0)
+	overwrites = append(overwrites, &channel.PermissionOverwrite{ // @everyone
+		Id:    guildId,
+		Type:  channel.PermissionTypeRole,
 		Allow: 0,
-		Deny: utils.SumPermissions(utils.ViewChannel),
+		Deny:  permission.BuildPermissions(permission.ViewChannel),
 	})
 
 	// Create list of members & roles who should be added to the ticket
-	allowedUsers := make([]string, 0)
-	allowedRoles := make([]string, 0)
+	allowedUsers := make([]uint64, 0)
+	allowedRoles := make([]uint64, 0)
 
 	// Get support reps
-	supportUsers := make(chan []int64)
+	supportUsers := make(chan []uint64)
 	go database.GetSupport(guildId, supportUsers)
 	for _, user := range <-supportUsers {
-		allowedUsers = append(allowedUsers, strconv.Itoa(int(user)))
+		allowedUsers = append(allowedUsers, user)
 	}
 
 	// Get support roles
-	supportRoles := make(chan []int64)
+	supportRoles := make(chan []uint64)
 	go database.GetSupportRoles(guildId, supportRoles)
 	for _, role := range <-supportRoles {
-		allowedRoles = append(allowedRoles, strconv.Itoa(int(role)))
+		allowedRoles = append(allowedRoles, role)
 	}
 
 	// Add ourselves
-	allowedUsers = append(allowedUsers, utils.Id)
+	allowedUsers = append(allowedUsers, shard.SelfId())
 
 	for _, member := range allowedUsers {
-		allow := []utils.Permission{utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks}
+		allow := []permission.Permission{permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks}
 
 		// Give ourselves permissions to create webbooks
-		if member == utils.Id {
-			allow = append(allow, utils.ManageWebhooks)
+		if member == shard.SelfId() {
+			allow = append(allow, permission.ManageWebhooks)
 		}
 
-		overwrites = append(overwrites, &discordgo.PermissionOverwrite{
-			ID: member,
-			Type: "member",
-			Allow: utils.SumPermissions(allow...),
-			Deny: 0,
+		overwrites = append(overwrites, &channel.PermissionOverwrite{
+			Id:    member,
+			Type:  channel.PermissionTypeMember,
+			Allow: permission.BuildPermissions(allow...),
+			Deny:  0,
 		})
 	}
 
 	for _, role := range allowedRoles {
-		overwrites = append(overwrites, &discordgo.PermissionOverwrite{
-			ID: role,
-			Type: "role",
-			Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
-			Deny: 0,
+		overwrites = append(overwrites, &channel.PermissionOverwrite{
+			Id:    role,
+			Type:  channel.PermissionTypeRole,
+			Allow: permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),
+			Deny:  0,
 		})
 	}
 
 	return overwrites
 }
-

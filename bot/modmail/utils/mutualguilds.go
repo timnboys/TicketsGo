@@ -14,12 +14,12 @@ import (
 )
 
 type UserGuild struct {
-	Id   int64
+	Id   uint64
 	Name string
 }
 
 type mutualGuildResponse struct {
-	UserId int64
+	UserId uint64
 	Shard  int
 	Guilds []UserGuild
 }
@@ -28,7 +28,7 @@ const timeout = 4 * time.Second
 
 var guildCache = gocache.New(time.Minute, time.Minute)
 
-func GetMutualGuilds(userId int64, res chan []UserGuild) {
+func GetMutualGuilds(userId uint64, res chan []UserGuild) {
 	// Check cache
 	key := strconv.Itoa(int(userId))
 	cached, ok := guildCache.Get(key)
@@ -69,7 +69,7 @@ func GetMutualGuilds(userId int64, res chan []UserGuild) {
 		// Sort by guild ID
 		sorted := make([]UserGuild, 0)
 		for _, guild := range guilds {
-			max := int64(0)
+			max := uint64(0)
 
 			if guild.Id > max {
 				// Check that we haven't already added this guild
@@ -92,11 +92,11 @@ func GetMutualGuilds(userId int64, res chan []UserGuild) {
 	}
 }
 
-func publishGuildRequest(userId int64) {
+func publishGuildRequest(userId uint64) {
 	cache.Client.Publish("tickets:getuserguilds", strconv.Itoa(int(userId)))
 }
 
-func publishUserGuilds(userId int64, shard int, guilds []UserGuild) {
+func publishUserGuilds(userId uint64, shard int, guilds []UserGuild) {
 	response := mutualGuildResponse{
 		UserId: userId,
 		Shard:  shard,
