@@ -1,21 +1,21 @@
 package database
 
 type ArchiveChannel struct {
-	Guild   int64 `gorm:"column:GUILDID;unique;primary_key"`
-	Channel int64 `gorm:"column:CHANNELID;unique"`
+	Guild   uint64 `gorm:"column:GUILDID;unique;primary_key"`
+	Channel uint64 `gorm:"column:CHANNELID;unique"`
 }
 
 func (ArchiveChannel) TableName() string {
 	return "archivechannel"
 }
 
-func GetArchiveChannel(guild int64, ch chan int64) {
+func GetArchiveChannel(guild uint64, ch chan uint64) {
 	var node ArchiveChannel
 	Db.Where(ArchiveChannel{Guild: guild}).First(&node)
 	ch <- node.Channel
 }
 
-func SetArchiveChannel(guild int64, channel int64) {
+func SetArchiveChannel(guild uint64, channel uint64) {
 	var node ArchiveChannel
 	Db.Where(ArchiveChannel{Guild: guild}).Assign(ArchiveChannel{Channel: channel}).FirstOrCreate(&node)
 }

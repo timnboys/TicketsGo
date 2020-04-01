@@ -7,9 +7,9 @@ import (
 )
 
 type UserData struct {
-	UserId        int64  `gorm:"column:USERID;unique;primary_key"`
+	UserId        uint64  `gorm:"column:USERID;unique;primary_key"`
 	Username      string `gorm:"column:USERNAME;type:text CHARACTER SET utf8 COLLATE utf8_unicode_ci"`
-	Discriminator string `gorm:"column:DISCRIM;type:varchar(4)"`
+	Discriminator uint16 `gorm:"column:DISCRIM"`
 	Avatar        string `gorm:"column:AVATARHASH;type:varchar(100)"`
 }
 
@@ -17,7 +17,7 @@ func (UserData) TableName() string {
 	return "usernames"
 }
 
-func UpdateUser(id int64, name string, discrim string, avatarHash string) {
+func UpdateUser(id uint64, name string, discrim uint16, avatarHash string) {
 	var node UserData
 	Db.Where(UserData{UserId: id}).Assign(&UserData{Username: name, Discriminator: discrim, Avatar: avatarHash}).FirstOrCreate(&node)
 }
@@ -32,7 +32,7 @@ func InsertUsers(data []UserData) {
 	bulkInsertUserData(data)
 }
 
-func GetUsername(id int64, ch chan string) {
+func GetUsername(id uint64, ch chan string) {
 	var node UserData
 	Db.Where(UserData{UserId: id}).Take(&node)
 	ch <- node.Username

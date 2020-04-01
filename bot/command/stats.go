@@ -55,7 +55,7 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 
 	// Get user permission level
 	permLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Session, ctx.Member, permLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, permLevelChan)
 	permLevel := <-permLevelChan
 
 	// User stats
@@ -85,8 +85,8 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 
 			MessageEmbed
 
-		if m, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed); err == nil {
-			utils.DeleteAfter(utils.SentMessage{Session: ctx.Session, Message: m}, 60)
+		if m, err := ctx.Shard.ChannelMessageSendEmbed(ctx.Channel, embed); err == nil {
+			utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: m}, 60)
 		}
 	} else { // Support rep stats
 		responseTimesChan := make(chan map[string]int64)
@@ -159,8 +159,8 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 
 			MessageEmbed
 
-		if m, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed); err == nil {
-			utils.DeleteAfter(utils.SentMessage{Session: ctx.Session, Message: m}, 60)
+		if m, err := ctx.Shard.ChannelMessageSendEmbed(ctx.Channel, embed); err == nil {
+			utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: m}, 60)
 		}
 	}
 }

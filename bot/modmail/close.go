@@ -18,7 +18,7 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	permissionLevel := utils.Everyone
 	if ctx.Member != nil {
 		permissionLevelChan := make(chan utils.PermissionLevel)
-		go utils.GetPermissionLevel(ctx.Session, ctx.Member, permissionLevelChan)
+		go utils.GetPermissionLevel(ctx.Shard, ctx.Member, permissionLevelChan)
 		permissionLevel = <-permissionLevelChan
 	}
 
@@ -33,7 +33,7 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	}
 
 	hasPerm := make(chan bool)
-	go utils.MemberHasPermission(ctx.Session, ctx.Guild.ID, utils.Id, utils.ManageChannels, hasPerm)
+	go utils.MemberHasPermission(ctx.Shard, ctx.Guild.ID, utils.Id, utils.ManageChannels, hasPerm)
 
 	if !<-hasPerm {
 		ctx.ReactWithCross()
@@ -51,7 +51,7 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	lastId := ""
 	count := -1
 	for count != 0 {
-		array, err := ctx.Session.ChannelMessages(ctx.Channel, 100, lastId, "", "")
+		array, err := ctx.Shard.ChannelMessages(ctx.Channel, 100, lastId, "", "")
 
 		count = len(array)
 		if err != nil {
@@ -90,7 +90,7 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 
 	// Get channel name
 	var channelName string
-	channel, err := ctx.Session.Channel(strconv.Itoa(int(session.StaffChannel)))
+	channel, err := ctx.Shard.Channel(strconv.Itoa(int(session.StaffChannel)))
 	if err == nil {
 		channelName = channel.Name
 	} else {
@@ -99,7 +99,7 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 
 	// Set ticket state as closed and delete channel
 	go modmaildatabase.CloseModMailSessions(session.User)
-	if _, err := ctx.Session.ChannelDelete(strconv.Itoa(int(session.StaffChannel))); err != nil {
+	if _, err := ctx.Shard.ChannelDelete(strconv.Itoa(int(session.StaffChannel))); err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 	}
 
@@ -109,9 +109,9 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	archiveChannelId := strconv.Itoa(int(<-archiveChannelChan))
 
 	channelExists := true
-	_, err = ctx.Session.State.Channel(archiveChannelId); if err != nil {
+	_, err = ctx.Shard.State.Channel(archiveChannelId); if err != nil {
 		// Not cached
-		_, err = ctx.Session.Channel(archiveChannelId); if err != nil {
+		_, err = ctx.Shard.Channel(archiveChannelId); if err != nil {
 			// Channel doesn't exist
 			channelExists = false
 		}
@@ -138,7 +138,7 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		}
 
 		// Errors occur when the bot doesn't have permission
-		m, err := ctx.Session.ChannelMessageSendComplex(archiveChannelId, &data)
+		m, err := ctx.Shard.ChannelMessageSendComplex(archiveChannelId, &data)
 		if err == nil {
 			userNameChan := make(chan string)
 			go database.GetUsername(session.User, userNameChan)
@@ -158,7 +158,7 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	}
 
 	// Notify user and send logs in DMs
-	privateMessage, err := ctx.Session.UserChannelCreate(strconv.Itoa(int(session.User)))
+	privateMessage, err := ctx.Shard.UserChannelCreate(strconv.Itoa(int(session.User)))
 	if err == nil {
 		var content string
 		// Create message content
@@ -171,6 +171,6 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		}
 
 		// Errors occur when users have privacy settings high
-		_, _ = ctx.Session.ChannelMessageSend(privateMessage.ID, content)
+		_, _ = ctx.Shard.ChannelMessageSend(privateMessage.ID, content)
 	}
 }

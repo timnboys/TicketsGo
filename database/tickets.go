@@ -9,31 +9,31 @@ import (
 type Ticket struct {
 	Uuid             string `gorm:"column:UUID;type:varchar(36);unique;primary_key"`
 	Id               int    `gorm:"column:ID"`
-	Guild            int64  `gorm:"column:GUILDID"`
-	Channel          *int64 `gorm:"column:CHANNELID;nullable"`
-	Owner            int64  `gorm:"column:OWNERID"`
+	Guild            uint64  `gorm:"column:GUILDID"`
+	Channel          *uint64 `gorm:"column:CHANNELID;nullable"`
+	Owner            uint64  `gorm:"column:OWNERID"`
 	Members          string `gorm:"column:MEMBERS;type:text"`
 	IsOpen           bool   `gorm:"column:OPEN"`
-	OpenTime         *int64 `gorm:"column:OPENTIME;nullable"`
-	WelcomeMessageId *int64 `gorm:"column:WELCOMEMESSAGEID;nullable"`
+	OpenTime         *uint64 `gorm:"column:OPENTIME;nullable"`
+	WelcomeMessageId *uint64 `gorm:"column:WELCOMEMESSAGEID;nullable"`
 }
 
 func (Ticket) TableName() string {
 	return "tickets"
 }
 
-func GetNextId(guild int64, ch chan int) {
+func GetNextId(guild uint64, ch chan int) {
 	var node Ticket
 	Db.Where(Ticket{Guild: guild}).Order("ID desc").First(&node)
 	ch <- node.Id + 1
 }
 
-func CreateTicket(uuid string, guild, owner int64, ch chan int) {
+func CreateTicket(uuid string, guild, owner uint64, ch chan int) {
 	idChan := make(chan int)
 	go GetNextId(guild, idChan)
 	id := <-idChan
 
-	now := time.Now().UnixNano() / int64(time.Millisecond)
+	now := time.Now().UnixNano() / uint64(time.Millisecond)
 
 	node := Ticket{
 		Uuid:     uuid,
@@ -51,14 +51,14 @@ func CreateTicket(uuid string, guild, owner int64, ch chan int) {
 	ch <- id
 }
 
-func SetTicketChannel(id int, guild int64, channel int64) {
+func SetTicketChannel(id int, guild uint64, channel uint64) {
 	var node Ticket
 
 	Db.Where(Ticket{Id: id, Guild: guild}).First(&node)
 	Db.Model(&node).Update("CHANNELID", channel)
 }
 
-func GetMembers(ticket int, guild int64, ch chan []string) {
+func GetMembers(ticket int, guild uint64, ch chan []string) {
 	node := Ticket{
 		Id:    ticket,
 		Guild: guild,
@@ -69,7 +69,7 @@ func GetMembers(ticket int, guild int64, ch chan []string) {
 	ch <- strings.Split(node.Members, ",")
 }
 
-func AddMember(ticket int, guild int64, user string) {
+func AddMember(ticket int, guild uint64, user string) {
 	node := Ticket{
 		Id:    ticket,
 		Guild: guild,
@@ -82,7 +82,7 @@ func AddMember(ticket int, guild int64, user string) {
 	Db.Where(node).Assign("MEMBERS", updated).FirstOrCreate(&node)
 }
 
-func RemoveMember(ticket int, guild int64, user string) {
+func RemoveMember(ticket int, guild uint64, user string) {
 	memberChan := make(chan []string)
 	go GetMembers(ticket, guild, memberChan)
 	members := <-memberChan
@@ -98,13 +98,13 @@ func RemoveMember(ticket int, guild int64, user string) {
 	Db.Where(Ticket{Id: ticket, Guild: guild}).Assign("MEMBERS", strings.Join(members, ",")).FirstOrCreate(&node)
 }
 
-func IsTicketChannel(channel int64, ch chan bool) {
+func IsTicketChannel(channel uint64, ch chan bool) {
 	var count int
 	Db.Table(Ticket{}.TableName()).Where(Ticket{Channel: &channel}).Count(&count)
 	ch <- count > 0
 }
 
-func GetTicketById(guild int64, id int, ch chan Ticket) {
+func GetTicketById(guild uint64, id int, ch chan Ticket) {
 	var node Ticket
 	Db.Where(Ticket{Guild: guild, Id: id}).Take(&node)
 	ch <- node
@@ -116,35 +116,35 @@ func GetTicketByUuid(uuid string, ch chan Ticket) {
 	ch <- node
 }
 
-func GetTicketByChannel(channel int64, ch chan Ticket) {
+func GetTicketByChannel(channel uint64, ch chan Ticket) {
 	var node Ticket
 	Db.Where(Ticket{Channel: &channel}).Take(&node)
 	ch <- node
 }
 
-func GetTicketId(channel int64, ch chan int) {
+func GetTicketId(channel uint64, ch chan int) {
 	var node Ticket
 	Db.Where(Ticket{Channel: &channel}).Take(&node)
 	ch <- node.Id
 }
 
-func GetOwner(ticket int, guild int64, ch chan int64) {
+func GetOwner(ticket int, guild uint64, ch chan uint64) {
 	var node Ticket
 	Db.Where(Ticket{Guild: guild, Id: ticket}).Take(&node)
 	ch <- node.Owner
 }
 
-func GetOwnerByChannel(channel int64, ch chan int64) {
+func GetOwnerByChannel(channel uint64, ch chan uint64) {
 	var node Ticket
 	Db.Where(Ticket{Channel: &channel}).Take(&node)
 	ch <- node.Owner
 }
 
-func GetTicketsOpenedBy(guild, owner int64, ch chan map[int64]int) {
+func GetTicketsOpenedBy(guild, owner uint64, ch chan map[uint64]int) {
 	var nodes []Ticket
 	Db.Where(Ticket{Guild: guild, Owner: owner}).Find(&nodes)
 
-	tickets := make(map[int64]int)
+	tickets := make(map[uint64]int)
 	for _, ticket := range nodes {
 		if ticket.Channel != nil {
 			tickets[*ticket.Channel] = ticket.Id
@@ -154,13 +154,13 @@ func GetTicketsOpenedBy(guild, owner int64, ch chan map[int64]int) {
 	ch <- tickets
 }
 
-func GetTicketUuid(channel int64, ch chan string) {
+func GetTicketUuid(channel uint64, ch chan string) {
 	var node Ticket
 	Db.Where(Ticket{Channel: &channel}).Take(&node)
 	ch <- node.Uuid
 }
 
-func GetOpenTickets(guild int64, ch chan []string) {
+func GetOpenTickets(guild uint64, ch chan []string) {
 	var nodes []Ticket
 	Db.Where(Ticket{Guild: guild, IsOpen: true}).Find(&nodes)
 
@@ -172,11 +172,11 @@ func GetOpenTickets(guild int64, ch chan []string) {
 	ch <- tickets
 }
 
-func GetOpenTicketChannelIds(guild int64, ch chan []*int64) {
+func GetOpenTicketChannelIds(guild uint64, ch chan []*uint64) {
 	var nodes []Ticket
 	Db.Where(Ticket{Guild: guild, IsOpen: true}).Find(&nodes)
 
-	tickets := make([]*int64, 0)
+	tickets := make([]*uint64, 0)
 	for _, ticket := range nodes {
 		tickets = append(tickets, ticket.Channel)
 	}
@@ -184,14 +184,14 @@ func GetOpenTicketChannelIds(guild int64, ch chan []*int64) {
 	ch <- tickets
 }
 
-func GetOpenTicketStructs(guild int64, ch chan []Ticket) {
+func GetOpenTicketStructs(guild uint64, ch chan []Ticket) {
 	var nodes []Ticket
 	Db.Where(Ticket{Guild: guild, IsOpen: true}).Find(&nodes)
 
 	ch <- nodes
 }
 
-func GetOpenTicketsOpenedBy(guild, user int64, ch chan []string) {
+func GetOpenTicketsOpenedBy(guild, user uint64, ch chan []string) {
 	var nodes []Ticket
 	Db.Where(Ticket{Guild: guild, Owner: user, IsOpen: true}).Find(&nodes)
 
@@ -203,17 +203,17 @@ func GetOpenTicketsOpenedBy(guild, user int64, ch chan []string) {
 	ch <- tickets
 }
 
-func GetOpenTime(uuid string, ch chan *int64) {
+func GetOpenTime(uuid string, ch chan *uint64) {
 	var node Ticket
 	Db.Where(Ticket{Uuid: uuid}).Take(&node)
 	ch <- node.OpenTime
 }
 
-func GetOpenTimes(guild int64, ch chan map[string]*int64) {
+func GetOpenTimes(guild uint64, ch chan map[string]*uint64) {
 	var nodes []Ticket
 	Db.Where(Ticket{Guild: guild}).Find(&nodes)
 
-	times := make(map[string]*int64, 0)
+	times := make(map[string]*uint64, 0)
 	for _, node := range nodes {
 		times[node.Uuid] = node.OpenTime
 	}
@@ -221,13 +221,13 @@ func GetOpenTimes(guild int64, ch chan map[string]*int64) {
 	ch <- times
 }
 
-func GetTotalTicketCount(guild int64, ch chan int) {
+func GetTotalTicketCount(guild uint64, ch chan int) {
 	var count int
 	Db.Table(Ticket{}.TableName()).Where(Ticket{Guild: guild}).Count(&count)
 	ch <- count
 }
 
-func GetTotalTicketsFromUser(guild int64, user int64, ch chan int) {
+func GetTotalTicketsFromUser(guild uint64, user uint64, ch chan int) {
 	var count int
 	Db.Where(Ticket{Guild: guild, Owner: user}).Count(&count)
 	ch <- count
@@ -239,17 +239,17 @@ func GetGlobalTicketCount(ch chan int) {
 	ch <- count
 }
 
-func Close(guild int64, ticket int) {
+func Close(guild uint64, ticket int) {
 	node := Ticket{Id: ticket, Guild: guild}
 	Db.Model(&node).Where(node).Update("OPEN", false)
 }
 
-func CloseByChannel(channel int64) {
+func CloseByChannel(channel uint64) {
 	node := Ticket{Channel: &channel}
 	Db.Model(&node).Where(node).Update("OPEN", false)
 }
 
-func SetWelcomeMessageId(ticketId int, guildId, msgId int64) {
+func SetWelcomeMessageId(ticketId int, guildId, msgId uint64) {
 	node := Ticket{Guild: guildId, Id: ticketId}
 	Db.Model(&node).Where(node).Update("WELCOMEMESSAGEID", msgId)
 }

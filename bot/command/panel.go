@@ -51,12 +51,12 @@ func (PanelCommand) Execute(ctx utils.CommandContext) {
 		embed.SetFooter("Powered by ticketsbot.net", utils.AvatarUrl)
 	}
 
-	msg, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed); if err != nil {
+	msg, err := ctx.Shard.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
-	if err = ctx.Session.MessageReactionAdd(ctx.Channel, msg.ID, "📩"); err != nil {
+	if err = ctx.Shard.MessageReactionAdd(ctx.Channel, msg.ID, "📩"); err != nil {
 		ctx.SendEmbed(utils.Red, "Error", "I don't have permission to react to the panel.")
 		return
 	}

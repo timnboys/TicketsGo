@@ -7,33 +7,24 @@ import (
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/payloads/events"
 	"strconv"
 	"strings"
 )
 
-func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
+func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 	if e.Author.Bot {
 		return
 	}
 
 	// Ignore commands in DMs
-	if e.GuildID == "" {
-		return
-	}
-
-	guildId, err := strconv.ParseInt(e.GuildID, 10, 64)
-	if err != nil {
-		return
-	}
-
-	userId, err := strconv.ParseInt(e.Author.ID, 10, 64)
-	if err != nil {
+	if e.GuildId == 0 {
 		return
 	}
 
 	ch := make(chan string)
-	go database.GetPrefix(guildId, ch)
+	go database.GetPrefix(e.GuildId, ch)
 
 	customPrefix := <-ch
 	defaultPrefix := config.Conf.Bot.Prefix
@@ -97,54 +88,35 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 	}
 
 	errorContext := sentry.ErrorContext{
-		Guild:   e.GuildID,
-		User:    e.Author.ID,
-		Channel: e.ChannelID,
-		Shard:   s.ShardID,
+		Guild:   e.GuildId,
+		User:    e.Author.Id,
+		Channel: e.ChannelId,
+		Shard:   s.ShardId,
 		Command: root,
 	}
 
 	// Get guild obj
-	guild, err := s.State.Guild(e.GuildID)
+	guild, err := s.GetGuild(e.GuildId)
 	if err != nil {
-		guild, err = s.Guild(e.GuildID)
-		if err != nil {
-			sentry.ErrorWithContext(err, errorContext)
-			return
-		}
+		sentry.ErrorWithContext(err, errorContext)
+		return
 	}
 
 	premiumChan := make(chan bool)
 	go utils.IsPremiumGuild(utils.CommandContext{
-		Session: s,
-		Guild:   guild,
-		GuildId: guildId,
+		Shard: s,
+		Guild: guild,
 	}, premiumChan)
 	premiumGuild := <-premiumChan
 
 	e.Member.User = e.Author
-	e.Member.GuildID = e.GuildID
-
-	channelId, err := strconv.ParseInt(e.ChannelID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, errorContext)
-		return
-	}
-
-	msgId, err := strconv.ParseInt(e.Message.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, errorContext)
-		return
-	}
 
 	ctx := utils.CommandContext{
-		Session:     s,
-		User:        *e.Author,
-		UserID:      userId,
-		GuildId:     guildId,
+		Shard:       s,
+		User:        e.Author,
 		Guild:       guild,
-		Channel:     e.ChannelID,
-		ChannelId:   channelId,
-		Message:     *e.Message,
-		MessageId:   msgId,
+		ChannelId:   e.ChannelId,
+		Message:     e.Message,
 		Root:        root,
 		Args:        args,
 		IsPremium:   premiumGuild,
@@ -155,7 +127,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 
 	// Ensure user isn't blacklisted
 	blacklisted := make(chan bool)
-	go database.IsBlacklisted(ctx.GuildId, ctx.UserID, blacklisted)
+	go database.IsBlacklisted(ctx.Guild.Id, ctx.User.Id, blacklisted)
 	if <-blacklisted {
 		ctx.ReactWithCross()
 		return
@@ -193,7 +165,7 @@ func OnCommand(s *discordgo.Session, e *discordgo.MessageCreate) {
 		go c.Execute(ctx)
 		go statsd.IncrementKey(statsd.COMMANDS)
 
-		utils.DeleteAfter(utils.SentMessage{Session: s, Message: e.Message}, 30)
+		utils.DeleteAfter(utils.SentMessage{Shard: s, Message: e.Message}, 30)
 	}
 }
 

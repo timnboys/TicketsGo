@@ -2,27 +2,17 @@ package listeners
 
 import (
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/payloads/events"
 )
 
-func OnChannelDelete(s *discordgo.Session, e *discordgo.ChannelDelete) {
-	channelId, err := strconv.ParseInt(e.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, sentry.ErrorContext{
-			Guild:   e.GuildID,
-			Channel: e.Channel.ID,
-			Shard:   s.ShardID,
-		})
-		return
-	}
-
+func OnChannelDelete(s *gateway.Shard, e *events.ChannelDelete) {
 	isTicket := make(chan bool)
-	go database.IsTicketChannel(channelId, isTicket)
+	go database.IsTicketChannel(e.Channel.Id, isTicket)
 
 	if <-isTicket {
-		go database.CloseByChannel(channelId)
+		go database.CloseByChannel(e.Channel.Id)
 	}
 
-	go database.DeleteChannel(channelId)
+	go database.DeleteChannel(e.Channel.Id)
 }

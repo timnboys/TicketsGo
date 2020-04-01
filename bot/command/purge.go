@@ -81,7 +81,7 @@ For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time peri
 	for _, ticket := range tickets {
 		channelId := strconv.Itoa(int(*ticket.Channel))
 
-		msgs, err := ctx.Session.ChannelMessages(channelId, 1, "", "", "")
+		msgs, err := ctx.Shard.ChannelMessages(channelId, 1, "", "", "")
 		if err != nil || len(msgs) == 0 { // Shouldn't ever happen?
 			continue
 		}
@@ -95,17 +95,17 @@ For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time peri
 
 		if before.After(time) { // We should purge
 			fakeContext := utils.CommandContext{
-				Session:     ctx.Session,
-				User:        ctx.User,
-				UserID:      ctx.UserID,
-				Guild:       ctx.Guild,
-				GuildId:     ctx.GuildId,
-				Channel:     channelId,
-				ChannelId:   *ticket.Channel,
-				Message:     ctx.Message,
-				MessageId:   ctx.MessageId,
-				Root:        "close",
-				Args:        strings.Split(reason, " "),
+				Shard:     ctx.Shard,
+				User:      ctx.User,
+				UserID:    ctx.UserID,
+				Guild:     ctx.Guild,
+				GuildId:   ctx.GuildId,
+				Channel:   channelId,
+				ChannelId: *ticket.Channel,
+				Message:   ctx.Message,
+				MessageId: ctx.MessageId,
+				Root:      "close",
+				Args:      strings.Split(reason, " "),
 				IsPremium:   ctx.IsPremium,
 				ShouldReact: ctx.ShouldReact,
 				Member:      ctx.Member,

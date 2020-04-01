@@ -56,8 +56,8 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 
 	// Get owner
 	invalidOwner := false
-	owner, err := ctx.Session.State.Member(ctx.Guild.ID, ctx.Guild.OwnerID); if err != nil {
-		owner, err = ctx.Session.GuildMember(ctx.Guild.ID, ctx.Guild.OwnerID); if err != nil {
+	owner, err := ctx.Shard.State.Member(ctx.Guild.ID, ctx.Guild.OwnerID); if err != nil {
+		owner, err = ctx.Shard.GuildMember(ctx.Guild.ID, ctx.Guild.OwnerID); if err != nil {
 			invalidOwner = true
 		}
 	}
@@ -77,7 +77,7 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 		SetTitle("Admin").
 		SetColor(int(utils.Green)).
 
-		AddField("Shard", strconv.Itoa(ctx.Session.ShardID), true).
+		AddField("Shard", strconv.Itoa(ctx.Shard.ShardID), true).
 		AddField("SQL Is Connected", strconv.FormatBool(<-sqlConnected), true).
 		AddField("Redis Is Connected", strconv.FormatBool(<-redisConnected), true).
 
@@ -86,12 +86,12 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 
 		MessageEmbed
 
-	msg, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed); if err != nil {
+	msg, err := ctx.Shard.ChannelMessageSendEmbed(ctx.Channel, embed); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
-	utils.DeleteAfter(utils.SentMessage{Session: ctx.Session, Message: msg}, 30)
+	utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: msg}, 30)
 }
 
 func (AdminDebugCommand) Parent() interface{} {

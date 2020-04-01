@@ -42,8 +42,8 @@ func ListenPanelCreations(shardManager *dshardmanager.Manager) {
 		// Get whether guild is premium
 		isPremiumChan := make(chan bool)
 		go utils.IsPremiumGuild(utils.CommandContext{
-			Session: shard,
-			Guild: guild,
+			Shard:   shard,
+			Guild:   guild,
 			GuildId: panel.GuildId,
 		}, isPremiumChan)
 		isPremium := <-isPremiumChan

@@ -3,7 +3,8 @@ package listeners
 import (
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
-	"github.com/bwmarrin/discordgo"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/payloads/events"
 )
 
 /*
@@ -11,9 +12,9 @@ import (
  * The inner payload is an unavailable guild object.
 * If the unavailable field is not set, the user was removed from the guild.
  */
-func OnGuildLeave(s *discordgo.Session, e *discordgo.GuildDelete) {
-	if !e.Unavailable {
-		servercounter.UpdateCache(s.ShardID, len(s.State.Guilds))
+func OnGuildLeave(s *gateway.Shard, e *events.GuildDelete) {
+	if e.Unavailable != nil && !*e.Unavailable {
+		servercounter.UpdateCache(s.ShardId, len((*s.Cache).GetGuilds()))
 		go statsd.IncrementKey(statsd.LEAVES)
 	}
 }

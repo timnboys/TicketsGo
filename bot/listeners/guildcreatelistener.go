@@ -7,48 +7,38 @@ import (
 	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
-	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/payloads/events"
+	"github.com/rxdn/gdl/objects/guild"
 )
 
 // Fires when we receive a guild
-func OnGuildCreate(s *discordgo.Session, e *discordgo.GuildCreate) {
-	servercounter.UpdateCache(s.ShardID, len(s.State.Guilds))
-
-	guildId, err := strconv.ParseInt(e.Guild.ID, 10, 64); if err != nil {
-		sentry.Error(err)
-		return
-	}
+func OnGuildCreate(s *gateway.Shard, e *events.GuildCreate) {
+	servercounter.UpdateCache(s.ShardId, len((*s.Cache).GetGuilds()))
 
 	// Determine whether this is a join or lazy load
 	JoinedGuildsLock.Lock()
-	cachedGuilds := JoinedGuilds[s.ShardID]
+	cachedGuilds := JoinedGuilds[s.ShardId]
 	JoinedGuildsLock.Unlock()
 
 	isJoin := true
 	for _, cachedId := range cachedGuilds {
-		if cachedId == e.Guild.ID {
+		if cachedId == e.Guild.Id {
 			isJoin = false
 			break
 		}
 	}
 
-	trackCachedGuild(s.ShardID, e.Guild.ID)
+	trackCachedGuild(s.ShardId, e.Guild.Id)
 
 	if isJoin {
 		go statsd.IncrementKey(statsd.JOINS)
 
 		channels := make([]database.Channel, 0)
 		for _, channel := range e.Channels {
-			channelId, err := strconv.ParseInt(channel.ID, 10, 64); if err != nil {
-				sentry.Error(err)
-				return
-			}
-
 			channels = append(channels, database.Channel{
-				ChannelId: channelId,
-				GuildId:   guildId,
+				ChannelId: channel.Id,
+				GuildId:   e.Guild.Id,
 				Name:      channel.Name,
 				Type:      int(channel.Type),
 			})
@@ -61,18 +51,19 @@ func OnGuildCreate(s *discordgo.Session, e *discordgo.GuildCreate) {
 	}
 }
 
-func sendOwnerMessage(shard *discordgo.Session, guild *discordgo.Guild) {
+func sendOwnerMessage(shard *gateway.Shard, guild *guild.Guild) {
 	// Create DM channel
-	channel, err := shard.UserChannelCreate(guild.OwnerID); if err != nil { // User probably has DMs disabled
+	channel, err := shard.CreateDM(guild.OwnerId)
+	if err != nil { // User probably has DMs disabled
 		return
 	}
 
-	message := fmt.Sprintf("Thanks for inviting Tickets to %s!\n" +
-		"To get set up, start off by running `t!setup` to configure the bot. You may then wish to visit the [web UI](https://panel.ticketsbot.net/manage/%s/settings) to access further configurations, " +
-		"as well as to create a [panel](https://ticketsbot.net/panels) (reactable embed that automatically opens a ticket).\n" +
-		"If you require further assistance, you may wish to read the information section on our [website](https://ticketsbot.net), or if you prefer, feel free to join our [support server](https://discord.gg/VtV3rSk) to ask any questions you may have, " +
+	message := fmt.Sprintf("Thanks for inviting Tickets to %s!\n"+
+		"To get set up, start off by running `t!setup` to configure the bot. You may then wish to visit the [web UI](https://panel.ticketsbot.net/manage/%d/settings) to access further configurations, "+
+		"as well as to create a [panel](https://ticketsbot.net/panels) (reactable embed that automatically opens a ticket).\n"+
+		"If you require further assistance, you may wish to read the information section on our [website](https://ticketsbot.net), or if you prefer, feel free to join our [support server](https://discord.gg/VtV3rSk) to ask any questions you may have, "+
 		"or to provide feedback to use (especially if you choose to switch to a competitor - we'd love to know how we can improve).",
-		guild.Name, guild.ID)
+		guild.Name, guild.Id)
 
-	utils.SendEmbed(shard, channel.ID, utils.Green, "Tickets", message, 0, false)
+	utils.SendEmbed(shard, channel.Id, utils.Green, "Tickets", message, 0, false)
 }

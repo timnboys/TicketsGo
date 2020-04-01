@@ -14,7 +14,7 @@ type (
 	Bot struct {
 		Token                 string
 		Prefix                string
-		Admins                []string
+		Admins                []uint64
 		Helpers               []string
 		PremiumLookupProxyUrl string `toml:"premium-lookup-proxy-url"`
 		PremiumLookupProxyKey string `toml:"premium-lookup-proxy-key"`

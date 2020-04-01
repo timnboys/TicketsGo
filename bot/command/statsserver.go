@@ -109,8 +109,8 @@ func (StatsServerCommand) Execute(ctx utils.CommandContext) {
 
 		MessageEmbed
 
-	if m, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed); err == nil {
-		utils.DeleteAfter(utils.SentMessage{Session: ctx.Session, Message: m}, 60)
+	if m, err := ctx.Shard.ChannelMessageSendEmbed(ctx.Channel, embed); err == nil {
+		utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: m}, 60)
 	}
 }
 

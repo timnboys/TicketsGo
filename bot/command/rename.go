@@ -44,7 +44,7 @@ func (RenameCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	name := strings.Join(ctx.Args, " ")
-	if _, err := ctx.Session.ChannelEdit(ctx.Channel, name); err != nil {
+	if _, err := ctx.Shard.ChannelEdit(ctx.Channel, name); err != nil {
 		sentry.LogWithContext(err, ctx.ToErrorContext()) // Probably 403
 		return
 	}

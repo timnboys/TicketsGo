@@ -8,11 +8,10 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
-	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/bwmarrin/discordgo"
 	"github.com/rxdn/gdl/cache"
 	"github.com/rxdn/gdl/gateway"
-	"github.com/rxdn/gdl/objects"
+	"github.com/rxdn/gdl/objects/user"
 	"os"
 	"time"
 )
@@ -33,7 +32,7 @@ func Start(ch chan os.Signal) {
 		Highest: config.Conf.Bot.Sharding.Max,
 	}, cacheFactory)
 
-	shardManager.Presence = objects.BuildStatus(objects.ActivityTypePlaying, "DM for help | t!help")
+	shardManager.Presence = user.BuildStatus(user.ActivityTypePlaying, "DM for help | t!help")
 
 	shardManager.RegisterListeners(
 		listeners.OnChannelCreate,

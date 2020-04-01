@@ -55,7 +55,7 @@ func ListenTicketClose(shardManager *dshardmanager.Manager) {
 		// TODO: Check whether we actually need this
 		isPremium := make(chan bool)
 		go utils.IsPremiumGuild(utils.CommandContext{
-			Session: s,
+			Shard:   s,
 			GuildId: ticket.Guild,
 			Guild:   guild,
 		}, isPremium)
@@ -75,17 +75,17 @@ func ListenTicketClose(shardManager *dshardmanager.Manager) {
 		reason := strings.Split(payload.Reason, " ")
 
 		ctx := utils.CommandContext{
-			Session:     s,
-			User:        *member.User,
-			UserID:      payload.User,
-			Guild:       guild,
-			GuildId:     ticket.Guild,
-			Channel:     strconv.Itoa(int(*ticket.Channel)),
-			ChannelId:   *ticket.Channel,
-			MessageId:   0,
-			Root:        "close",
-			Args:        reason,
-			IsPremium:   <-isPremium,
+			Shard:     s,
+			User:      *member.User,
+			UserID:    payload.User,
+			Guild:     guild,
+			GuildId:   ticket.Guild,
+			Channel:   strconv.Itoa(int(*ticket.Channel)),
+			ChannelId: *ticket.Channel,
+			MessageId: 0,
+			Root:      "close",
+			Args:      reason,
+			IsPremium: <-isPremium,
 			ShouldReact: false,
 			Member:      member,
 		}

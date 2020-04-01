@@ -5,11 +5,11 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/payloads/events"
 )
 
-func OnCloseReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
+func OnCloseReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 	// Check the right emoji has been used
 	if e.Emoji.Name != "🔒" {
 		return
@@ -17,40 +17,19 @@ func OnCloseReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 
 	// Create error context for later
 	errorContext := sentry.ErrorContext{
-		Guild:   e.GuildID,
-		User:    e.UserID,
-		Channel: e.ChannelID,
-		Shard:   s.ShardID,
-	}
-
-	// Parse message ID
-	msgId, err := strconv.ParseInt(e.MessageID, 10, 64)
-	if err != nil {
-		sentry.ErrorWithContext(err, errorContext)
-		return
-	}
-
-	// Parse user ID
-	userId, err := strconv.ParseInt(e.UserID, 10, 64)
-	if err != nil {
-		sentry.ErrorWithContext(err, errorContext)
-		return
+		Guild:   e.GuildId,
+		User:    e.UserId,
+		Channel: e.ChannelId,
+		Shard:   s.ShardId,
 	}
 
 	// In DMs
-	if e.GuildID == "" {
-		return
-	}
-
-	// Parse guild ID
-	guildId, err := strconv.ParseInt(e.GuildID, 10, 64)
-	if err != nil {
-		sentry.ErrorWithContext(err, errorContext)
+	if e.GuildId == 0 {
 		return
 	}
 
 	// Get user object
-	user, err := s.User(e.UserID)
+	user, err := s.GetUser(e.UserId)
 	if err != nil {
 		sentry.ErrorWithContext(err, errorContext)
 		return
@@ -61,16 +40,9 @@ func OnCloseReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		return
 	}
 
-	// Parse the channel ID
-	channelId, err := strconv.ParseInt(e.ChannelID, 10, 64)
-	if err != nil {
-		sentry.LogWithContext(err, errorContext)
-		return
-	}
-
 	// Get the ticket properties
 	ticketChan := make(chan database.Ticket)
-	go database.GetTicketByChannel(channelId, ticketChan)
+	go database.GetTicketByChannel(e.ChannelId, ticketChan)
 	ticket := <-ticketChan
 
 	// Check that this channel is a ticket channel
@@ -84,50 +56,40 @@ func OnCloseReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 	}
 
 	// Check that the message being reacted to is the welcome message
-	if msgId != *ticket.WelcomeMessageId {
+	if e.MessageId != *ticket.WelcomeMessageId {
 		return
 	}
 
 	// No need to remove the reaction since we'ere deleting the channel anyway
 
 	// Get guild obj
-	guild, err := s.State.Guild(e.GuildID)
+	guild, err := s.GetGuild(e.GuildId)
 	if err != nil {
-		guild, err = s.Guild(e.GuildID)
-		if err != nil {
-			sentry.ErrorWithContext(err, errorContext)
-			return
-		}
+		sentry.ErrorWithContext(err, errorContext)
+		return
 	}
 
 	// Get whether the guild is premium
 	// TODO: Check whether we actually need this
 	isPremium := make(chan bool)
 	go utils.IsPremiumGuild(utils.CommandContext{
-		Session: s,
-		GuildId: guildId,
-		Guild:   guild,
+		Shard: s,
+		Guild: guild,
 	}, isPremium)
 
 	// Get the member object
-	member, err := s.State.Member(e.GuildID, e.UserID)
+	member, err := s.GetGuildMember(e.GuildId, e.UserId)
 	if err != nil {
-		member, err = s.GuildMember(e.GuildID, e.UserID)
-		if err != nil {
-			sentry.LogWithContext(err, errorContext)
-			return
-		}
+		sentry.LogWithContext(err, errorContext)
+		return
 	}
 
 	ctx := utils.CommandContext{
-		Session:     s,
-		User:        *user,
-		UserID:      userId,
+		Shard:       s,
+		User:        user,
 		Guild:       guild,
-		GuildId:     guildId,
-		Channel:     e.ChannelID,
-		ChannelId:   channelId,
-		MessageId:   msgId,
+		ChannelId:   e.ChannelId,
+		MessageId:   e.MessageId,
 		Root:        "close",
 		Args:        make([]string, 0),
 		IsPremium:   <-isPremium,

@@ -29,7 +29,7 @@ func (CancelCommand) Execute(ctx utils.CommandContext) {
 		Guild: ctx.Guild.ID,
 		User: ctx.User.ID,
 		Channel: ctx.Channel,
-		Session: ctx.Session,
+		Session: ctx.Shard,
 	}
 
 	// Check if the user is in the setup process

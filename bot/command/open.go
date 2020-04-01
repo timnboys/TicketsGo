@@ -58,8 +58,8 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	// Make sure the category exists
 	if category != 0 {
 		categoryStr := strconv.Itoa(int(category))
-		if _, err := ctx.Session.State.Channel(categoryStr); err != nil {
-			if _, err = ctx.Session.Channel(categoryStr); err != nil {
+		if _, err := ctx.Shard.State.Channel(categoryStr); err != nil {
+			if _, err = ctx.Shard.Channel(categoryStr); err != nil {
 				category = 0
 			}
 		}
@@ -93,7 +93,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	useCategory := category != 0
 	if useCategory {
 		// Check if the category still exists
-		ch, err := ctx.Session.Channel(categoryStr); if err != nil {
+		ch, err := ctx.Shard.Channel(categoryStr); if err != nil {
 			useCategory = false
 			go database.DeleteCategory(ctx.GuildId)
 			return
@@ -161,7 +161,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	// Make sure there's not > 50 channels in a category
 	if useCategory {
-		channels, err := ctx.Session.GuildChannels(ctx.Guild.ID); if err != nil {
+		channels, err := ctx.Shard.GuildChannels(ctx.Guild.ID); if err != nil {
 			channels = make([]*discordgo.Channel, 0)
 		}
 
@@ -225,7 +225,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		data.ParentID = strconv.Itoa(int(category))
 	}
 
-	c, err := ctx.Session.GuildChannelCreateComplex(ctx.Guild.ID, data)
+	c, err := ctx.Shard.GuildChannelCreateComplex(ctx.Guild.ID, data)
 	if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
@@ -246,11 +246,11 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	pingEveryone := <- pingEveryoneChan
 
 	if pingEveryone {
-		msg, err := ctx.Session.ChannelMessageSend(c.ID, "@everyone")
+		msg, err := ctx.Shard.ChannelMessageSend(c.ID, "@everyone")
 		if err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		} else {
-			if err = ctx.Session.ChannelMessageDelete(c.ID, msg.ID); err != nil {
+			if err = ctx.Shard.ChannelMessageDelete(c.ID, msg.ID); err != nil {
 				sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			}
 		}
@@ -290,9 +290,9 @@ func (OpenCommand) HelperOnly() bool {
 
 func createWebhook(ctx utils.CommandContext, channelId, uuid string) {
 	hasPermission := make(chan bool)
-	go utils.ChannelMemberHasPermission(ctx.Session, ctx.Guild.ID, channelId, ctx.Session.State.User.ID, utils.ManageWebhooks, hasPermission) // Do we actually need this?
+	go utils.ChannelMemberHasPermission(ctx.Shard, ctx.Guild.ID, channelId, ctx.Shard.State.User.ID, utils.ManageWebhooks, hasPermission) // Do we actually need this?
 	if <-hasPermission {
-		webhook, err := ctx.Session.WebhookCreate(channelId, ctx.Session.State.User.Username, ctx.Session.State.User.Avatar); if err != nil {
+		webhook, err := ctx.Shard.WebhookCreate(channelId, ctx.Shard.State.User.Username, ctx.Shard.State.User.Avatar); if err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			return
 		}
@@ -359,9 +359,9 @@ func sendWelcomeMessage(ctx utils.CommandContext, channel *discordgo.Channel, su
 	}
 
 	// Send welcome message
-	if msg := utils.SendEmbedWithResponse(ctx.Session, channel.ID, utils.Green, subject, welcomeMessage, 0, ctx.IsPremium); msg != nil {
+	if msg := utils.SendEmbedWithResponse(ctx.Shard, channel.ID, utils.Green, subject, welcomeMessage, 0, ctx.IsPremium); msg != nil {
 		// Add close reaction to the welcome message
-		err := ctx.Session.MessageReactionAdd(channel.ID, msg.ID, "🔒")
+		err := ctx.Shard.MessageReactionAdd(channel.ID, msg.ID, "🔒")
 		if err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		} else {
@@ -411,7 +411,7 @@ func createOverwrites(ctx utils.CommandContext) []*discordgo.PermissionOverwrite
 		allow := []utils.Permission{utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks}
 
 		// Give ourselves permissions to create webbooks
-		if member == ctx.Session.State.User.ID {
+		if member == ctx.Shard.State.User.ID {
 			allow = append(allow, utils.ManageWebhooks)
 		}
 

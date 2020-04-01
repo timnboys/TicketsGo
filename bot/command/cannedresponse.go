@@ -67,7 +67,7 @@ func (CannedResponseCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	ctx.ReactWithCheck()
-	if _, err = ctx.Session.ChannelMessageSend(ctx.Channel, content); err != nil {
+	if _, err = ctx.Shard.ChannelMessageSend(ctx.Channel, content); err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 	}
 }

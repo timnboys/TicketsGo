@@ -8,9 +8,9 @@ import (
 )
 
 type ErrorContext struct {
-	Guild       string
-	User        string
-	Channel     string
+	Guild       uint64
+	User        uint64
+	Channel     uint64
 	Shard       int
 	Command     string
 	Premium     bool

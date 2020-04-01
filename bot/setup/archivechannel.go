@@ -5,8 +5,8 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/objects/channel/message"
 	"strings"
 )
 
@@ -26,49 +26,36 @@ func (ArchiveChannelStage) Default() string {
 	return ""
 }
 
-func (ArchiveChannelStage) Process(session *discordgo.Session, msg discordgo.Message) {
-	guildId, err := strconv.ParseInt(msg.GuildID, 10, 64); if err != nil {
+func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
+	guild, err := shard.GetGuild(msg.GuildId); if err != nil {
 		sentry.ErrorWithContext(err, sentry.ErrorContext{
-			Guild:   msg.GuildID,
-			User:    msg.Author.ID,
-			Channel: msg.ChannelID,
-			Shard:   session.ShardID,
+			Guild:   msg.GuildId,
+			User:    msg.Author.Id,
+			Channel: msg.ChannelId,
+			Shard:   shard.ShardId,
 		})
 		return
 	}
 
-	guild, err := session.State.Guild(msg.GuildID); if err != nil {
-		// Not cached
-		guild, err = session.Guild(msg.GuildID); if err != nil {
-			sentry.ErrorWithContext(err, sentry.ErrorContext{
-				Guild:   msg.GuildID,
-				User:    msg.Author.ID,
-				Channel: msg.ChannelID,
-				Shard:   session.ShardID,
-			})
-			return
-		}
-	}
-
-	var id string
+	var archiveChannelId uint64
 
 	// Prefer channel mention
-	mentions := utils.ChannelMentionRegex.FindStringSubmatch(msg.Content)
+	mentions := msg.ChannelMentions()
 	if len(mentions) > 0 {
-		id = mentions[1]
+		archiveChannelId = mentions[1]
 
 		// Verify that the channel exists
 		exists := false
 		for _, guildChannel := range guild.Channels {
-			if guildChannel.ID == id {
+			if guildChannel.Id == archiveChannelId {
 				exists = true
 				break
 			}
 		}
 
 		if !exists {
-			utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
-			utils.ReactWithCross(session, msg)
+			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
+			utils.ReactWithCross(shard, msg)
 			return
 		}
 	} else {
@@ -77,8 +64,8 @@ func (ArchiveChannelStage) Process(session *discordgo.Session, msg discordgo.Mes
 		name := split[0]
 
 		// Get channels from discord
-		channels, err := session.GuildChannels(msg.GuildID); if err != nil {
-			utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", fmt.Sprintf("An error occurred: `%s`", err.Error()), 15, true)
+		channels, err := shard.GetGuildChannels(msg.GuildId); if err != nil {
+			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("An error occurred: `%s`", err.Error()), 15, true)
 			return
 		}
 
@@ -90,23 +77,18 @@ func (ArchiveChannelStage) Process(session *discordgo.Session, msg discordgo.Mes
 
 			if channel.Name == name {
 				found = true
-				id = channel.ID
+				archiveChannelId = channel.Id
 				break
 			}
 		}
 
 		if !found {
-			utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
-			utils.ReactWithCross(session, msg)
+			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
+			utils.ReactWithCross(shard, msg)
 			return
 		}
 	}
 
-	archiveChannel, err := strconv.ParseInt(id, 10, 64); if err != nil { // Shouldn't ever happen
-		sentry.Error(err)
-		return
-	}
-
-	go database.SetArchiveChannel(guildId, archiveChannel)
-	utils.ReactWithCheck(session, &msg)
+	go database.SetArchiveChannel(msg.GuildId, archiveChannelId)
+	utils.ReactWithCheck(shard, &msg)
 }

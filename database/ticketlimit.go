@@ -1,7 +1,7 @@
 package database
 
 type TicketLimit struct {
-	Guild int64 `gorm:"column:GUILDID;unique;primary_key"`
+	Guild uint64 `gorm:"column:GUILDID;unique;primary_key"`
 	Limit int   `gorm:"column:TICKETLIMIT"`
 }
 
@@ -9,7 +9,7 @@ func (TicketLimit) TableName() string {
 	return "ticketlimit"
 }
 
-func GetTicketLimit(guild int64, ch chan int) {
+func GetTicketLimit(guild uint64, ch chan int) {
 	var node TicketLimit
 	Db.Where(TicketLimit{Guild: guild}).First(&node)
 
@@ -20,7 +20,7 @@ func GetTicketLimit(guild int64, ch chan int) {
 	}
 }
 
-func SetTicketLimit(guild int64, limit int) {
+func SetTicketLimit(guild uint64, limit int) {
 	var node TicketLimit
 	Db.Where(TicketLimit{Guild: guild}).Assign(TicketLimit{Limit: limit}).FirstOrCreate(&node)
 }

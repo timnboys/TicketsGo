@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/objects/channel/message"
 	"strconv"
 	"strings"
 )
@@ -26,26 +26,16 @@ func (TicketLimitStage) Default() string {
 	return "5"
 }
 
-func (TicketLimitStage) Process(session *discordgo.Session, msg discordgo.Message) {
-	guild, err := strconv.ParseInt(msg.GuildID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, sentry.ErrorContext{
-			Guild:   msg.GuildID,
-			User:    msg.Author.ID,
-			Channel: msg.ChannelID,
-			Shard:   session.ShardID,
-		})
-		return
-	}
-
+func (TicketLimitStage) Process(shard *gateway.Shard, msg message.Message) {
 	amountRaw := strings.Split(msg.Content, " ")[0]
 	amount, err := strconv.Atoi(amountRaw)
 	if err != nil {
 		amount = 5
-		utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", fmt.Sprintf("Error: `%s`\nDefault to `%d`", err.Error(), amount), 1, true)
-		utils.ReactWithCross(session, msg)
+		utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("Error: `%s`\nDefault to `%d`", err.Error(), amount), 1, true)
+		utils.ReactWithCross(shard, msg)
 	} else {
-		utils.ReactWithCheck(session, &msg)
+		utils.ReactWithCheck(shard, &msg)
 	}
 
-	go database.SetTicketLimit(guild, amount)
+	go database.SetTicketLimit(msg.GuildId, amount)
 }

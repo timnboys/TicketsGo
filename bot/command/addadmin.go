@@ -86,7 +86,7 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 		}
 		
 		var overwrites []*discordgo.PermissionOverwrite
-		ch, err := ctx.Session.Channel(strconv.Itoa(int(*channelId))); if err != nil {
+		ch, err := ctx.Shard.Channel(strconv.Itoa(int(*channelId))); if err != nil {
 			continue
 		}
 
@@ -119,7 +119,7 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 			Position: ch.Position,
 		}
 
-		if _, err = ctx.Session.ChannelEditComplex(strconv.Itoa(int(*channelId)), &data); err != nil {
+		if _, err = ctx.Shard.ChannelEditComplex(strconv.Itoa(int(*channelId)), &data); err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		}
 	}

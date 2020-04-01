@@ -42,7 +42,7 @@ func (BlacklistCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	permissionLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Session, ctx.Member, permissionLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, permissionLevelChan)
 	permissionLevel := <- permissionLevelChan
 
 	if permissionLevel > 0 {

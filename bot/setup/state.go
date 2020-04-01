@@ -1,6 +1,9 @@
 package setup
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/objects/channel/message"
+)
 
 type State int
 
@@ -29,12 +32,12 @@ func (s *State) GetStage() *Stage {
 	return nil
 }
 
-func (s *State) Process(session *discordgo.Session, msg discordgo.Message) {
+func (s *State) Process(shard *gateway.Shard, msg message.Message) {
 	stage := s.GetStage(); if stage == nil {
 		return
 	}
 
-	(*stage).Process(session, msg)
+	(*stage).Process(shard, msg)
 }
 
 func GetMaxStage() int {

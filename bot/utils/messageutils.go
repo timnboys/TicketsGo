@@ -2,8 +2,10 @@ package utils
 
 import (
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"regexp"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/objects/channel/embed"
+	"github.com/rxdn/gdl/objects/channel/message"
+	"github.com/rxdn/gdl/rest"
 	"time"
 )
 
@@ -18,41 +20,43 @@ const (
 )
 
 var (
-	AvatarUrl string
-	Id string
-	ChannelMentionRegex = regexp.MustCompile(`<#(\d+)>`)
+	AvatarUrl           string
+	Id                  string
 )
 
 type SentMessage struct {
-	Session *discordgo.Session
-	Message *discordgo.Message
+	Shard   *gateway.Shard
+	Message *message.Message
 }
 
-func SendEmbed(session *discordgo.Session, channel string, colour Colour, title, content string, deleteAfter int, isPremium bool) {
+func SendEmbed(session *gateway.Shard, channel uint64, colour Colour, title, content string, deleteAfter int, isPremium bool) {
 	_ = SendEmbedWithResponse(session, channel, colour, title, content, deleteAfter, isPremium)
 }
 
-func SendEmbedWithResponse(session *discordgo.Session, channel string, colour Colour, title, content string, deleteAfter int, isPremium bool) *discordgo.Message {
-	embed := NewEmbed().
+func SendEmbedWithResponse(shard *gateway.Shard, channel uint64, colour Colour, title, content string, deleteAfter int, isPremium bool) *message.Message {
+	msgEmbed := embed.NewEmbed().
 		SetColor(int(colour)).
 		AddField(title, content, false)
 
 	if !isPremium {
-		embed.SetFooter("Powered by ticketsbot.net", AvatarUrl)
+		msgEmbed.SetFooter("Powered by ticketsbot.net", AvatarUrl)
 	}
 
 	// Explicitly ignore error because it's usually a 403 (missing permissions)
-	msg, err := session.ChannelMessageSendEmbed(channel, embed.MessageEmbed);
+	msg, err := shard.CreateMessageComplex(channel, rest.CreateMessageData{
+		Embed: msgEmbed,
+	})
+
 	if err != nil {
 		sentry.LogWithContext(err, sentry.ErrorContext{
 			Channel: channel,
-			Shard:   session.ShardID,
+			Shard:   shard.ShardId,
 			Premium: isPremium,
 		})
 	}
 
 	if deleteAfter > 0 {
-		DeleteAfter(SentMessage{session, msg}, deleteAfter)
+		DeleteAfter(SentMessage{shard, msg}, deleteAfter)
 	}
 
 	return msg
@@ -63,31 +67,31 @@ func DeleteAfter(msg SentMessage, secs int) {
 		time.Sleep(time.Duration(secs) * time.Second)
 
 		// Fix a panic
-		if msg.Message != nil && msg.Session != nil{
+		if msg.Message != nil && msg.Shard != nil {
 			// Explicitly ignore error, pretty much always a 404
-			_ = msg.Session.ChannelMessageDelete(msg.Message.ChannelID, msg.Message.ID)
+			_ = msg.Shard.DeleteMessage(msg.Message.ChannelId, msg.Message.Id)
 		}
 	}()
 }
 
-func ReactWithCheck(session *discordgo.Session, msg *discordgo.Message) {
-	if err := session.MessageReactionAdd(msg.ChannelID, msg.ID, "✅"); err != nil {
+func ReactWithCheck(shard *gateway.Shard, msg *message.Message) {
+	if err := shard.CreateReaction(msg.ChannelId, msg.Id, "✅"); err != nil {
 		sentry.LogWithContext(err, sentry.ErrorContext{
-			Guild:   msg.GuildID,
-			User:    msg.Author.ID,
-			Channel: msg.ChannelID,
-			Shard:   session.ShardID,
+			Guild:   msg.GuildId,
+			User:    msg.Author.Id,
+			Channel: msg.ChannelId,
+			Shard:   shard.ShardId,
 		})
 	}
 }
 
-func ReactWithCross(session *discordgo.Session, msg discordgo.Message) {
-	if err := session.MessageReactionAdd(msg.ChannelID, msg.ID, "❌"); err != nil {
+func ReactWithCross(shard *gateway.Shard, msg message.Message) {
+	if err := shard.CreateReaction(msg.ChannelId, msg.Id, "❌"); err != nil {
 		sentry.LogWithContext(err, sentry.ErrorContext{
-			Guild:   msg.GuildID,
-			User:    msg.Author.ID,
-			Channel: msg.ChannelID,
-			Shard:   session.ShardID,
+			Guild:   msg.GuildId,
+			User:    msg.Author.Id,
+			Channel: msg.ChannelId,
+			Shard:   shard.ShardId,
 		})
 	}
 }

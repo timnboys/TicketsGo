@@ -3,9 +3,8 @@ package setup
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/objects/channel/message"
 )
 
 type WelcomeMessageStage struct {
@@ -23,17 +22,7 @@ func (WelcomeMessageStage) Default() string {
 	return "No message specified"
 }
 
-func (WelcomeMessageStage) Process(session *discordgo.Session, msg discordgo.Message) {
-	guild, err := strconv.ParseInt(msg.GuildID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, sentry.ErrorContext{
-			Guild:   msg.GuildID,
-			User:    msg.Author.ID,
-			Channel: msg.ChannelID,
-			Shard:   session.ShardID,
-		})
-		return
-	}
-
-	go database.SetWelcomeMessage(guild, msg.Content)
-	utils.ReactWithCheck(session, &msg)
+func (WelcomeMessageStage) Process(shard *gateway.Shard, msg message.Message) {
+	go database.SetWelcomeMessage(msg.GuildId, msg.Content)
+	utils.ReactWithCheck(shard, &msg)
 }

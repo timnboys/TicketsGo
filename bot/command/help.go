@@ -34,7 +34,7 @@ func (HelpCommand) Execute(ctx utils.CommandContext) {
 	}
 	msg = strings.Trim(msg, "\n")
 
-	ch, err := ctx.Session.UserChannelCreate(ctx.User.ID); if err != nil {
+	ch, err := ctx.Shard.UserChannelCreate(ctx.User.ID); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
@@ -50,7 +50,7 @@ func (HelpCommand) Execute(ctx utils.CommandContext) {
 		}
 
 		// Explicitly ignore error to fix 403 (Cannot send messages to this user)
-		_, _ = ctx.Session.ChannelMessageSendEmbed(ch.ID, embed.MessageEmbed); if err != nil {
+		_, _ = ctx.Shard.ChannelMessageSendEmbed(ch.ID, embed.MessageEmbed); if err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			return
 		}

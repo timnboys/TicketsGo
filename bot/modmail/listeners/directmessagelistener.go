@@ -40,7 +40,7 @@ func OnDirectMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 		}
 
 		ctx := utils.CommandContext{
-			Session:     s,
+			Shard:       s,
 			User:        *e.Author,
 			UserID:      userId,
 			Message:     *e.Message,
@@ -150,8 +150,8 @@ func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	}
 
 	if !success {
-		if _, err := ctx.Session.ChannelMessageSend(channel, ctx.Message.ContentWithMentionsReplaced()); err != nil {
-			utils.SendEmbed(ctx.Session, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), 30, ctx.IsPremium)
+		if _, err := ctx.Shard.ChannelMessageSend(channel, ctx.Message.ContentWithMentionsReplaced()); err != nil {
+			utils.SendEmbed(ctx.Shard, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), 30, ctx.IsPremium)
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
 	}
@@ -170,8 +170,8 @@ func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 			content += fmt.Sprintf("\n▶️ %s", attachment.ProxyURL)
 		}
 
-		if _, err := ctx.Session.ChannelMessageSend(channel, content); err != nil {
-			utils.SendEmbed(ctx.Session, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), 30, ctx.IsPremium)
+		if _, err := ctx.Shard.ChannelMessageSend(channel, content); err != nil {
+			utils.SendEmbed(ctx.Shard, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), 30, ctx.IsPremium)
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
 	}

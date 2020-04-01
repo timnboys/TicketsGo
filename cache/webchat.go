@@ -6,7 +6,7 @@ import (
 )
 
 type TicketMessage struct {
-	GuildId  string `json:"guild"`
+	GuildId  uint64 `json:"guild,string"` // TODO: Refactor this on we bUI side
 	TicketId int    `json:"ticket"`
 	Username string `json:"username"`
 	Content  string `json:"content"`

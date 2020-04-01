@@ -26,12 +26,12 @@ func (AdminShardRestartCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (AdminShardRestartCommand) Execute(ctx utils.CommandContext) {
-	if err := ctx.Session.Close(); err != nil {
+	if err := ctx.Shard.Close(); err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
-	if err := ctx.Session.Open(); err != nil {
+	if err := ctx.Shard.Open(); err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}

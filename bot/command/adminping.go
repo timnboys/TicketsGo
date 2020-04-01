@@ -25,9 +25,9 @@ func (AdminPingCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (AdminPingCommand) Execute(ctx utils.CommandContext) {
-	latency := ctx.Session.HeartbeatLatency()
+	latency := ctx.Shard.HeartbeatLatency()
 	ms := latency.Nanoseconds() / 1000 / 1000
-	shardId := ctx.Session.ShardID
+	shardId := ctx.Shard.ShardID
 
 	ctx.SendEmbed(utils.Green, "Admin", fmt.Sprintf("Shard %d latency: `%dms`", shardId, ms))
 }

@@ -43,7 +43,7 @@ func SendModMailIntro(ctx utils.CommandContext, dmChannelId string) {
 		SetDescription(message)
 
 	// Send message
-	msg, err := ctx.Session.ChannelMessageSendEmbed(dmChannelId, embed.MessageEmbed); if err != nil {
+	msg, err := ctx.Shard.ChannelMessageSendEmbed(dmChannelId, embed.MessageEmbed); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
@@ -56,7 +56,7 @@ func SendModMailIntro(ctx utils.CommandContext, dmChannelId string) {
 
 	if len(guilds) > 0 {
 		for i := 1; i <= max; i++ {
-			if err := ctx.Session.MessageReactionAdd(dmChannelId, msg.ID, Emojis[i]); err != nil {
+			if err := ctx.Shard.MessageReactionAdd(dmChannelId, msg.ID, Emojis[i]); err != nil {
 				sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			}
 		}

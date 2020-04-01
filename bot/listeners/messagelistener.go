@@ -6,54 +6,39 @@ import (
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/payloads/events"
 )
 
-func OnMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
-	guildId, err := strconv.ParseInt(e.GuildID, 10, 64)
-	if err != nil {
-		return
-	}
-
-	channelId, err := strconv.ParseInt(e.ChannelID, 10, 64)
-	if err != nil {
-		return
-	}
-
+func OnMessage(s *gateway.Shard, e *events.MessageCreate) {
 	go statsd.IncrementKey(statsd.MESSAGES)
 
 	// Get guild obj
-	guild, err := s.State.Guild(e.GuildID)
-	if err != nil {
-		guild, err = s.Guild(e.GuildID)
-		if err != nil {
-			sentry.ErrorWithContext(err, sentry.ErrorContext{
-				Guild:   e.GuildID,
-				User:    e.Author.ID,
-				Channel: e.ChannelID,
-				Shard:   s.ShardID,
-			})
-			return
-		}
+	guild, err := s.GetGuild(e.GuildId); if err != nil {
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   e.GuildId,
+			User:    e.Author.Id,
+			Channel: e.ChannelId,
+			Shard:   s.ShardId,
+		})
+		return
 	}
 
 	premiumChan := make(chan bool)
 	go utils.IsPremiumGuild(utils.CommandContext{
-		Session: s,
+		Shard:   s,
 		Guild:   guild,
-		GuildId: guildId,
 	}, premiumChan)
 
 	if <-premiumChan {
 		isTicket := make(chan bool)
-		go database.IsTicketChannel(channelId, isTicket)
+		go database.IsTicketChannel(e.ChannelId, isTicket)
 		if <-isTicket {
 			ticket := make(chan int)
-			go database.GetTicketId(channelId, ticket)
+			go database.GetTicketId(e.ChannelId, ticket)
 
 			go cache.Client.PublishMessage(cache.TicketMessage{
-				GuildId:  e.GuildID,
+				GuildId:  e.GuildId,
 				TicketId: <-ticket,
 				Username: e.Author.Username,
 				Content:  e.Content,

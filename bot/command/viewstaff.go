@@ -53,8 +53,8 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	go database.GetAdminRoles(ctx.Guild.ID, adminRoles)
 	for _, adminRoleId := range <-adminRoles {
 		// Resolve role ID to name
-		role, err := ctx.Session.State.Role(ctx.Guild.ID, strconv.Itoa(int(adminRoleId))); if err != nil {
-			role, err = ctx.Session.State.Role(ctx.Guild.ID, strconv.Itoa(int(adminRoleId))); if err != nil {
+		role, err := ctx.Shard.State.Role(ctx.Guild.ID, strconv.Itoa(int(adminRoleId))); if err != nil {
+			role, err = ctx.Shard.State.Role(ctx.Guild.ID, strconv.Itoa(int(adminRoleId))); if err != nil {
 				// Role has likely been deleted
 				continue
 			}
@@ -89,8 +89,8 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	go database.GetSupportRoles(ctx.Guild.ID, supportRoles)
 	for _, supportRoleId := range <-supportRoles {
 		// Resolve role ID to name
-		role, err := ctx.Session.State.Role(ctx.Guild.ID, strconv.Itoa(int(supportRoleId))); if err != nil {
-			role, err = ctx.Session.State.Role(ctx.Guild.ID, strconv.Itoa(int(supportRoleId))); if err != nil {
+		role, err := ctx.Shard.State.Role(ctx.Guild.ID, strconv.Itoa(int(supportRoleId))); if err != nil {
+			role, err = ctx.Shard.State.Role(ctx.Guild.ID, strconv.Itoa(int(supportRoleId))); if err != nil {
 				// Role has likely been deleted
 				continue
 			}
@@ -105,11 +105,11 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	embed.AddField("Support Roles", fieldContent, true)
 	fieldContent = ""
 
-	msg, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed)
+	msg, err := ctx.Shard.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed)
 	if err != nil {
 		sentry.LogWithContext(err, ctx.ToErrorContext())
 	} else {
-		utils.DeleteAfter(utils.SentMessage{Session: ctx.Session, Message: msg}, 60)
+		utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: msg}, 60)
 	}
 }
 

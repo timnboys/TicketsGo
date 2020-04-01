@@ -7,7 +7,7 @@ Get started by running `t!setup`"""
 [bot]
 token=""
 prefix="t!"
-admins=["217617036749176833"]
+admins=[217617036749176833]
 premium-lookup-proxy-url="http://localhost:3000"
 premium-lookup-proxy-key=""
 game="DM for help | t!help"

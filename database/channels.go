@@ -7,8 +7,8 @@ import (
 )
 
 type Channel struct {
-	ChannelId int64  `gorm:"column:CHANNELID;primary_key;unique"`
-	GuildId   int64  `gorm:"column:GUILDID"`
+	ChannelId uint64  `gorm:"column:CHANNELID;primary_key;unique"`
+	GuildId   uint64  `gorm:"column:GUILDID"`
 	Name      string `gorm:"column:NAME;type:VARCHAR(32)"`
 	Type      int    `gorm:"column:CHANNELTYPE;type:TINYINT(1)"`
 }
@@ -17,7 +17,7 @@ func (Channel) TableName() string {
 	return "Channel"
 }
 
-func StoreChannel(channelId, guildId int64, name string, channelType int) {
+func StoreChannel(channelId, guildId uint64, name string, channelType int) {
 	channel := Channel{
 		ChannelId: channelId,
 		GuildId:   guildId,
@@ -28,15 +28,15 @@ func StoreChannel(channelId, guildId int64, name string, channelType int) {
 	Db.Where(&Channel{ChannelId:channelId}).Assign(&channel).FirstOrCreate(&Channel{})
 }
 
-func DeleteChannel(channelId int64) {
+func DeleteChannel(channelId uint64) {
 	Db.Where(Channel{ChannelId: channelId}).Delete(Channel{})
 }
 
-func DeleteAllChannelsByGuild(guildId int64) {
+func DeleteAllChannelsByGuild(guildId uint64) {
 	Db.Where(Channel{GuildId: guildId}).Delete(Channel{})
 }
 
-func GetCachedChannelsByGuild(guildId int64, res chan []Channel) {
+func GetCachedChannelsByGuild(guildId uint64, res chan []Channel) {
 	var nodes []Channel
 	Db.Where(Channel{GuildId: guildId}).Find(&nodes)
 	res <- nodes

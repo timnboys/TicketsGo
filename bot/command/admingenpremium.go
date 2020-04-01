@@ -55,7 +55,7 @@ func (AdminGeneratePremium) Execute(ctx utils.CommandContext) {
 		keys = append(keys, (<-key).String())
 	}
 
-	ch, err := ctx.Session.UserChannelCreate(ctx.User.ID); if err != nil {
+	ch, err := ctx.Shard.UserChannelCreate(ctx.User.ID); if err != nil {
 		ctx.SendEmbed(utils.Red, "Admin", err.Error())
 		ctx.ReactWithCross()
 		return
@@ -68,7 +68,7 @@ func (AdminGeneratePremium) Execute(ctx utils.CommandContext) {
 	content = strings.TrimSuffix(content, "\n")
 	content += "```"
 
-	_, err = ctx.Session.ChannelMessageSend(ch.ID, content); if err != nil {
+	_, err = ctx.Shard.ChannelMessageSend(ch.ID, content); if err != nil {
 		ctx.SendEmbed(utils.Red, "Admin", err.Error())
 		ctx.ReactWithCross()
 		return

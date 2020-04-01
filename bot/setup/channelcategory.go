@@ -5,8 +5,10 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/objects/channel"
+	"github.com/rxdn/gdl/objects/channel/message"
+	"github.com/rxdn/gdl/rest"
 	"strings"
 )
 
@@ -25,60 +27,49 @@ func (ChannelCategoryStage) Default() string {
 	return ""
 }
 
-func (ChannelCategoryStage) Process(session *discordgo.Session, msg discordgo.Message) {
+func (ChannelCategoryStage) Process(shard *gateway.Shard, msg message.Message) {
 	errorContext := sentry.ErrorContext{
-		Guild:   msg.GuildID,
-		User:    msg.Author.ID,
-		Channel: msg.ChannelID,
-		Shard:   session.ShardID,
-	}
-
-	guildId, err := strconv.ParseInt(msg.GuildID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, errorContext)
-		return
+		Guild:   msg.GuildId,
+		User:    msg.Author.Id,
+		Channel: msg.ChannelId,
+		Shard:   shard.ShardId,
 	}
 
 	name := msg.Content
 
-	guild, err := session.State.Guild(msg.GuildID); if err != nil {
-		// Not cached
-		guild, err = session.Guild(msg.GuildID); if err != nil {
-			sentry.ErrorWithContext(err, errorContext)
-			return
-		}
+	guild, err := shard.GetGuild(msg.GuildId); if err != nil {
+		sentry.ErrorWithContext(err, errorContext)
+		return
 	}
 
-	var categoryName string
+	var categoryId uint64
 	for _, channel := range guild.Channels {
 		if strings.ToLower(channel.Name) == strings.ToLower(name) {
-			categoryName = channel.ID
+			categoryId = channel.Id
 			break
 		}
 	}
 
-	categoryId, err := strconv.ParseInt(categoryName, 10, 64)
-
-	if categoryName == "" || err != nil {
+	if categoryId == 0 {
 		// Attempt to create categoryName
-		data := discordgo.GuildChannelCreateData{
-			Name: categoryName,
-			Type: discordgo.ChannelTypeGuildCategory,
+		data := rest.CreateChannelData{
+			Name: name,
+			Type: channel.ChannelTypeGuildCategory,
 		}
 
-		category, err := session.GuildChannelCreateComplex(guild.ID, data); if err != nil {
+		category, err := shard.CreateGuildChannel(guild.Id, data); if err != nil {
 			// Likely no permission, default to having no category
-			utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", "Invalid category\nDefaulting to using no category", 15, true)
+			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid category\nDefaulting to using no category", 15, true)
 			return
 		}
 
-		categoryId, err = strconv.ParseInt(category.ID, 10, 64); if err != nil {
-			sentry.ErrorWithContext(err, errorContext)
-			return
+		if category != nil {
+			categoryId = (*category).Id
 		}
 
-		utils.SendEmbed(session, msg.ChannelID, utils.Red, "Error", fmt.Sprintf("I have created the channel category %s for you, you may need to adjust permissions yourself", category.Name), 15, true)
+		utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("I have created the channel category %s for you, you may need to adjust permissions yourself", category.Name), 15, true)
 	}
 
-	go database.SetCategory(guildId, categoryId)
-	utils.ReactWithCheck(session, &msg)
+	go database.SetCategory(msg.GuildId, categoryId)
+	utils.ReactWithCheck(shard, &msg)
 }

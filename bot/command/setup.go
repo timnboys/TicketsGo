@@ -31,7 +31,7 @@ func (SetupCommand) Execute(ctx utils.CommandContext) {
 		Guild:   ctx.Guild.ID,
 		User:    ctx.User.ID,
 		Channel: ctx.Channel,
-		Session: ctx.Session,
+		Session: ctx.Shard,
 	}
 
 	if u.InSetup() {
@@ -45,7 +45,7 @@ func (SetupCommand) Execute(ctx utils.CommandContext) {
 		stage := state.GetStage()
 		if stage != nil {
 			// Psuedo-premium
-			utils.SendEmbed(ctx.Session, ctx.Channel, utils.Green, "Setup", (*stage).Prompt(), 120, true)
+			utils.SendEmbed(ctx.Shard, ctx.Channel, utils.Green, "Setup", (*stage).Prompt(), 120, true)
 		}
 	}
 }

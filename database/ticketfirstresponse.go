@@ -4,24 +4,24 @@ import "time"
 
 type TicketFirstResponse struct {
 	Ticket string `gorm:"column:UUID;type:varchar(36);unique;primary_key"`
-	Guild int64 `gorm:"column:GUILDID"`
-	Responder int64 `gorm:"column:USERID"`
-	Time int64 `gorm:"column:RESPONSETIME"`
+	Guild uint64 `gorm:"column:GUILDID"`
+	Responder uint64 `gorm:"column:USERID"`
+	Time uint64 `gorm:"column:RESPONSETIME"`
 }
 
 func (TicketFirstResponse) TableName() string {
 	return "ticketfirstresponse"
 }
 
-func AddResponseTime(ticket string, guild int64, responder int64) {
-	openTimeChan := make(chan *int64)
+func AddResponseTime(ticket string, guild uint64, responder uint64) {
+	openTimeChan := make(chan *uint64)
 	go GetOpenTime(ticket, openTimeChan)
 	openTime := <-openTimeChan
 	if openTime == nil {
 		return
 	}
 
-	current := time.Now().UnixNano() / int64(time.Millisecond)
+	current := uint64(time.Now().UnixNano() / int64(time.Millisecond))
 
 	Db.Create(&TicketFirstResponse{
 		Ticket: ticket,
@@ -37,11 +37,11 @@ func HasResponse(ticket string, ch chan bool) {
 	ch <- count != 0
 }
 
-func GetGuildResponseTimes(guild int64, ch chan map[string]int64) {
+func GetGuildResponseTimes(guild uint64, ch chan map[string]uint64) {
 	var nodes []TicketFirstResponse
 	Db.Where(TicketFirstResponse{Guild: guild}).Find(&nodes)
 
-	times := make(map[string]int64)
+	times := make(map[string]uint64)
 	for _, node := range nodes {
 		times[node.Ticket] = node.Time
 	}
@@ -49,11 +49,11 @@ func GetGuildResponseTimes(guild int64, ch chan map[string]int64) {
 	ch <- times
 }
 
-func GetUserResponseTimes(guild int64, user int64, ch chan map[string]int64) {
+func GetUserResponseTimes(guild uint64, user uint64, ch chan map[string]uint64) {
 	var nodes []TicketFirstResponse
 	Db.Where(TicketFirstResponse{Guild: guild, Responder: user}).Find(&nodes)
 
-	times := make(map[string]int64)
+	times := make(map[string]uint64)
 	for _, node := range nodes {
 		times[node.Ticket] = node.Time
 	}

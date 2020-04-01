@@ -3,14 +3,15 @@ package listeners
 import (
 	"github.com/TicketsBot/TicketsGo/bot/setup"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
-	"github.com/bwmarrin/discordgo"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/payloads/events"
 )
 
-func OnSetupProgress(s *discordgo.Session, e *discordgo.MessageCreate) {
+func OnSetupProgress(s *gateway.Shard, e *events.MessageCreate) {
 	u := setup.SetupUser{
-		Guild:   e.GuildID,
-		User:    e.Author.ID,
-		Channel: e.ChannelID,
+		Guild:   e.GuildId,
+		User:    e.Author.Id,
+		Channel: e.ChannelId,
 		Session: s,
 	}
 
@@ -25,7 +26,7 @@ func OnSetupProgress(s *discordgo.Session, e *discordgo.MessageCreate) {
 			stage := state.GetStage()
 			if stage != nil {
 				// Psuedo-premium
-				utils.SendEmbed(s, e.ChannelID, utils.Green, "Setup", (*stage).Prompt(), 120, true)
+				utils.SendEmbed(s, e.ChannelId, utils.Green, "Setup", (*stage).Prompt(), 120, true)
 			}
 		}
 	}

@@ -74,7 +74,7 @@ func processDeletedTickets(ctx utils.CommandContext, res chan int) {
 			continue
 		}
 
-		_, err := ctx.Session.Channel(strconv.Itoa(int(*channel)))
+		_, err := ctx.Shard.Channel(strconv.Itoa(int(*channel)))
 		if err != nil { // An admin has deleted the channel manually
 			updated++
 			go database.CloseByChannel(*channel)
@@ -97,8 +97,8 @@ func processDeletedPanels(ctx utils.CommandContext) {
 		// Check cache first to prevent extra requests to discord
 		channelId := strconv.Itoa(int(panel.ChannelId))
 		msgId := strconv.Itoa(int(panel.MessageId))
-		if _, err := ctx.Session.State.Message(channelId, msgId); err != nil {
-			if _, err := ctx.Session.ChannelMessage(channelId, msgId); err != nil {
+		if _, err := ctx.Shard.State.Message(channelId, msgId); err != nil {
+			if _, err := ctx.Shard.ChannelMessage(channelId, msgId); err != nil {
 				// Message no longer exists
 				go database.DeletePanel(panel.MessageId)
 			}
@@ -113,7 +113,7 @@ func processDeletedCachedChannels(ctx utils.CommandContext) {
 	cachedChannels := <-cachedChannelsChan
 
 	// Get current guild channels
-	channels, err := ctx.Session.GuildChannels(ctx.Guild.ID); if err != nil {
+	channels, err := ctx.Shard.GuildChannels(ctx.Guild.ID); if err != nil {
 		sentry.LogWithContext(err, ctx.ToErrorContext())
 		return
 	}
@@ -167,7 +167,7 @@ func recacheChannels(ctx utils.CommandContext) {
 	database.DeleteAllChannelsByGuild(ctx.GuildId)
 
 	// Get refreshed channel objects from Discord
-	raw, err := ctx.Session.GuildChannels(ctx.Guild.ID); if err != nil {
+	raw, err := ctx.Shard.GuildChannels(ctx.Guild.ID); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}

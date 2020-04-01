@@ -68,7 +68,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 
 	// Check the user is permitted to close the ticket
 	permissionLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Session, ctx.Member, permissionLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, permissionLevelChan)
 	permissionLevel := <-permissionLevelChan
 
 	// Get ticket struct
@@ -87,7 +87,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	hasPerm := make(chan bool)
-	go utils.MemberHasPermission(ctx.Session, ctx.Guild.ID, utils.Id, utils.ManageChannels, hasPerm)
+	go utils.MemberHasPermission(ctx.Shard, ctx.Guild.ID, utils.Id, utils.ManageChannels, hasPerm)
 
 	if !<-hasPerm {
 		ctx.ReactWithCross()
@@ -105,7 +105,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	lastId := ""
 	count := -1
 	for count != 0 {
-		array, err := ctx.Session.ChannelMessages(ctx.Channel, 100, lastId, "", "")
+		array, err := ctx.Shard.ChannelMessages(ctx.Channel, 100, lastId, "", "")
 
 		count = len(array)
 		if err != nil {
@@ -144,7 +144,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 
 	// Set ticket state as closed and delete channel
 	go database.Close(ctx.GuildId, ticket.Id)
-	if _, err := ctx.Session.ChannelDelete(ctx.Channel); err != nil {
+	if _, err := ctx.Shard.ChannelDelete(ctx.Channel); err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 	}
 
@@ -154,9 +154,9 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	archiveChannelId := strconv.Itoa(int(<-archiveChannelChan))
 
 	channelExists := true
-	_, err := ctx.Session.State.Channel(archiveChannelId); if err != nil {
+	_, err := ctx.Shard.State.Channel(archiveChannelId); if err != nil {
 		// Not cached
-		_, err = ctx.Session.Channel(archiveChannelId); if err != nil {
+		_, err = ctx.Shard.Channel(archiveChannelId); if err != nil {
 			// Channel doesn't exist
 			channelExists = false
 		}
@@ -183,7 +183,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		}
 
 		// Errors occur when the bot doesn't have permission
-		m, err := ctx.Session.ChannelMessageSendComplex(archiveChannelId, &data)
+		m, err := ctx.Shard.ChannelMessageSendComplex(archiveChannelId, &data)
 		if err == nil {
 			// Add archive to DB
 			uuidChan := make(chan string)
@@ -211,7 +211,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s with reason `%s`", ticket.Id, ctx.Guild.Name, ctx.User.Mention(), reason)
 			}
 
-			privateMessage, err := ctx.Session.UserChannelCreate(strconv.Itoa(int(ticket.Owner)))
+			privateMessage, err := ctx.Shard.UserChannelCreate(strconv.Itoa(int(ticket.Owner)))
 			// Only send the msg if we could create the channel
 			if err == nil {
 				data := discordgo.MessageSend{
@@ -226,7 +226,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 				}
 
 				// Errors occur when users have privacy settings high
-				_, _ = ctx.Session.ChannelMessageSendComplex(privateMessage.ID, &data)
+				_, _ = ctx.Shard.ChannelMessageSendComplex(privateMessage.ID, &data)
 			}
 		}
 	}

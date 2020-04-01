@@ -2,33 +2,23 @@ package listeners
 
 import (
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/payloads/events"
+	"github.com/rxdn/gdl/objects/channel"
 )
 
-func storeChannel(channel *discordgo.Channel) {
-	channelId, err := strconv.ParseInt(channel.ID, 10, 64); if err != nil {
-		sentry.Error(err)
-		return
-	}
-
-	guildId, err := strconv.ParseInt(channel.GuildID, 10, 64); if err != nil {
-		sentry.Error(err)
-		return
-	}
-
-	go database.StoreChannel(channelId, guildId, channel.Name, int(channel.Type))
+func storeChannel(channel *channel.Channel) {
+	go database.StoreChannel(channel.Id, channel.GuildId, channel.Name, int(channel.Type))
 }
 
-func OnChannelCreate(s *discordgo.Session, e *discordgo.ChannelCreate) {
-	if e.GuildID == "" {
+func OnChannelCreate(s *gateway.Shard, e *events.ChannelCreate) {
+	if e.GuildId == 0 {
 		return
 	}
 
 	storeChannel(e.Channel)
 }
 
-func OnChannelUpdate(s *discordgo.Session, e *discordgo.ChannelUpdate) {
+func OnChannelUpdate(_ *gateway.Shard, e *events.ChannelUpdate) {
 	storeChannel(e.Channel)
 }

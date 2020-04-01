@@ -61,7 +61,7 @@ func (RemoveCommand) Execute(ctx utils.CommandContext) {
 
 	// Verify that the user is allowed to modify the ticket
 	permLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Session, ctx.Member, permLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, permLevelChan)
 	permLevel := <-permLevelChan
 
 	ownerChan := make(chan int64)
@@ -79,7 +79,7 @@ func (RemoveCommand) Execute(ctx utils.CommandContext) {
 		go database.RemoveMember(ticketId, guildId, user.ID)
 
 		// Remove user from ticket
-		err = ctx.Session.ChannelPermissionSet(
+		err = ctx.Shard.ChannelPermissionSet(
 			strconv.Itoa(int(channelId)),
 			user.ID,
 			"member",

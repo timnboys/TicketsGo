@@ -38,12 +38,12 @@ func (AdminStatsCommand) Execute(ctx utils.CommandContext) {
 		AddField("Stack", fmt.Sprintf("%dMB", m.StackSys / 1024 / 1024), true).
 		AddField("Total Reserved", fmt.Sprintf("%dMB", m.Sys / 1024 / 1024), true)
 
-	msg, err := ctx.Session.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed); if err != nil {
+	msg, err := ctx.Shard.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
-	utils.DeleteAfter(utils.SentMessage{Session: ctx.Session, Message: msg}, 30)
+	utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: msg}, 30)
 }
 
 func (AdminStatsCommand) Parent() interface{} {

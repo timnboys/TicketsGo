@@ -3,12 +3,12 @@ package cache
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
+	"github.com/rxdn/gdl/objects/guild"
 )
 
-func (c *RedisClient) CacheGuildProperties(guild *discordgo.Guild) {
-	key := fmt.Sprintf("tickets:guilds:%s", guild.ID)
-	c.HSet(key, "owner", guild.OwnerID)
+func (c *RedisClient) CacheGuildProperties(guild *guild.Guild) {
+	key := fmt.Sprintf("tickets:guilds:%s", guild.Id)
+	c.HSet(key, "owner", guild.OwnerId)
 	c.HSet(key, "name", guild.Name)
 }
 

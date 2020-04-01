@@ -5,44 +5,27 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/payloads/events"
+	"github.com/rxdn/gdl/objects/channel/message"
 )
 
-func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
+func OnPanelReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 	errorContext := sentry.ErrorContext{
-		Guild:   e.GuildID,
-		User:    e.UserID,
-		Channel: e.ChannelID,
-		Shard:   s.ShardID,
-	}
-
-	msgId, err := strconv.ParseInt(e.MessageID, 10, 64)
-	if err != nil {
-		sentry.ErrorWithContext(err, errorContext)
-		return
-	}
-
-	userId, err := strconv.ParseInt(e.UserID, 10, 64)
-	if err != nil {
-		sentry.ErrorWithContext(err, errorContext)
-		return
+		Guild:   e.GuildId,
+		User:    e.UserId,
+		Channel: e.ChannelId,
+		Shard:   s.ShardId,
 	}
 
 	// In DMs
-	if e.GuildID == "" {
-		return
-	}
-
-	guildId, err := strconv.ParseInt(e.GuildID, 10, 64)
-	if err != nil {
-		sentry.ErrorWithContext(err, errorContext)
+	if e.GuildId == 0 {
 		return
 	}
 
 	// Get panel from DB
 	panelChan := make(chan database.Panel)
-	go database.GetPanelByMessageId(msgId, panelChan)
+	go database.GetPanelByMessageId(e.MessageId, panelChan)
 	panel := <-panelChan
 	blank := database.Panel{}
 
@@ -54,7 +37,7 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 			return
 		}
 
-		user, err := s.User(e.UserID)
+		user, err := s.GetUser(e.UserId)
 		if err != nil {
 			sentry.ErrorWithContext(err, errorContext)
 			return
@@ -65,57 +48,48 @@ func OnPanelReact(s *discordgo.Session, e *discordgo.MessageReactionAdd) {
 		}
 
 		// Remove the reaction from the message
-		if err = s.MessageReactionRemove(e.ChannelID, e.MessageID, emoji, e.UserID); err != nil {
+		if err = s.DeleteUserReaction(e.ChannelId, e.MessageId, e.UserId, emoji); err != nil {
 			sentry.LogWithContext(err, errorContext)
 		}
 
 		blacklisted := make(chan bool)
-		go database.IsBlacklisted(guildId, userId, blacklisted)
+		go database.IsBlacklisted(e.GuildId, e.UserId, blacklisted)
 		if <-blacklisted {
 			return
 		}
 
 		// Get guild obj
-		guild, err := s.State.Guild(e.GuildID)
+		guild, err := s.GetGuild(e.GuildId)
 		if err != nil {
-			guild, err = s.Guild(e.GuildID)
-			if err != nil {
-				sentry.ErrorWithContext(err, errorContext)
-				return
-			}
+			sentry.ErrorWithContext(err, errorContext)
+			return
 		}
 
 		isPremium := make(chan bool)
 		go utils.IsPremiumGuild(utils.CommandContext{
-			Session: s,
-			GuildId: guildId,
-			Guild:   guild,
+			Shard: s,
+			Guild: guild,
 		}, isPremium)
 
-		member, err := s.State.Member(e.GuildID, e.UserID)
-		if err != nil {
-			member, err = s.GuildMember(e.GuildID, e.UserID)
-			if err != nil {
-				sentry.LogWithContext(err, errorContext)
-				return
-			}
-		}
-
-		channelId, err := strconv.ParseInt(e.ChannelID, 10, 64)
+		member, err := s.GetGuildMember(e.GuildId, e.UserId)
 		if err != nil {
 			sentry.LogWithContext(err, errorContext)
 			return
 		}
 
+		// construct fake message
+		panelMessage := message.Message{
+			Id:        e.MessageId,
+			ChannelId: e.ChannelId,
+			GuildId:   e.GuildId,
+		}
+
 		ctx := utils.CommandContext{
-			Session:     s,
-			User:        *user,
-			UserID:      userId,
+			Shard:       s,
+			User:        user,
 			Guild:       guild,
-			GuildId:     guildId,
-			Channel:     e.ChannelID,
-			ChannelId:   channelId,
-			MessageId:   msgId,
+			ChannelId:   e.ChannelId,
+			Message:     &panelMessage,
 			Root:        "new",
 			Args:        make([]string, 0),
 			IsPremium:   <-isPremium,
