@@ -32,14 +32,16 @@ func (SyncCommand) PermissionLevel() utils.PermissionLevel {
 var cooldown = cache.New(time.Minute * 5, time.Minute * 1)
 
 func (SyncCommand) Execute(ctx utils.CommandContext) {
-	if !utils.IsBotAdmin(ctx.User.ID) && !utils.IsBotHelper(ctx.User.ID) {
-		cooldownEnd, ok := cooldown.Get(ctx.Guild.ID)
+	guildStr := strconv.FormatUint(ctx.Guild.Id, 10)
+
+	if !utils.IsBotAdmin(ctx.User.Id) && !utils.IsBotHelper(ctx.User.Id) {
+		cooldownEnd, ok := cooldown.Get(guildStr)
 		if ok && cooldownEnd.(int64) > time.Now().UnixNano() { // Expiry search only runs once a minute
 			ctx.SendEmbed(utils.Red, "Sync", "This command is currently in cooldown")
 			return
 		}
 
-		cooldown.Set(ctx.Guild.ID, time.Now().Add(time.Minute*5).UnixNano(), time.Minute*5)
+		cooldown.Set(guildStr, time.Now().Add(time.Minute*5).UnixNano(), time.Minute*5)
 	}
 
 	// Process deleted tickets
@@ -67,14 +69,14 @@ func (SyncCommand) Execute(ctx utils.CommandContext) {
 func processDeletedTickets(ctx utils.CommandContext, res chan int) {
 	updated := 0
 
-	tickets := make(chan []*int64)
-	go database.GetOpenTicketChannelIds(ctx.GuildId, tickets)
+	tickets := make(chan []*uint64)
+	go database.GetOpenTicketChannelIds(ctx.Guild.Id, tickets)
 	for _, channel := range <-tickets {
 		if channel == nil {
 			continue
 		}
 
-		_, err := ctx.Shard.Channel(strconv.Itoa(int(*channel)))
+		_, err := ctx.Shard.GetChannel(*channel)
 		if err != nil { // An admin has deleted the channel manually
 			updated++
 			go database.CloseByChannel(*channel)
@@ -86,7 +88,7 @@ func processDeletedTickets(ctx utils.CommandContext, res chan int) {
 
 func processDeletedPanels(ctx utils.CommandContext) {
 	panels := make(chan []database.Panel)
-	go database.GetPanelsByGuild(ctx.GuildId, panels)
+	go database.GetPanelsByGuild(ctx.Guild.Id, panels)
 
 	for _, panel := range <-panels {
 		// Pre-channel ID logging panel - we'll just leave it for now.
@@ -95,13 +97,9 @@ func processDeletedPanels(ctx utils.CommandContext) {
 		}
 
 		// Check cache first to prevent extra requests to discord
-		channelId := strconv.Itoa(int(panel.ChannelId))
-		msgId := strconv.Itoa(int(panel.MessageId))
-		if _, err := ctx.Shard.State.Message(channelId, msgId); err != nil {
-			if _, err := ctx.Shard.ChannelMessage(channelId, msgId); err != nil {
-				// Message no longer exists
-				go database.DeletePanel(panel.MessageId)
-			}
+		if _, err := ctx.Shard.GetChannelMessage(panel.ChannelId, panel.MessageId); err != nil {
+			// Message no longer exists
+			go database.DeletePanel(panel.MessageId)
 		}
 	}
 }
@@ -109,11 +107,11 @@ func processDeletedPanels(ctx utils.CommandContext) {
 func processDeletedCachedChannels(ctx utils.CommandContext) {
 	// Get all cached channels for the guild
 	cachedChannelsChan := make(chan []database.Channel)
-	go database.GetCachedChannelsByGuild(ctx.GuildId, cachedChannelsChan)
+	go database.GetCachedChannelsByGuild(ctx.Guild.Id, cachedChannelsChan)
 	cachedChannels := <-cachedChannelsChan
 
 	// Get current guild channels
-	channels, err := ctx.Shard.GuildChannels(ctx.Guild.ID); if err != nil {
+	channels, err := ctx.Shard.GetGuildChannels(ctx.Guild.Id); if err != nil {
 		sentry.LogWithContext(err, ctx.ToErrorContext())
 		return
 	}
@@ -130,7 +128,7 @@ func processDeletedCachedChannels(ctx utils.CommandContext) {
 		var index = -1
 		var cached *database.Channel = nil // Since this a pointer, we must perform operations before removing from slice
 		for i, cachedChannel := range toRemove {
-			if strconv.Itoa(int(cachedChannel.ChannelId)) == existingChannel.ID {
+			if cachedChannel.ChannelId == existingChannel.Id {
 				index = i
 				cached = &cachedChannel
 			}
@@ -145,12 +143,7 @@ func processDeletedCachedChannels(ctx utils.CommandContext) {
 
 		// If index = -1, we haven't cached the channel before
 		if index != -1 {
-			channelId, err := strconv.ParseInt(existingChannel.ID, 10, 64); if err != nil {
-				sentry.LogWithContext(err, ctx.ToErrorContext())
-				continue
-			}
-
-			go database.StoreChannel(channelId, ctx.GuildId, existingChannel.Name, int(existingChannel.Type))
+			go database.StoreChannel(existingChannel.Id, ctx.Guild.Id, existingChannel.Name, int(existingChannel.Type))
 		} else { // Else, we can remove the channel from the toRemove array
 			toRemove = append(toRemove[:index], toRemove[index+1:]...)
 		}
@@ -164,24 +157,19 @@ func processDeletedCachedChannels(ctx utils.CommandContext) {
 
 func recacheChannels(ctx utils.CommandContext) {
 	// Delete current cache, sync
-	database.DeleteAllChannelsByGuild(ctx.GuildId)
+	database.DeleteAllChannelsByGuild(ctx.Guild.Id)
 
 	// Get refreshed channel objects from Discord
-	raw, err := ctx.Shard.GuildChannels(ctx.Guild.ID); if err != nil {
+	raw, err := ctx.Shard.GetGuildChannels(ctx.Guild.Id); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
 	channels := make([]database.Channel, 0)
 	for _, channel := range raw {
-		channelId, err := strconv.ParseInt(channel.ID, 10, 64); if err != nil {
-			sentry.LogWithContext(err, ctx.ToErrorContext())
-			continue
-		}
-
 		channels = append(channels, database.Channel{
-			ChannelId: channelId,
-			GuildId:   ctx.GuildId,
+			ChannelId: channel.Id,
+			GuildId:   ctx.Guild.Id,
 			Name:      channel.Name,
 			Type:      int(channel.Type),
 		})

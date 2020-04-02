@@ -4,7 +4,8 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"strconv"
+	"github.com/rxdn/gdl/objects/channel"
+	"github.com/rxdn/gdl/permission"
 )
 
 type RemoveCommand struct {
@@ -34,14 +35,9 @@ func (RemoveCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	// Verify that the current channel is a real ticket
-	channelId, err := strconv.ParseInt(ctx.Channel, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
 	isTicketChan := make(chan bool)
-	go database.IsTicketChannel(channelId, isTicketChan)
-	isTicket := <- isTicketChan
+	go database.IsTicketChannel(ctx.ChannelId, isTicketChan)
+	isTicket := <-isTicketChan
 
 	if !isTicket {
 		ctx.SendEmbed(utils.Red, "Error", "The current channel is not a ticket")
@@ -51,24 +47,19 @@ func (RemoveCommand) Execute(ctx utils.CommandContext) {
 
 	// Get ticket ID
 	ticketIdChan := make(chan int)
-	go database.GetTicketId(channelId, ticketIdChan)
-	ticketId := <- ticketIdChan
-
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
+	go database.GetTicketId(ctx.ChannelId, ticketIdChan)
+	ticketId := <-ticketIdChan
 
 	// Verify that the user is allowed to modify the ticket
 	permLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, permLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permLevelChan)
 	permLevel := <-permLevelChan
 
-	ownerChan := make(chan int64)
-	go database.GetOwner(ticketId, guildId, ownerChan)
+	ownerChan := make(chan uint64)
+	go database.GetOwner(ticketId, ctx.Guild.Id, ownerChan)
 	owner := <-ownerChan
 
-	if permLevel == 0 && strconv.Itoa(int(owner)) != ctx.User.ID {
+	if permLevel == 0 && owner != ctx.User.Id {
 		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to add people to this ticket")
 		ctx.ReactWithCross()
 		return
@@ -76,17 +67,15 @@ func (RemoveCommand) Execute(ctx utils.CommandContext) {
 
 	for _, user := range ctx.Message.Mentions {
 		// Remove user from ticket in DB
-		go database.RemoveMember(ticketId, guildId, user.ID)
+		go database.RemoveMember(ticketId, ctx.Guild.Id, user.Id)
 
 		// Remove user from ticket
-		err = ctx.Shard.ChannelPermissionSet(
-			strconv.Itoa(int(channelId)),
-			user.ID,
-			"member",
-			0,
-			utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks))
-
-		if err != nil {
+		if err := ctx.Shard.EditChannelPermissions(ctx.ChannelId, channel.PermissionOverwrite{
+			Id:    user.Id,
+			Type:  channel.PermissionTypeMember,
+			Allow: 0,
+			Deny:  permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),
+		}); err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		}
 	}

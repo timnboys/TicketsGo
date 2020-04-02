@@ -3,8 +3,6 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
-	"strconv"
 	"strings"
 )
 
@@ -28,11 +26,6 @@ func (ManageCannedResponsesAdd) PermissionLevel() utils.PermissionLevel {
 }
 
 func (ManageCannedResponsesAdd) Execute(ctx utils.CommandContext) {
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
 	if len(ctx.Args) < 2 {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "You must specify a canned response ID and the contents of the response")
@@ -48,7 +41,7 @@ func (ManageCannedResponsesAdd) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	go database.AddCannedResponse(guildId, id, strings.Join(content, " "))
+	go database.AddCannedResponse(ctx.Guild.Id, id, strings.Join(content, " "))
 	ctx.ReactWithCheck()
 }
 

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
-	"strconv"
 )
 
 type ManageCannedResponsesDelete struct {
@@ -28,11 +26,6 @@ func (ManageCannedResponsesDelete) PermissionLevel() utils.PermissionLevel {
 }
 
 func (ManageCannedResponsesDelete) Execute(ctx utils.CommandContext) {
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
 	if len(ctx.Args) == 0 {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "You must specify a canned response ID to delete")
@@ -42,7 +35,7 @@ func (ManageCannedResponsesDelete) Execute(ctx utils.CommandContext) {
 	id := ctx.Args[0]
 
 	idsChan := make(chan []string)
-	go database.GetCannedResponses(guildId, idsChan)
+	go database.GetCannedResponses(ctx.Guild.Id, idsChan)
 	ids := <-idsChan
 
 	found := false
@@ -59,7 +52,7 @@ func (ManageCannedResponsesDelete) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	go database.DeleteCannedResponse(guildId, id)
+	go database.DeleteCannedResponse(ctx.Guild.Id, id)
 	ctx.ReactWithCheck()
 }
 

@@ -2,12 +2,8 @@ package command
 
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
-	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
 	"regexp"
 	"strconv"
-	"strings"
-	"time"
 )
 
 var timeRegex = regexp.MustCompile(`(?:(?P<months>\d+)M)*(?:(?P<weeks>\d+)w)*(?:(?P<days>\d+)d)*(?:(?P<hours>\d+)h)*(?:(?P<minutes>\d+)m)*`)
@@ -32,7 +28,7 @@ func (PurgeCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (PurgeCommand) Execute(ctx utils.CommandContext) {
-	if len(ctx.Args) == 0 {
+	/*if len(ctx.Args) == 0 {
 		ctx.SendEmbed(utils.Red, "Error", `You must specify a length of time for which tickets must not have had a reply to purge.
 M = Month, W = Week, d = Day, h = Hour, m = Minute
 For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time period of `+"`1M3W2h`")
@@ -116,7 +112,7 @@ For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time peri
 		}
 	}
 
-	ctx.SendEmbed(utils.Green, "Purge", "Purge has been completed")
+	ctx.SendEmbed(utils.Green, "Purge", "Purge has been completed")*/
 }
 
 // If err != nil, i = 0

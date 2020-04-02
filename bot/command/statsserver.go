@@ -3,7 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"strconv"
 	"time"
 )
@@ -28,23 +28,18 @@ func (StatsServerCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (StatsServerCommand) Execute(ctx utils.CommandContext) {
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
 	totalTickets := make(chan int)
-	go database.GetTotalTicketCount(guildId, totalTickets)
+	go database.GetTotalTicketCount(ctx.Guild.Id, totalTickets)
 
 	openTickets := make(chan []string)
-	go database.GetOpenTickets(guildId, openTickets)
+	go database.GetOpenTickets(ctx.Guild.Id, openTickets)
 
 	responseTimesChan := make(chan map[string]int64)
-	go database.GetGuildResponseTimes(guildId, responseTimesChan)
+	go database.GetGuildResponseTimes(ctx.Guild.Id, responseTimesChan)
 	responseTimes := <-responseTimesChan
 
 	openTimesChan := make(chan map[string]*int64)
-	go database.GetOpenTimes(guildId, openTimesChan)
+	go database.GetOpenTimes(ctx.Guild.Id, openTimesChan)
 	openTimes := <-openTimesChan
 
 	// total average response
@@ -94,7 +89,7 @@ func (StatsServerCommand) Execute(ctx utils.CommandContext) {
 		weekly = weekly / int64(weeklyCounter)
 	}
 
-	embed := utils.NewEmbed().
+	embed := embed.NewEmbed().
 		SetTitle("Statistics").
 		SetColor(int(utils.Green)).
 
@@ -105,11 +100,9 @@ func (StatsServerCommand) Execute(ctx utils.CommandContext) {
 
 		AddField("Average First Response Time (Total)", utils.FormatTime(averageResponse), true).
 		AddField("Average First Response Time (Weekly)", utils.FormatTime(weekly), true).
-		AddField("Average First Response Time (Monthly)", utils.FormatTime(monthly), true).
+		AddField("Average First Response Time (Monthly)", utils.FormatTime(monthly), true)
 
-		MessageEmbed
-
-	if m, err := ctx.Shard.ChannelMessageSendEmbed(ctx.Channel, embed); err == nil {
+	if m, err := ctx.Shard.CreateMessageEmbed(ctx.ChannelId, embed); err == nil {
 		utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: m}, 60)
 	}
 }

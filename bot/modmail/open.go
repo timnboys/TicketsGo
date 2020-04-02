@@ -16,11 +16,7 @@ import (
 )
 
 func OpenModMailTicket(shard *gateway.Shard, guild modmailutils.UserGuild, user *user.User) (uint64, error) {
-	ticketId, err := uuid.NewV4()
-	if err != nil {
-		sentry.Error(err)
-		return "", errors.New("Failed to generate UUID")
-	}
+	ticketId := uuid.NewV4()
 
 	// If we're using a panel, then we need to create the ticket in the specified category
 	categoryChan := make(chan uint64)

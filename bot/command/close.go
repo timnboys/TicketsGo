@@ -7,8 +7,9 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/objects/channel/message"
+	"github.com/rxdn/gdl/permission"
+	"github.com/rxdn/gdl/rest"
 	"strings"
 )
 
@@ -68,7 +69,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 
 	// Check the user is permitted to close the ticket
 	permissionLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, permissionLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permissionLevelChan)
 	permissionLevel := <-permissionLevelChan
 
 	// Get ticket struct
@@ -77,19 +78,16 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	ticket := <-ticketChan
 
 	usersCanCloseChan := make(chan bool)
-	go database.IsUserCanClose(ctx.GuildId, usersCanCloseChan)
+	go database.IsUserCanClose(ctx.Guild.Id, usersCanCloseChan)
 	usersCanClose := <-usersCanCloseChan
 
-	if (permissionLevel == utils.Everyone && strconv.Itoa(int(ticket.Owner)) != ctx.User.ID) || (permissionLevel == utils.Everyone && !usersCanClose) {
+	if (permissionLevel == utils.Everyone && ticket.Owner != ctx.User.Id) || (permissionLevel == utils.Everyone && !usersCanClose) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "You are not permitted to close this ticket")
 		return
 	}
 
-	hasPerm := make(chan bool)
-	go utils.MemberHasPermission(ctx.Shard, ctx.Guild.ID, utils.Id, utils.ManageChannels, hasPerm)
-
-	if !<-hasPerm {
+	if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), permission.ManageChannels) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "I do not have permission to delete this channel")
 		return
@@ -100,12 +98,15 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	// Archive
-	msgs := make([]*discordgo.Message, 0)
+	msgs := make([]*message.Message, 0)
 
-	lastId := ""
+	lastId := uint64(0)
 	count := -1
 	for count != 0 {
-		array, err := ctx.Shard.ChannelMessages(ctx.Channel, 100, lastId, "", "")
+		array, err := ctx.Shard.GetChannelMessages(ctx.ChannelId, rest.GetChannelMessagesData{
+			Before: lastId,
+			Limit:  100,
+		})
 
 		count = len(array)
 		if err != nil {
@@ -114,7 +115,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		}
 
 		if count > 0 {
-			lastId = array[len(array)-1].ID
+			lastId = array[len(array)-1].Id
 
 			msgs = append(msgs, array...)
 		}
@@ -127,39 +128,32 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 
 	logs := ""
 	for _, msg := range msgs {
-		var date string
-		if t, err := msg.Timestamp.Parse(); err == nil {
-			date = t.UTC().String()
-		}
+		date := msg.Timestamp.UTC().String()
 
 		content := msg.Content
 
 		// append attachments
 		for _, attachment := range msg.Attachments {
-			content += fmt.Sprintf(" %s", attachment.ProxyURL)
+			content += fmt.Sprintf(" %s", attachment.ProxyUrl)
 		}
 
-		logs += fmt.Sprintf("[%s][%s] %s: %s\n", date, msg.ID, msg.Author.Username, content)
+		logs += fmt.Sprintf("[%s][%d] %s: %s\n", date, msg.Id, msg.Author.Username, content)
 	}
 
 	// Set ticket state as closed and delete channel
-	go database.Close(ctx.GuildId, ticket.Id)
-	if _, err := ctx.Shard.ChannelDelete(ctx.Channel); err != nil {
+	go database.Close(ctx.Guild.Id, ticket.Id)
+	if _, err := ctx.Shard.DeleteChannel(ctx.ChannelId); err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 	}
 
 	// Send logs to archive channel
-	archiveChannelChan := make(chan int64)
-	go database.GetArchiveChannel(ctx.GuildId, archiveChannelChan)
-	archiveChannelId := strconv.Itoa(int(<-archiveChannelChan))
+	archiveChannelChan := make(chan uint64)
+	go database.GetArchiveChannel(ctx.Guild.Id, archiveChannelChan)
+	archiveChannelId := <-archiveChannelChan
 
 	channelExists := true
-	_, err := ctx.Shard.State.Channel(archiveChannelId); if err != nil {
-		// Not cached
-		_, err = ctx.Shard.Channel(archiveChannelId); if err != nil {
-			// Channel doesn't exist
-			channelExists = false
-		}
+	if _, err := ctx.Shard.GetChannel(archiveChannelId); err != nil {
+		channelExists = false
 	}
 
 	// Save space - delete the webhook
@@ -171,19 +165,17 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 			msg += fmt.Sprintf(" with reason `%s`", reason)
 		}
 
-		data := discordgo.MessageSend{
+		data := rest.CreateMessageData{
 			Content: msg,
-			Files: []*discordgo.File{
-				{
-					Name: fmt.Sprintf("ticket-%d.txt", ticket.Id),
-					ContentType: "text/plain",
-					Reader: strings.NewReader(logs),
-				},
+			File: &rest.File{
+				Name:        fmt.Sprintf("ticket-%d.txt", ticket.Id),
+				ContentType: "text/plain",
+				Reader:      strings.NewReader(logs),
 			},
 		}
 
 		// Errors occur when the bot doesn't have permission
-		m, err := ctx.Shard.ChannelMessageSendComplex(archiveChannelId, &data)
+		m, err := ctx.Shard.CreateMessageComplex(archiveChannelId, data)
 		if err == nil {
 			// Add archive to DB
 			uuidChan := make(chan string)
@@ -194,7 +186,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 			go database.GetUsername(ticket.Owner, userNameChan)
 			userName := <-userNameChan
 
-			go database.AddArchive(uuid, ctx.GuildId, ticket.Owner, userName, ticket.Id, m.Attachments[0].URL)
+			go database.AddArchive(uuid, ctx.Guild.Id, ticket.Owner, userName, ticket.Id, m.Attachments[0].Url)
 		} else {
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
@@ -203,7 +195,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 		if !silentClose {
 			var content string
 			// Create message content
-			if ctx.UserID == ticket.Owner {
+			if ctx.User.Id == ticket.Owner {
 				content = fmt.Sprintf("You closed your ticket (`#ticket-%d`) in `%s`", ticket.Id, ctx.Guild.Name)
 			} else if len(ctx.Args) == 0 {
 				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s", ticket.Id, ctx.Guild.Name, ctx.User.Mention())
@@ -211,22 +203,20 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s with reason `%s`", ticket.Id, ctx.Guild.Name, ctx.User.Mention(), reason)
 			}
 
-			privateMessage, err := ctx.Shard.UserChannelCreate(strconv.Itoa(int(ticket.Owner)))
+			privateMessage, err := ctx.Shard.CreateDM(ticket.Owner)
 			// Only send the msg if we could create the channel
 			if err == nil {
-				data := discordgo.MessageSend{
+				data := rest.CreateMessageData{
 					Content: content,
-					Files: []*discordgo.File{
-						{
-							Name:        fmt.Sprintf("ticket-%d.txt", ticket.Id),
-							ContentType: "text/plain",
-							Reader:      strings.NewReader(logs),
-						},
+					File: &rest.File{
+						Name:        fmt.Sprintf("ticket-%d.txt", ticket.Id),
+						ContentType: "text/plain",
+						Reader:      strings.NewReader(logs),
 					},
 				}
 
 				// Errors occur when users have privacy settings high
-				_, _ = ctx.Shard.ChannelMessageSendComplex(privateMessage.ID, &data)
+				_, _ = ctx.Shard.CreateMessageComplex(privateMessage.Id, data)
 			}
 		}
 	}

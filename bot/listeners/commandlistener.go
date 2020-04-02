@@ -9,7 +9,6 @@ import (
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
-	"strconv"
 	"strings"
 )
 
@@ -142,13 +141,13 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 			return
 		}
 
-		if c.AdminOnly() && !utils.IsBotAdmin(e.Author.ID) {
+		if c.AdminOnly() && !utils.IsBotAdmin(e.Author.Id) {
 			ctx.ReactWithCross()
 			ctx.SendEmbed(utils.Red, "Error", "This command is reserved for the bot owner only")
 			return
 		}
 
-		if c.HelperOnly() && !utils.IsBotHelper(e.Author.ID) && !utils.IsBotAdmin(e.Author.ID) {
+		if c.HelperOnly() && !utils.IsBotHelper(e.Author.Id) && !utils.IsBotAdmin(e.Author.Id) {
 			ctx.ReactWithCross()
 			ctx.SendEmbed(utils.Red, "Error", utils.NO_PERMISSION)
 			return

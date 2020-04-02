@@ -32,20 +32,20 @@ func (RemoveAdminCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	roles := make([]string, 0)
+	roles := make([]uint64, 0)
 	if len(ctx.Message.Mentions) > 0 {
 		for _, mention := range ctx.Message.Mentions {
-			if ctx.Guild.OwnerID == mention.ID {
+			if ctx.Guild.OwnerId == mention.Id {
 				ctx.SendEmbed(utils.Red, "Error", "The guild owner must be an admin")
 				continue
 			}
 
-			if ctx.User.ID == mention.ID {
+			if ctx.User.Id == mention.Id {
 				ctx.SendEmbed(utils.Red, "Error", "You cannot revoke your own privileges")
 				continue
 			}
 
-			go database.RemoveAdmin(ctx.Guild.ID, mention.ID)
+			go database.RemoveAdmin(ctx.Guild.Id, mention.Id)
 		}
 	} else if len(ctx.Message.MentionRoles) > 0 {
 		for _, mention := range ctx.Message.MentionRoles {
@@ -58,7 +58,7 @@ func (RemoveAdminCommand) Execute(ctx utils.CommandContext) {
 		valid := false
 		for _, role := range ctx.Guild.Roles {
 			if strings.ToLower(role.Name) == roleName {
-				roles = append(roles, role.ID)
+				roles = append(roles, role.Id)
 				valid = true
 				break
 			}
@@ -74,7 +74,7 @@ func (RemoveAdminCommand) Execute(ctx utils.CommandContext) {
 
 	// Remove roles from DB
 	for _, role := range roles {
-		go database.RemoveAdminRole(ctx.Guild.ID, role)
+		go database.RemoveAdminRole(ctx.Guild.Id, role)
 	}
 
 	ctx.ReactWithCheck()

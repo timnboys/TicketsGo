@@ -4,8 +4,8 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"strconv"
-	"strings"
+	"github.com/rxdn/gdl/objects/channel"
+	"github.com/rxdn/gdl/permission"
 )
 
 type AddCommand struct {
@@ -30,74 +30,60 @@ func (AddCommand) PermissionLevel() utils.PermissionLevel {
 func (AddCommand) Execute(ctx utils.CommandContext) {
 	// Check users are mentioned
 	if len(ctx.Message.Mentions) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention members to add to the ticket")
+		ctx.SendEmbed(utils.Red, "Error", "You need to mention members to add to the ticketChannel")
 		ctx.ReactWithCross()
 		return
 	}
 
 	// Check channel is mentioned
-	found := utils.ChannelMentionRegex.FindStringSubmatch(strings.Join(ctx.Args, " "))
-	if len(found) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention a ticket channel to add the user(s) in")
+	if len(ctx.Message.MentionChannels) == 0 {
+		ctx.SendEmbed(utils.Red, "Error", "You need to mention a ticketChannel channel to add the user(s) in")
 		ctx.ReactWithCross()
 		return
 	}
 
-	// Verify that the specified channel is a real ticket
-	ticket, err := strconv.ParseInt(found[1], 10, 64); if err != nil {
-		ctx.SendEmbed(utils.Red, "Error", "The specified channel is not a ticket")
-		ctx.ReactWithCross()
-		return
-	}
+	// Verify that the specified channel is a real ticketChannel
+	ticketChannel := ctx.Message.MentionChannels[0]
 
 	isTicketChan := make(chan bool)
-	go database.IsTicketChannel(ticket, isTicketChan)
+	go database.IsTicketChannel(ticketChannel.Id, isTicketChan)
 	isTicket := <- isTicketChan
 
 	if !isTicket {
-		ctx.SendEmbed(utils.Red, "Error", "The specified channel is not a ticket")
+		ctx.SendEmbed(utils.Red, "Error", "The specified channel is not a ticketChannel")
 		ctx.ReactWithCross()
 		return
 	}
 
-	// Get ticket ID
+	// Get ticketChannel ID
 	ticketIdChan := make(chan int)
-	go database.GetTicketId(ticket, ticketIdChan)
+	go database.GetTicketId(ticketChannel.Id, ticketIdChan)
 	ticketId := <- ticketIdChan
 
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
-	// Verify that the user is allowed to modify the ticket
+	// Verify that the user is allowed to modify the ticketChannel
 	permLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, permLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permLevelChan)
 	permLevel := <-permLevelChan
 
-	ownerChan := make(chan int64)
-	go database.GetOwner(ticketId, guildId, ownerChan)
+	ownerChan := make(chan uint64)
+	go database.GetOwner(ticketId, ctx.Guild.Id, ownerChan)
 	owner := <-ownerChan
 
-	if permLevel == 0 && strconv.Itoa(int(owner)) != ctx.User.ID {
-		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to add people to this ticket")
+	if permLevel == 0 && owner != ctx.User.Id {
+		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to add people to this ticketChannel")
 		ctx.ReactWithCross()
 		return
 	}
 
 	for _, user := range ctx.Message.Mentions {
-		// Add user to ticket in DB
-		go database.AddMember(ticketId, guildId, ctx.User.ID)
+		// Add user to ticketChannel in DB
+		go database.AddMember(ticketId, ctx.Guild.Id, user.Id)
 
-		// Add user to ticket
-		err = ctx.Shard.ChannelPermissionSet(
-			strconv.Itoa(int(ticket)),
-			user.ID,
-			"member",
-			utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
-			0)
-
-		if err != nil {
+		if err := ctx.Shard.EditChannelPermissions(ticketChannel.Id, channel.PermissionOverwrite{
+			Id:    user.Id,
+			Type:  channel.PermissionTypeMember,
+			Allow: permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),
+		}); err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		}
 	}

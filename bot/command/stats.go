@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"strconv"
 	"time"
 )
@@ -29,11 +29,6 @@ func (StatsCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (StatsCommand) Execute(ctx utils.CommandContext) {
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
 	if len(ctx.Args) == 0 {
 		ctx.SendEmbed(utils.Red, "Error", "You must specify `server` to view server statistics, or tag a user to view their statistics")
 		ctx.ReactWithCross()
@@ -48,31 +43,27 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	user := ctx.Message.Mentions[0]
-	userId, err := strconv.ParseInt(user.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
 
 	// Get user permission level
 	permLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, permLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permLevelChan)
 	permLevel := <-permLevelChan
 
 	// User stats
 	if permLevel == 0 {
 		blacklisted := make(chan bool)
-		go database.IsBlacklisted(guildId, userId, blacklisted)
+		go database.IsBlacklisted(ctx.Guild.Id, user.Id, blacklisted)
 
-		totalTickets := make(chan map[int64]int)
-		go database.GetTicketsOpenedBy(guildId, userId, totalTickets)
+		totalTickets := make(chan map[uint64]int)
+		go database.GetTicketsOpenedBy(ctx.Guild.Id, user.Id, totalTickets)
 
 		openTickets := make(chan []string)
-		go database.GetOpenTicketsOpenedBy(guildId, userId, openTickets)
+		go database.GetOpenTicketsOpenedBy(ctx.Guild.Id, user.Id, openTickets)
 
 		ticketLimit := make(chan int)
-		go database.GetTicketLimit(guildId, ticketLimit)
+		go database.GetTicketLimit(ctx.Guild.Id, ticketLimit)
 
-		embed := utils.NewEmbed().
+		embed := embed.NewEmbed().
 			SetTitle("Statistics").
 			SetColor(int(utils.Green)).
 
@@ -81,20 +72,18 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 			AddField("Is Blacklisted", strconv.FormatBool(<-blacklisted), true).
 
 			AddField("Total Tickets", strconv.Itoa(len(<-totalTickets)), true).
-			AddField("Open Tickets", fmt.Sprintf("%d / %d", len(<-openTickets), <-ticketLimit), true).
+			AddField("Open Tickets", fmt.Sprintf("%d / %d", len(<-openTickets), <-ticketLimit), true)
 
-			MessageEmbed
-
-		if m, err := ctx.Shard.ChannelMessageSendEmbed(ctx.Channel, embed); err == nil {
+		if m, err := ctx.Shard.CreateMessageEmbed(ctx.ChannelId, embed); err == nil {
 			utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: m}, 60)
 		}
 	} else { // Support rep stats
 		responseTimesChan := make(chan map[string]int64)
-		go database.GetUserResponseTimes(guildId, userId, responseTimesChan)
+		go database.GetUserResponseTimes(ctx.Guild.Id, user.Id, responseTimesChan)
 		responseTimes := <-responseTimesChan
 
 		openTimesChan := make(chan map[string]*int64)
-		go database.GetOpenTimes(guildId, openTimesChan)
+		go database.GetOpenTimes(ctx.Guild.Id, openTimesChan)
 		openTimes := <-openTimesChan
 
 		// total average response
@@ -144,7 +133,7 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 			weekly = weekly / int64(weeklyCounter)
 		}
 
-		embed := utils.NewEmbed().
+		embed := embed.NewEmbed().
 			SetTitle("Statistics").
 			SetColor(int(utils.Green)).
 
@@ -155,11 +144,9 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 
 			AddField("Average First Response Time (Total)", utils.FormatTime(averageResponse), true).
 			AddField("Average First Response Time (Weekly)", utils.FormatTime(weekly), true).
-			AddField("Average First Response Time (Monthly)", utils.FormatTime(monthly), true).
+			AddField("Average First Response Time (Monthly)", utils.FormatTime(monthly), true)
 
-			MessageEmbed
-
-		if m, err := ctx.Shard.ChannelMessageSendEmbed(ctx.Channel, embed); err == nil {
+		if m, err := ctx.Shard.CreateMessageEmbed(ctx.ChannelId, embed); err == nil {
 			utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: m}, 60)
 		}
 	}

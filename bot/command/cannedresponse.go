@@ -35,20 +35,10 @@ func (CannedResponseCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
-	channelId, err := strconv.ParseInt(ctx.Channel, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
 	id := strings.ToLower(ctx.Args[0])
 
 	contentChan := make(chan string)
-	go database.GetCannedResponse(guildId, id, contentChan)
+	go database.GetCannedResponse(ctx.Guild.Id, id, contentChan)
 	content := <-contentChan
 
 	if content == "" {
@@ -58,16 +48,16 @@ func (CannedResponseCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	isTicket := make(chan bool)
-	go database.IsTicketChannel(channelId, isTicket)
+	go database.IsTicketChannel(ctx.ChannelId, isTicket)
 	if <-isTicket {
-		ticketOwnerChan := make(chan int64)
-		go database.GetOwnerByChannel(channelId, ticketOwnerChan)
+		ticketOwnerChan := make(chan uint64)
+		go database.GetOwnerByChannel(ctx.ChannelId, ticketOwnerChan)
 		mention := fmt.Sprintf("<@%s>", strconv.Itoa(int(<-ticketOwnerChan)))
 		content = strings.Replace(content, "%user%", mention, -1)
 	}
 
 	ctx.ReactWithCheck()
-	if _, err = ctx.Shard.ChannelMessageSend(ctx.Channel, content); err != nil {
+	if _, err := ctx.Shard.CreateMessage(ctx.ChannelId, content); err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 	}
 }

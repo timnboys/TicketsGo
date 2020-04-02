@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/rxdn/gdl/rest"
 	"strings"
 )
 
@@ -44,12 +45,16 @@ func (RenameCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	name := strings.Join(ctx.Args, " ")
-	if _, err := ctx.Shard.ChannelEdit(ctx.Channel, name); err != nil {
+	data := rest.ModifyChannelData{
+		Name: name,
+	}
+
+	if _, err := ctx.Shard.ModifyChannel(ctx.ChannelId, data); err != nil {
 		sentry.LogWithContext(err, ctx.ToErrorContext()) // Probably 403
 		return
 	}
 
-	ctx.SendEmbed(utils.Green, "Rename", fmt.Sprintf("This ticket has been renamed to <#%s>", ctx.Channel))
+	ctx.SendEmbed(utils.Green, "Rename", fmt.Sprintf("This ticket has been renamed to <#%d>", ctx.ChannelId))
 }
 
 func (RenameCommand) Parent() interface{} {

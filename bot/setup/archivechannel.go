@@ -40,9 +40,8 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 	var archiveChannelId uint64
 
 	// Prefer channel mention
-	mentions := msg.ChannelMentions()
-	if len(mentions) > 0 {
-		archiveChannelId = mentions[1]
+	if len(msg.MentionChannels) > 0 {
+		archiveChannelId = msg.MentionChannels[0].Id
 
 		// Verify that the channel exists
 		exists := false
@@ -55,7 +54,7 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 
 		if !exists {
 			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
-			utils.ReactWithCross(shard, msg)
+			utils.ReactWithCross(shard, &msg)
 			return
 		}
 	} else {
@@ -84,7 +83,7 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 
 		if !found {
 			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
-			utils.ReactWithCross(shard, msg)
+			utils.ReactWithCross(shard, &msg)
 			return
 		}
 	}

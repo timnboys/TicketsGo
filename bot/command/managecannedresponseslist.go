@@ -5,8 +5,6 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
-	"strconv"
 	"strings"
 )
 
@@ -30,13 +28,8 @@ func (ManageCannedResponsesList) PermissionLevel() utils.PermissionLevel {
 }
 
 func (ManageCannedResponsesList) Execute(ctx utils.CommandContext) {
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
 	idsChan := make(chan []string)
-	go database.GetCannedResponses(guildId, idsChan)
+	go database.GetCannedResponses(ctx.Guild.Id, idsChan)
 	
 	var joined string
 	for _, id := range <-idsChan {

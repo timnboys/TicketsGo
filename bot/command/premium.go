@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
 	uuid "github.com/satori/go.uuid"
-	"strconv"
 	"time"
 )
 
@@ -30,15 +28,10 @@ func (PremiumCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (PremiumCommand) Execute(ctx utils.CommandContext) {
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
 	if len(ctx.Args) == 0 {
 		if ctx.IsPremium {
 			expiryChan := make(chan int64)
-			go database.GetExpiry(guildId, expiryChan)
+			go database.GetExpiry(ctx.Guild.Id, expiryChan)
 			expiry := <-expiryChan // millis
 
 			parsed := time.Unix(0, expiry * int64(time.Millisecond))
@@ -71,12 +64,7 @@ func (PremiumCommand) Execute(ctx utils.CommandContext) {
 		go database.PopKey(key, lengthChan)
 		length := <-lengthChan
 
-		userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
-			sentry.ErrorWithContext(err, ctx.ToErrorContext())
-			return
-		}
-
-		go database.AddPremium(key.String(), guildId, userId, length, userId)
+		go database.AddPremium(key.String(), ctx.Guild.Id, ctx.User.Id, length, ctx.User.Id)
 		ctx.ReactWithCheck()
 	}
 }

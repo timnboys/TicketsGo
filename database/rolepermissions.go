@@ -19,7 +19,7 @@ func IsSupportRole(guildId, roleId uint64, ch chan bool) {
 
 func IsAdminRole(guildId, roleId uint64, ch chan bool) {
 	var node RolePermissions
-	Db.Where(RolePermissions{GuildId: guildId, RoleId: rollId}).First(&node)
+	Db.Where(RolePermissions{GuildId: guildId, RoleId: roleId}).First(&node)
 	ch <- node.Admin
 }
 

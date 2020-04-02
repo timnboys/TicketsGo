@@ -4,8 +4,9 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/objects/channel"
+	"github.com/rxdn/gdl/permission"
+	"github.com/rxdn/gdl/rest"
 	"strings"
 )
 
@@ -36,12 +37,12 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	user := false
-	roles := make([]string, 0)
+	roles := make([]uint64, 0)
 
 	if len(ctx.Message.Mentions) > 0 {
 		user = true
 		for _, mention := range ctx.Message.Mentions {
-			go database.AddAdmin(ctx.Guild.ID, mention.ID)
+			go database.AddAdmin(ctx.Guild.Id, mention.Id)
 		}
 	} else if len(ctx.Message.MentionRoles) > 0 {
 		for _, mention := range ctx.Message.MentionRoles {
@@ -55,7 +56,7 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 		for _, role := range ctx.Guild.Roles {
 			if strings.ToLower(role.Name) == roleName {
 				valid = true
-				roles = append(roles, role.ID)
+				roles = append(roles, role.Id)
 				break
 			}
 		}
@@ -70,11 +71,11 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 
 	// Add roles to DB
 	for _, role := range roles {
-		go database.AddAdminRole(ctx.Guild.ID, role)
+		go database.AddAdminRole(ctx.Guild.Id, role)
 	}
 
-	openTicketsChan := make(chan []*int64)
-	go database.GetOpenTicketChannelIds(ctx.GuildId, openTicketsChan)
+	openTicketsChan := make(chan []*uint64)
+	go database.GetOpenTicketChannelIds(ctx.Guild.Id, openTicketsChan)
 
 	// Update permissions for existing tickets
 	for _, channelId := range <-openTicketsChan {
@@ -84,42 +85,41 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 		if channelId == nil {
 			continue
 		}
-		
-		var overwrites []*discordgo.PermissionOverwrite
-		ch, err := ctx.Shard.Channel(strconv.Itoa(int(*channelId))); if err != nil {
+
+		ch, err := ctx.Shard.GetChannel(*channelId); if err != nil {
 			continue
 		}
 
-		overwrites = ch.PermissionOverwrites
+		overwrites := ch.PermissionOverwrites
 
 		if user {
 			// If adding individual admins, apply each override individually
 			for _, mention := range ctx.Message.Mentions {
-				overwrites = append(overwrites, &discordgo.PermissionOverwrite{
-					ID: mention.ID,
-					Type: "member",
-					Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
+				overwrites = append(overwrites, &channel.PermissionOverwrite{
+					Id: mention.Id,
+					Type: channel.PermissionTypeMember,
+					Allow: permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),
 					Deny: 0,
 				})
 			}
 		} else {
 			// If adding a role as an admin, apply overrides to role
 			for _, role := range roles {
-				overwrites = append(overwrites, &discordgo.PermissionOverwrite{
-					ID:    role,
-					Type:  "role",
-					Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
+				overwrites = append(overwrites, &channel.PermissionOverwrite{
+					Id:    role,
+					Type:  channel.PermissionTypeRole,
+					Allow: permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),
 					Deny: 0,
 				})
 			}
 		}
 
-		data := discordgo.ChannelEdit{
+		data := rest.ModifyChannelData{
 			PermissionOverwrites: overwrites,
 			Position: ch.Position,
 		}
 
-		if _, err = ctx.Shard.ChannelEditComplex(strconv.Itoa(int(*channelId)), &data); err != nil {
+		if _, err = ctx.Shard.ModifyChannel(*channelId, data); err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		}
 	}

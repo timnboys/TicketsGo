@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"strings"
 )
 
@@ -34,26 +35,23 @@ func (HelpCommand) Execute(ctx utils.CommandContext) {
 	}
 	msg = strings.Trim(msg, "\n")
 
-	ch, err := ctx.Shard.UserChannelCreate(ctx.User.ID); if err != nil {
+	dmChannel, err := ctx.Shard.CreateDM(ctx.User.Id); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
-	if ch != nil {
-		embed := utils.NewEmbed().
+	if dmChannel != nil {
+		embed := embed.NewEmbed().
 			SetColor(int(utils.Green)).
 			SetTitle("Help").
 			SetDescription(msg)
 
 		if !ctx.IsPremium {
-			embed.SetFooter("Powered by ticketsbot.net", utils.AvatarUrl)
+			embed.SetFooter("Powered by ticketsbot.net", ctx.Shard.SelfAvatar(256))
 		}
 
 		// Explicitly ignore error to fix 403 (Cannot send messages to this user)
-		_, _ = ctx.Shard.ChannelMessageSendEmbed(ch.ID, embed.MessageEmbed); if err != nil {
-			sentry.ErrorWithContext(err, ctx.ToErrorContext())
-			return
-		}
+		_, _ = ctx.Shard.CreateMessageEmbed(dmChannel.Id, embed)
 	}
 
 	ctx.ReactWithCheck()

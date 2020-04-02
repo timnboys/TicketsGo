@@ -89,7 +89,6 @@ func OnCloseReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 		User:        user,
 		Guild:       guild,
 		ChannelId:   e.ChannelId,
-		MessageId:   e.MessageId,
 		Root:        "close",
 		Args:        make([]string, 0),
 		IsPremium:   <-isPremium,

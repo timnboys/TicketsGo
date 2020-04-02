@@ -5,7 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"strconv"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"strings"
 )
 
@@ -29,15 +29,15 @@ func (ViewStaffCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
-	embed := utils.NewEmbed().
+	embed := embed.NewEmbed().
 		SetColor(int(utils.Green)).
 		SetTitle("Staff")
 
 	var fieldContent string // temp var
 
 	// Add field for admin users
-	adminUsers := make(chan []int64)
-	go database.GetAdmins(ctx.Guild.ID, adminUsers)
+	adminUsers := make(chan []uint64)
+	go database.GetAdmins(ctx.Guild.Id, adminUsers)
 	for _, adminUserId := range <-adminUsers {
 		fieldContent += fmt.Sprintf("• <@%d> (`%d`)\n", adminUserId, adminUserId)
 	}
@@ -48,19 +48,20 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	embed.AddField("Admin Users", fieldContent, true)
 	fieldContent = ""
 
+	// get existing guild roles
+	allRoles, err := ctx.Shard.GetGuildRoles(ctx.Guild.Id); if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
+
 	// Add field for admin roles
-	adminRoles := make(chan []int64)
-	go database.GetAdminRoles(ctx.Guild.ID, adminRoles)
+	adminRoles := make(chan []uint64)
+	go database.GetAdminRoles(ctx.Guild.Id, adminRoles)
 	for _, adminRoleId := range <-adminRoles {
-		// Resolve role ID to name
-		role, err := ctx.Shard.State.Role(ctx.Guild.ID, strconv.Itoa(int(adminRoleId))); if err != nil {
-			role, err = ctx.Shard.State.Role(ctx.Guild.ID, strconv.Itoa(int(adminRoleId))); if err != nil {
-				// Role has likely been deleted
-				continue
+		for _, guildRole := range allRoles {
+			if guildRole.Id == adminRoleId {
+				fieldContent += fmt.Sprintf("• %s (`%d`)\n", guildRole.Name, adminRoleId)
 			}
 		}
-
-		fieldContent += fmt.Sprintf("• %s (`%d`)\n", role.Name, adminRoleId)
 	}
 	fieldContent = strings.TrimSuffix(fieldContent, "\n")
 	if fieldContent == "" {
@@ -72,8 +73,8 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	embed.AddBlankField(false) // Add spacer between admin & support reps
 
 	// Add field for support representatives
-	supportUsers := make(chan []int64)
-	go database.GetSupport(ctx.Guild.ID, supportUsers)
+	supportUsers := make(chan []uint64)
+	go database.GetSupport(ctx.Guild.Id, supportUsers)
 	for _, supportUserId := range <-supportUsers {
 		fieldContent += fmt.Sprintf("• <@%d> (`%d`)\n", supportUserId, supportUserId)
 	}
@@ -85,18 +86,14 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	fieldContent = ""
 
 	// Add field for admin roles
-	supportRoles := make(chan []int64)
-	go database.GetSupportRoles(ctx.Guild.ID, supportRoles)
+	supportRoles := make(chan []uint64)
+	go database.GetSupportRoles(ctx.Guild.Id, supportRoles)
 	for _, supportRoleId := range <-supportRoles {
-		// Resolve role ID to name
-		role, err := ctx.Shard.State.Role(ctx.Guild.ID, strconv.Itoa(int(supportRoleId))); if err != nil {
-			role, err = ctx.Shard.State.Role(ctx.Guild.ID, strconv.Itoa(int(supportRoleId))); if err != nil {
-				// Role has likely been deleted
-				continue
+		for _, guildRole := range allRoles {
+			if guildRole.Id == supportRoleId {
+				fieldContent += fmt.Sprintf("• %s (`%d`)\n", guildRole.Name, supportRoleId)
 			}
 		}
-
-		fieldContent += fmt.Sprintf("• %s (`%d`)\n", role.Name, supportRoleId)
 	}
 	fieldContent = strings.TrimSuffix(fieldContent, "\n")
 	if fieldContent == "" {
@@ -105,7 +102,7 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	embed.AddField("Support Roles", fieldContent, true)
 	fieldContent = ""
 
-	msg, err := ctx.Shard.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed)
+	msg, err := ctx.Shard.CreateMessageEmbed(ctx.ChannelId, embed)
 	if err != nil {
 		sentry.LogWithContext(err, ctx.ToErrorContext())
 	} else {

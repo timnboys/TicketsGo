@@ -28,9 +28,9 @@ func (SetupCommand) PermissionLevel() utils.PermissionLevel {
 
 func (SetupCommand) Execute(ctx utils.CommandContext) {
 	u := setup.SetupUser{
-		Guild:   ctx.Guild.ID,
-		User:    ctx.User.ID,
-		Channel: ctx.Channel,
+		Guild:   ctx.Guild.Id,
+		User:    ctx.User.Id,
+		Channel: ctx.ChannelId,
 		Session: ctx.Shard,
 	}
 
@@ -45,7 +45,7 @@ func (SetupCommand) Execute(ctx utils.CommandContext) {
 		stage := state.GetStage()
 		if stage != nil {
 			// Psuedo-premium
-			utils.SendEmbed(ctx.Shard, ctx.Channel, utils.Green, "Setup", (*stage).Prompt(), 120, true)
+			utils.SendEmbed(ctx.Shard, ctx.ChannelId, utils.Green, "Setup", (*stage).Prompt(), 120, true)
 		}
 	}
 }

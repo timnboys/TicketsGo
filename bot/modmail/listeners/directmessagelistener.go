@@ -12,9 +12,9 @@ import (
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
+	"github.com/rxdn/gdl/objects/guild"
 	"net/http"
 	"strconv"
 	"strings"
@@ -70,47 +70,40 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 			}
 
 			targetGuild := guilds[targetGuildId - 1]
-			staffChannel, err := modmail.OpenModMailTicket(s, targetGuild, e.Author, userId)
+			staffChannel, err := modmail.OpenModMailTicket(s, targetGuild, e.Author)
 			if err == nil {
-				utils.SendEmbed(s, dmChannel.ID, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), 0, true)
+				utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), 0, true)
 
 				// Send guild's welcome message
 				welcomeMessageChan := make(chan string)
 				go database.GetWelcomeMessage(targetGuild.Id, welcomeMessageChan)
 				welcomeMessage := <-welcomeMessageChan
 
-				utils.SendEmbed(s, dmChannel.ID, utils.Green, "Modmail", welcomeMessage, 0, true)
+				utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", welcomeMessage, 0, true)
 				utils.SendEmbed(s, staffChannel, utils.Green, "Modmail", welcomeMessage, 0, true)
 			} else {
-				utils.SendEmbed(s, dmChannel.ID, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), 30, true)
+				utils.SendEmbed(s, dmChannel.Id, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), 30, true)
 			}
 		} else { // Forward message to guild or handle command
 			// Create fake guild object
-			targetGuild := strconv.Itoa(int(session.Guild))
-			guildChan := make(chan discordgo.Guild)
-			go createFakeGuild(targetGuild, guildChan)
+			guildChan := make(chan guild.Guild)
+			go createFakeGuild(session.Guild, guildChan)
 			guild := <-guildChan
 
 			// Determine whether premium guild
 			premiumChan := make(chan bool)
 			go utils.IsPremiumGuild(utils.CommandContext{
-				GuildId: session.Guild,
 				Guild:   &guild,
 			}, premiumChan)
 			isPremium := <-premiumChan
 
 			// Update context
 			ctx.Guild = &guild
-			ctx.GuildId = session.Guild
 			ctx.IsPremium = isPremium
-			ctx.Channel = dmChannel.ID
+			ctx.ChannelId = dmChannel.Id
 
 			// Parse DM channel ID
-			dmChannelId, err := strconv.ParseInt(dmChannel.ID, 10, 64); if err != nil {
-				sentry.ErrorWithContext(err, ctx.ToErrorContext())
-				return
-			}
-			ctx.ChannelId = dmChannelId
+			ctx.ChannelId = dmChannel.Id
 
 			var isCommand bool
 			ctx, isCommand = handleCommand(ctx, session)
@@ -120,15 +113,13 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 				case "close": modmail.HandleClose(session, ctx)
 				}
 			} else {
-				sendMessage(session, ctx, dmChannel.ID)
+				sendMessage(session, ctx, dmChannel.Id)
 			}
 		}
 	}()
 }
 
-func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandContext, dmChannel string) {
-	channel := strconv.Itoa(int(session.StaffChannel))
-
+func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandContext, dmChannel uint64) {
 	// Preferably send via a webhook
 	webhookChan := make(chan *string)
 	go database.GetWebhookByUuid(session.Uuid, webhookChan)
@@ -136,11 +127,11 @@ func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 
 	success := false
 	if webhook != nil {
-		success = executeWebhook(session.Uuid, *webhook, ctx.Message.ContentWithMentionsReplaced(), ctx.User.Username, ctx.User.AvatarURL("256"))
+		success = executeWebhook(session.Uuid, *webhook, ctx.Message.Content, ctx.User.Username, ctx.User.AvatarUrl(256))
 	}
 
 	if !success {
-		if _, err := ctx.Shard.ChannelMessageSend(channel, ctx.Message.ContentWithMentionsReplaced()); err != nil {
+		if _, err := ctx.Shard.CreateMessage(session.StaffChannel, ctx.Message.Content); err != nil {
 			utils.SendEmbed(ctx.Shard, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), 30, ctx.IsPremium)
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
@@ -157,10 +148,10 @@ func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		}
 
 		for _, attachment := range ctx.Message.Attachments {
-			content += fmt.Sprintf("\n▶️ %s", attachment.ProxyURL)
+			content += fmt.Sprintf("\n▶️ %s", attachment.ProxyUrl)
 		}
 
-		if _, err := ctx.Shard.ChannelMessageSend(channel, content); err != nil {
+		if _, err := ctx.Shard.CreateMessage(session.StaffChannel, content); err != nil {
 			utils.SendEmbed(ctx.Shard, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), 30, ctx.IsPremium)
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
@@ -233,17 +224,17 @@ func handleCommand(ctx utils.CommandContext, session *modmaildatabase.ModMailSes
 	return ctx, true
 }
 
-func createFakeGuild(id string, res chan discordgo.Guild) {
+func createFakeGuild(id uint64, res chan guild.Guild) {
 	name := make(chan string)
 	go cache.Client.GetGuildName(id, name)
 
-	owner := make(chan string)
+	owner := make(chan uint64)
 	go cache.Client.GetGuildOwner(id, owner)
 
-	guild := discordgo.Guild{
-		ID:      id,
+	guild := guild.Guild{
+		Id:      id,
 		Name:    <-name,
-		OwnerID: <-owner,
+		OwnerId: <-owner,
 	}
 
 	res <-guild

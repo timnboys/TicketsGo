@@ -14,7 +14,7 @@ func (PremiumKeys) TableName() string {
 }
 
 func AddKey(length int64, ch chan uuid.UUID) {
-	uuid := uuid.Must(uuid.NewV4())
+	uuid := uuid.NewV4()
 
 	Db.Create(&PremiumKeys{
 		Key:    uuid.String(),

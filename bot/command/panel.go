@@ -25,7 +25,7 @@ func (PanelCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (PanelCommand) Execute(ctx utils.CommandContext) {
-	msg := fmt.Sprintf("Visit https://panel.ticketsbot.net/manage/%d/panels to configure a panel", ctx.GuildId)
+	msg := fmt.Sprintf("Visit https://panel.ticketsbot.net/manage/%d/panels to configure a panel", ctx.Guild.Id)
 	ctx.SendEmbed(utils.Green, "Panel", msg)
 
 	/*// Check the panel quota

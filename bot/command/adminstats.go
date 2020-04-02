@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"runtime"
 )
 
@@ -30,7 +31,7 @@ func (AdminStatsCommand) Execute(ctx utils.CommandContext) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	embed := utils.NewEmbed().
+	embed := embed.NewEmbed().
 		SetTitle("Admin").
 		SetColor(int(utils.Green)).
 
@@ -38,7 +39,7 @@ func (AdminStatsCommand) Execute(ctx utils.CommandContext) {
 		AddField("Stack", fmt.Sprintf("%dMB", m.StackSys / 1024 / 1024), true).
 		AddField("Total Reserved", fmt.Sprintf("%dMB", m.Sys / 1024 / 1024), true)
 
-	msg, err := ctx.Shard.ChannelMessageSendEmbed(ctx.Channel, embed.MessageEmbed); if err != nil {
+	msg, err := ctx.Shard.CreateMessageEmbed(ctx.ChannelId, embed); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}

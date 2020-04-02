@@ -6,9 +6,11 @@ import (
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
+	"github.com/rxdn/gdl/objects/channel"
+	"github.com/rxdn/gdl/objects/channel/message"
+	"github.com/rxdn/gdl/permission"
+	"github.com/rxdn/gdl/rest"
 	uuid "github.com/satori/go.uuid"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,54 +35,71 @@ func (OpenCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-var idLocks = make(map[int64]*sync.Mutex)
+var idLocks = make(map[uint64]*sync.Mutex)
 
 func (OpenCommand) Execute(ctx utils.CommandContext) {
-	ch := make(chan int64)
-
 	// Get the panel struct, if we're using one
 	var panel database.Panel
 	if ctx.IsFromPanel {
 		panelChan := make(chan database.Panel)
-		go database.GetPanelByMessageId(ctx.MessageId, panelChan)
+		go database.GetPanelByMessageId(ctx.Message.Id, panelChan)
 		panel = <-panelChan
 	}
 
 	// If we're using a panel, then we need to create the ticket in the specified category
-	var category int64
+	var category uint64
 	if ctx.IsFromPanel && panel.TargetCategory != 0 {
 		category = panel.TargetCategory
 	} else { // else we can just use the default category
-		go database.GetCategory(ctx.GuildId, ch)
-		category = <- ch
+		ch := make(chan uint64)
+		go database.GetCategory(ctx.Guild.Id, ch)
+		category = <-ch
 	}
 
 	// Make sure the category exists
 	if category != 0 {
-		categoryStr := strconv.Itoa(int(category))
-		if _, err := ctx.Shard.State.Channel(categoryStr); err != nil {
-			if _, err = ctx.Shard.Channel(categoryStr); err != nil {
-				category = 0
-			}
+		if _, err := ctx.Shard.GetChannel(category); err != nil {
+			category = 0
 		}
 	}
 
-	requiredPerms := []utils.Permission{
-		utils.ManageChannels,
-		utils.ManageRoles,
-		utils.ViewChannel,
-		utils.SendMessages,
-		utils.ReadMessageHistory,
+	requiredPerms := []permission.Permission{
+		permission.ManageChannels,
+		permission.ManageRoles,
+		permission.ViewChannel,
+		permission.SendMessages,
+		permission.ReadMessageHistory,
 	}
 
-	hasAdmin := make(chan bool)
-	go ctx.MemberHasPermission(utils.Id, utils.Administrator, hasAdmin)
-	if !<-hasAdmin {
-		for _, perm := range requiredPerms {
-			hasPermChan := make(chan bool)
-			go ctx.MemberHasPermission(utils.Id, perm, hasPermChan)
-			if !<-hasPermChan {
-				ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
+	if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), permission.Administrator) {
+		if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), requiredPerms...) {
+			ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
+			if ctx.ShouldReact {
+				ctx.ReactWithCross()
+			}
+			return
+		}
+	}
+
+	useCategory := category != 0
+	if useCategory {
+		// Check if the category still exists
+		ch, err := ctx.Shard.GetChannel(category)
+		if err != nil {
+			useCategory = false
+			go database.DeleteCategory(ctx.Guild.Id)
+			return
+		}
+
+		if ch.Type != channel.ChannelTypeGuildCategory {
+			useCategory = false
+			go database.DeleteCategory(ctx.Guild.Id)
+			return
+		}
+
+		if !permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), category, permission.Administrator) {
+			if !permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), category, requiredPerms...) {
+				ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
 				if ctx.ShouldReact {
 					ctx.ReactWithCross()
 				}
@@ -89,52 +108,14 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		}
 	}
 
-	categoryStr := strconv.Itoa(int(category))
-	useCategory := category != 0
-	if useCategory {
-		// Check if the category still exists
-		ch, err := ctx.Shard.Channel(categoryStr); if err != nil {
-			useCategory = false
-			go database.DeleteCategory(ctx.GuildId)
-			return
-		}
-
-		if ch.Type != discordgo.ChannelTypeGuildCategory {
-			useCategory = false
-			go database.DeleteCategory(ctx.GuildId)
-			return
-		}
-
-		hasAdmin := make(chan bool)
-		go ctx.ChannelMemberHasPermission(categoryStr, utils.Id, utils.Administrator, hasAdmin)
-		if !<-hasAdmin {
-			for _, perm := range requiredPerms {
-				hasPermChan := make(chan bool)
-				go ctx.ChannelMemberHasPermission(categoryStr, utils.Id, perm, hasPermChan)
-				if !<-hasPermChan {
-					ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
-					if ctx.ShouldReact {
-						ctx.ReactWithCross()
-					}
-					return
-				}
-			}
-		}
-	}
-
 	// Make sure ticket count is whithin ticket limit
 	ticketLimitChan := make(chan int)
-	go database.GetTicketLimit(ctx.GuildId, ticketLimitChan)
-	ticketLimit := <- ticketLimitChan
-
-	userId, err := strconv.ParseInt(ctx.User.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
+	go database.GetTicketLimit(ctx.Guild.Id, ticketLimitChan)
+	ticketLimit := <-ticketLimitChan
 
 	ticketCount := 0
 	openedTicketsChan := make(chan []string)
-	go database.GetOpenTicketsOpenedBy(ctx.GuildId, userId, openedTicketsChan)
+	go database.GetOpenTicketsOpenedBy(ctx.Guild.Id, ctx.User.Id, openedTicketsChan)
 	openedTickets := <-openedTicketsChan
 	ticketCount = len(openedTickets)
 
@@ -161,15 +142,12 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	// Make sure there's not > 50 channels in a category
 	if useCategory {
-		channels, err := ctx.Shard.GuildChannels(ctx.Guild.ID); if err != nil {
-			channels = make([]*discordgo.Channel, 0)
-		}
+		channels, _ := ctx.Shard.GetGuildChannels(ctx.Guild.Id)
 
 		channelCount := 0
-		categoryRaw := strconv.Itoa(int(category))
 		for _, channel := range channels {
-			if channel.ParentID != "" && channel.ParentID == categoryRaw {
-				channelCount += 1
+			if channel.ParentId == category {
+				channelCount++
 			}
 		}
 
@@ -183,23 +161,20 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		ctx.ReactWithCheck()
 	}
 
-	// ID lock
-	lock := idLocks[ctx.GuildId]
+	// ID lock: If we open 2 tickets simultaneously, they will end up having the same ID. Instead we should lock the guild until the ticket has been opened
+	lock := idLocks[ctx.Guild.Id]
 	if lock == nil {
 		lock = &sync.Mutex{}
 	}
-	idLocks[ctx.GuildId] = lock
+	idLocks[ctx.Guild.Id] = lock
 
 	// Create channel
-	ticketUuid, err := uuid.NewV4(); if err != nil {
-		sentry.LogWithContext(err, ctx.ToErrorContext())
-		return
-	}
+	ticketUuid := uuid.NewV4()
 
 	lock.Lock()
 	idChan := make(chan int)
-	go database.CreateTicket(ticketUuid.String(), ctx.GuildId, userId, idChan)
-	id := <- idChan
+	go database.CreateTicket(ticketUuid.String(), ctx.Guild.Id, ctx.User.Id, idChan)
+	id := <-idChan
 	lock.Unlock()
 
 	overwrites := createOverwrites(ctx)
@@ -208,49 +183,50 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	var name string
 
 	namingScheme := make(chan database.NamingScheme)
-	go database.GetTicketNamingScheme(ctx.GuildId, namingScheme)
+	go database.GetTicketNamingScheme(ctx.Guild.Id, namingScheme)
 	if <-namingScheme == database.Username {
 		name = fmt.Sprintf("ticket-%s", ctx.User.Username)
 	} else {
 		name = fmt.Sprintf("ticket-%d", id)
 	}
 
-	data := discordgo.GuildChannelCreateData{
-		Name: name,
-		Type: discordgo.ChannelTypeGuildText,
-		Topic: subject,
+	data := rest.CreateChannelData{
+		Name:                 name,
+		Type:                 channel.ChannelTypeGuildText,
+		Topic:                subject,
 		PermissionOverwrites: overwrites,
+		ParentId:             category, //
 	}
 	if useCategory {
-		data.ParentID = strconv.Itoa(int(category))
+		data.ParentId = category
 	}
 
-	c, err := ctx.Shard.GuildChannelCreateComplex(ctx.Guild.ID, data)
+	channel, err := ctx.Shard.CreateGuildChannel(ctx.Guild.Id, data)
 	if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
 	// UpdateUser channel in DB
-	channelId, err := strconv.ParseInt(c.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-	go database.SetTicketChannel(id, ctx.GuildId, channelId)
+	go database.SetTicketChannel(id, ctx.Guild.Id, channel.Id)
 
-	sendWelcomeMessage(ctx, c, subject, id)
+	sendWelcomeMessage(ctx, channel, subject, id)
 
 	// Ping @everyone
 	pingEveryoneChan := make(chan bool)
-	go database.IsPingEveryone(ctx.GuildId, pingEveryoneChan)
-	pingEveryone := <- pingEveryoneChan
+	go database.IsPingEveryone(ctx.Guild.Id, pingEveryoneChan)
+	pingEveryone := <-pingEveryoneChan
 
 	if pingEveryone {
-		msg, err := ctx.Shard.ChannelMessageSend(c.ID, "@everyone")
+		pingMessage, err := ctx.Shard.CreateMessageComplex(channel.Id, rest.CreateMessageData{
+			Content:         "@everyone",
+			AllowedMentions: message.MentionEveryone,
+		})
+
 		if err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		} else {
-			if err = ctx.Shard.ChannelMessageDelete(c.ID, msg.ID); err != nil {
+			if err = ctx.Shard.DeleteMessage(channel.Id, pingMessage.Id); err != nil {
 				sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			}
 		}
@@ -258,13 +234,13 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	if ctx.ShouldReact {
 		// Let the user know the ticket has been opened
-		ctx.SendEmbed(utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", c.Mention()))
+		ctx.SendEmbed(utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", channel.Mention()))
 	}
 
 	go statsd.IncrementKey(statsd.TICKETS)
 
 	if ctx.IsPremium {
-		go createWebhook(ctx, c.ID, ticketUuid.String())
+		go createWebhook(ctx, channel.Id, ticketUuid.String())
 	}
 }
 
@@ -288,16 +264,18 @@ func (OpenCommand) HelperOnly() bool {
 	return false
 }
 
-func createWebhook(ctx utils.CommandContext, channelId, uuid string) {
-	hasPermission := make(chan bool)
-	go utils.ChannelMemberHasPermission(ctx.Shard, ctx.Guild.ID, channelId, ctx.Shard.State.User.ID, utils.ManageWebhooks, hasPermission) // Do we actually need this?
-	if <-hasPermission {
-		webhook, err := ctx.Shard.WebhookCreate(channelId, ctx.Shard.State.User.Username, ctx.Shard.State.User.Avatar); if err != nil {
+func createWebhook(ctx utils.CommandContext, channelId uint64, uuid string) {
+	if permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), channelId, permission.ManageWebhooks) { // Do we actually need this?
+		webhook, err := ctx.Shard.CreateWebhook(channelId, rest.WebhookData{
+			Username: ctx.Shard.SelfUsername(),
+			Avatar:   ctx.Shard.SelfAvatar(256),
+		})
+		if err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 			return
 		}
 
-		formatted := fmt.Sprintf("%s/%s", webhook.ID, webhook.Token)
+		formatted := fmt.Sprintf("%d/%s", webhook.Id, webhook.Token)
 
 		ticketWebhook := database.TicketWebhook{
 			Uuid:       uuid,
@@ -309,11 +287,11 @@ func createWebhook(ctx utils.CommandContext, channelId, uuid string) {
 
 func calculateWeeklyResponseTime(ctx utils.CommandContext, res chan int64) {
 	responseTimesChan := make(chan map[string]int64)
-	go database.GetGuildResponseTimes(ctx.GuildId, responseTimesChan)
+	go database.GetGuildResponseTimes(ctx.Guild.Id, responseTimesChan)
 	responseTimes := <-responseTimesChan
 
 	openTimesChan := make(chan map[string]*int64)
-	go database.GetOpenTimes(ctx.GuildId, openTimesChan)
+	go database.GetOpenTimes(ctx.Guild.Id, openTimesChan)
 	openTimes := <-openTimesChan
 
 	current := time.Now().UnixNano() / int64(time.Millisecond)
@@ -326,7 +304,7 @@ func calculateWeeklyResponseTime(ctx utils.CommandContext, res chan int64) {
 			continue
 		}
 
-		if current - *openTime < 60 * 60 * 24 * 7 * 1000 {
+		if current-*openTime < 60*60*24*7*1000 {
 			weekly += t
 			weeklyCounter++
 		}
@@ -338,11 +316,11 @@ func calculateWeeklyResponseTime(ctx utils.CommandContext, res chan int64) {
 	res <- weekly
 }
 
-func sendWelcomeMessage(ctx utils.CommandContext, channel *discordgo.Channel, subject string, ticketId int) {
+func sendWelcomeMessage(ctx utils.CommandContext, channel *channel.Channel, subject string, ticketId int) {
 	// Send welcome message
 	welcomeMessageChan := make(chan string)
-	go database.GetWelcomeMessage(ctx.GuildId, welcomeMessageChan)
-	welcomeMessage := <- welcomeMessageChan
+	go database.GetWelcomeMessage(ctx.Guild.Id, welcomeMessageChan)
+	welcomeMessage := <-welcomeMessageChan
 
 	// %average_response%
 	if ctx.IsPremium && strings.Contains(welcomeMessage, "%average_response%") {
@@ -359,76 +337,71 @@ func sendWelcomeMessage(ctx utils.CommandContext, channel *discordgo.Channel, su
 	}
 
 	// Send welcome message
-	if msg := utils.SendEmbedWithResponse(ctx.Shard, channel.ID, utils.Green, subject, welcomeMessage, 0, ctx.IsPremium); msg != nil {
+	if msg := utils.SendEmbedWithResponse(ctx.Shard, channel.Id, utils.Green, subject, welcomeMessage, 0, ctx.IsPremium); msg != nil {
 		// Add close reaction to the welcome message
-		err := ctx.Shard.MessageReactionAdd(channel.ID, msg.ID, "🔒")
+		err := ctx.Shard.CreateReaction(channel.Id, msg.Id, "🔒")
 		if err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		} else {
 			// Parse message ID
-			messageId, err := strconv.ParseInt(msg.ID, 10, 64)
-			if err != nil {
-				sentry.ErrorWithContext(err, ctx.ToErrorContext())
-			} else {
-				go database.SetWelcomeMessageId(ticketId, ctx.GuildId, messageId)
-			}
+			go database.SetWelcomeMessageId(ticketId, ctx.Guild.Id, msg.Id)
 		}
 	}
 }
 
-func createOverwrites(ctx utils.CommandContext) []*discordgo.PermissionOverwrite {
+func createOverwrites(ctx utils.CommandContext) []*channel.PermissionOverwrite {
 	// Apply permission overwrites
-	overwrites := make([]*discordgo.PermissionOverwrite, 0)
-	overwrites = append(overwrites, &discordgo.PermissionOverwrite{ // @everyone
-		ID: ctx.Guild.ID,
-		Type: "role",
+	overwrites := make([]*channel.PermissionOverwrite, 0)
+	overwrites = append(overwrites, &channel.PermissionOverwrite{ // @everyone
+		Id:    ctx.Guild.Id,
+		Type:  channel.PermissionTypeRole,
 		Allow: 0,
-		Deny: utils.SumPermissions(utils.ViewChannel),
+		Deny:  permission.BuildPermissions(permission.ViewChannel),
 	})
 
 	// Create list of members & roles who should be added to the ticket
-	allowedUsers := make([]string, 0)
-	allowedRoles := make([]string, 0)
+	allowedUsers := make([]uint64, 0)
+	allowedRoles := make([]uint64, 0)
 
 	// Get support reps
-	supportUsers := make(chan []int64)
-	go database.GetSupport(ctx.Guild.ID, supportUsers)
+	supportUsers := make(chan []uint64)
+	go database.GetSupport(ctx.Guild.Id, supportUsers)
 	for _, user := range <-supportUsers {
-		allowedUsers = append(allowedUsers, strconv.Itoa(int(user)))
+		allowedUsers = append(allowedUsers, user)
 	}
 
 	// Get support roles
-	supportRoles := make(chan []int64)
-	go database.GetSupportRoles(ctx.Guild.ID, supportRoles)
+	supportRoles := make(chan []uint64)
+	go database.GetSupportRoles(ctx.Guild.Id, supportRoles)
 	for _, role := range <-supportRoles {
-		allowedRoles = append(allowedRoles, strconv.Itoa(int(role)))
+		allowedRoles = append(allowedRoles, role)
 	}
 
 	// Add ourselves and the sender
-	allowedUsers = append(allowedUsers, utils.Id, ctx.User.ID)
+	allowedUsers = append(allowedUsers, ctx.Shard.SelfId(), ctx.User.Id)
 
 	for _, member := range allowedUsers {
-		allow := []utils.Permission{utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks}
+		allow := []permission.Permission{permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks}
 
 		// Give ourselves permissions to create webbooks
-		if member == ctx.Shard.State.User.ID {
-			allow = append(allow, utils.ManageWebhooks)
+		if member == ctx.Shard.SelfId() {
+			allow = append(allow, permission.ManageWebhooks)
 		}
 
-		overwrites = append(overwrites, &discordgo.PermissionOverwrite{
-			ID: member,
-			Type: "member",
-			Allow: utils.SumPermissions(allow...),
-			Deny: 0,
+		overwrites = append(overwrites, &channel.PermissionOverwrite{
+			Id:    member,
+			Type:  channel.PermissionTypeMember,
+			Allow: permission.BuildPermissions(allow...),
+			Deny:  0,
 		})
 	}
 
 	for _, role := range allowedRoles {
-		overwrites = append(overwrites, &discordgo.PermissionOverwrite{
-			ID: role,
-			Type: "role",
-			Allow: utils.SumPermissions(utils.ViewChannel, utils.SendMessages, utils.AddReactions, utils.AttachFiles, utils.ReadMessageHistory, utils.EmbedLinks),
-			Deny: 0,
+		overwrites = append(overwrites, &channel.PermissionOverwrite{
+			Id:    role,
+			Type:  channel.PermissionTypeRole,
+			Allow: permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),
+			Deny:  0,
 		})
 	}
 

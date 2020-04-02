@@ -15,7 +15,7 @@ type (
 		Token                 string
 		Prefix                string
 		Admins                []uint64
-		Helpers               []string
+		Helpers               []uint64
 		PremiumLookupProxyUrl string `toml:"premium-lookup-proxy-url"`
 		PremiumLookupProxyKey string `toml:"premium-lookup-proxy-key"`
 		Sharding              Sharding

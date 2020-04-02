@@ -21,7 +21,8 @@ type ProxyResponse struct {
 var premiumCache = cache.New(10 * time.Minute, 10 * time.Minute)
 
 func IsPremiumGuild(ctx CommandContext, ch chan bool) {
-	premium, ok := premiumCache.Get(ctx.Guild.ID)
+	guildStr := strconv.FormatUint(ctx.Guild.Id, 10)
+	premium, ok := premiumCache.Get(guildStr)
 
 	if ok {
 		ch<-premium.(bool)
@@ -30,25 +31,19 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 
 	// First lookup by premium key, then votes, then patreon
 	keyLookup := make(chan bool)
-	go database.IsPremium(ctx.GuildId, keyLookup)
+	go database.IsPremium(ctx.Guild.Id, keyLookup)
 
 	if <-keyLookup {
-		premiumCache.Set(ctx.Guild.ID, true, 10 * time.Minute)
+		premiumCache.Set(guildStr, true, 10 * time.Minute)
 		ch<-true
 	} else {
 		// Lookup votes
-		ownerId, err := strconv.ParseInt(ctx.Guild.OwnerID, 10, 64); if err != nil {
-			sentry.ErrorWithContext(err, ctx.ToErrorContext())
-			ch <- false
-			return
-		}
-
 		hasVoted := make(chan bool)
-		go database.HasVoted(ownerId, hasVoted)
+		go database.HasVoted(ctx.Guild.OwnerId, hasVoted)
 		if <-hasVoted {
 			ch <- true
 
-			premiumCache.Set(ctx.Guild.ID, true, 10 * time.Minute)
+			premiumCache.Set(guildStr, true, 10 * time.Minute)
 
 			return
 		}
@@ -58,7 +53,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 			Timeout: time.Second * 3,
 		}
 
-		url := fmt.Sprintf("%s/ispremium?key=%s&id=%s", config.Conf.Bot.PremiumLookupProxyUrl, config.Conf.Bot.PremiumLookupProxyKey, ctx.Guild.OwnerID)
+		url := fmt.Sprintf("%s/ispremium?key=%s&id=%d", config.Conf.Bot.PremiumLookupProxyUrl, config.Conf.Bot.PremiumLookupProxyKey, ctx.Guild.OwnerId)
 		req, err := http.NewRequest("GET", url, nil)
 
 		res, err := client.Do(req); if err != nil {
@@ -81,7 +76,7 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 			return
 		}
 
-		premiumCache.Set(ctx.Guild.ID, proxyResponse.Premium, 10 * time.Minute)
+		premiumCache.Set(guildStr, proxyResponse.Premium, 10 * time.Minute)
 
 		ch <-proxyResponse.Premium
 	}

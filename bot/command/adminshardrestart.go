@@ -26,16 +26,11 @@ func (AdminShardRestartCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (AdminShardRestartCommand) Execute(ctx utils.CommandContext) {
-	if err := ctx.Shard.Close(); err != nil {
+	if err := ctx.Shard.Kill(); err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
 	}
 
-	if err := ctx.Shard.Open(); err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
+	ctx.Shard.EnsureConnect()
 	ctx.SendEmbed(utils.Green, "Admin", "Restarted")
 }
 

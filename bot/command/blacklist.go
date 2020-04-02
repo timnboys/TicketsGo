@@ -3,8 +3,6 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
-	"strconv"
 )
 
 type BlacklistCommand struct {
@@ -35,14 +33,14 @@ func (BlacklistCommand) Execute(ctx utils.CommandContext) {
 
 	user := ctx.Message.Mentions[0]
 
-	if ctx.User.ID == user.ID {
+	if ctx.User.Id == user.Id {
 		ctx.SendEmbed(utils.Red, "Error", "You cannot blacklist yourself")
 		ctx.ReactWithCross()
 		return
 	}
 
 	permissionLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, permissionLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permissionLevelChan)
 	permissionLevel := <- permissionLevelChan
 
 	if permissionLevel > 0 {
@@ -51,24 +49,14 @@ func (BlacklistCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	guildId, err := strconv.ParseInt(ctx.Guild.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
-	userId, err := strconv.ParseInt(user.ID, 10, 64); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
 	isBlacklistedChan := make(chan bool)
-	go database.IsBlacklisted(guildId, userId, isBlacklistedChan)
+	go database.IsBlacklisted(ctx.Guild.Id, user.Id, isBlacklistedChan)
 	isBlacklisted := <- isBlacklistedChan
 
 	if isBlacklisted {
-		go database.RemoveBlacklist(guildId, userId)
+		go database.RemoveBlacklist(ctx.Guild.Id, user.Id)
 	} else {
-		go database.AddBlacklist(guildId, userId)
+		go database.AddBlacklist(ctx.Guild.Id, user.Id)
 	}
 
 	ctx.ReactWithCheck()

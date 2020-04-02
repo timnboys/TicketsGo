@@ -2,19 +2,21 @@ package database
 
 import (
 	"fmt"
+	"github.com/TicketsBot/TicketsGo/sentry"
+	"strconv"
 	"strings"
 	"time"
 )
 
 type Ticket struct {
-	Uuid             string `gorm:"column:UUID;type:varchar(36);unique;primary_key"`
-	Id               int    `gorm:"column:ID"`
+	Uuid             string  `gorm:"column:UUID;type:varchar(36);unique;primary_key"`
+	Id               int     `gorm:"column:ID"`
 	Guild            uint64  `gorm:"column:GUILDID"`
 	Channel          *uint64 `gorm:"column:CHANNELID;nullable"`
 	Owner            uint64  `gorm:"column:OWNERID"`
-	Members          string `gorm:"column:MEMBERS;type:text"`
-	IsOpen           bool   `gorm:"column:OPEN"`
-	OpenTime         *uint64 `gorm:"column:OPENTIME;nullable"`
+	Members          string  `gorm:"column:MEMBERS;type:text"` // TODO: Refactor to make this actually acceptable
+	IsOpen           bool    `gorm:"column:OPEN"`
+	OpenTime         *int64 `gorm:"column:OPENTIME;nullable"`
 	WelcomeMessageId *uint64 `gorm:"column:WELCOMEMESSAGEID;nullable"`
 }
 
@@ -33,7 +35,7 @@ func CreateTicket(uuid string, guild, owner uint64, ch chan int) {
 	go GetNextId(guild, idChan)
 	id := <-idChan
 
-	now := time.Now().UnixNano() / uint64(time.Millisecond)
+	now := time.Now().UnixNano() / int64(time.Millisecond)
 
 	node := Ticket{
 		Uuid:     uuid,
@@ -58,7 +60,7 @@ func SetTicketChannel(id int, guild uint64, channel uint64) {
 	Db.Model(&node).Update("CHANNELID", channel)
 }
 
-func GetMembers(ticket int, guild uint64, ch chan []string) {
+func GetMembers(ticket int, guild uint64, ch chan []uint64) {
 	node := Ticket{
 		Id:    ticket,
 		Guild: guild,
@@ -66,10 +68,20 @@ func GetMembers(ticket int, guild uint64, ch chan []string) {
 
 	Db.Where(node).Take(&node)
 
-	ch <- strings.Split(node.Members, ",")
+	ids := make([]uint64, 0)
+	for _, id := range strings.Split(node.Members, ",") {
+		parsed, err := strconv.ParseUint(id, 10, 64); if err != nil {
+			sentry.Error(err)
+			continue
+		}
+
+		ids = append(ids, parsed)
+	}
+
+	ch <- ids
 }
 
-func AddMember(ticket int, guild uint64, user string) {
+func AddMember(ticket int, guild, user uint64) {
 	node := Ticket{
 		Id:    ticket,
 		Guild: guild,
@@ -77,25 +89,31 @@ func AddMember(ticket int, guild uint64, user string) {
 
 	Db.Where(node).Take(&node)
 
-	updated := fmt.Sprintf("%s,", user)
+	updated := fmt.Sprintf("%d,", user)
 
 	Db.Where(node).Assign("MEMBERS", updated).FirstOrCreate(&node)
 }
 
-func RemoveMember(ticket int, guild uint64, user string) {
-	memberChan := make(chan []string)
+func RemoveMember(ticket int, guild, user uint64) {
+	memberChan := make(chan []uint64)
 	go GetMembers(ticket, guild, memberChan)
 	members := <-memberChan
 
 	for i, member := range members {
-		if member == user || member == "" {
+		if member == user || member == 0 {
 			members[i] = members[len(members)-1]
 			members = members[:len(members)-1]
 		}
 	}
 
+	var s string
+	for _, member := range members {
+		s += strconv.FormatUint(member, 10)
+		s += ","
+	}
+
 	var node Ticket
-	Db.Where(Ticket{Id: ticket, Guild: guild}).Assign("MEMBERS", strings.Join(members, ",")).FirstOrCreate(&node)
+	Db.Where(Ticket{Id: ticket, Guild: guild}).Assign("MEMBERS", s).FirstOrCreate(&node)
 }
 
 func IsTicketChannel(channel uint64, ch chan bool) {
@@ -203,17 +221,17 @@ func GetOpenTicketsOpenedBy(guild, user uint64, ch chan []string) {
 	ch <- tickets
 }
 
-func GetOpenTime(uuid string, ch chan *uint64) {
+func GetOpenTime(uuid string, ch chan *int64) {
 	var node Ticket
 	Db.Where(Ticket{Uuid: uuid}).Take(&node)
 	ch <- node.OpenTime
 }
 
-func GetOpenTimes(guild uint64, ch chan map[string]*uint64) {
+func GetOpenTimes(guild uint64, ch chan map[string]*int64) {
 	var nodes []Ticket
 	Db.Where(Ticket{Guild: guild}).Find(&nodes)
 
-	times := make(map[string]*uint64, 0)
+	times := make(map[string]*int64, 0)
 	for _, node := range nodes {
 		times[node.Uuid] = node.OpenTime
 	}

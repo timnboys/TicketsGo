@@ -3,10 +3,10 @@ package database
 import "time"
 
 type TicketFirstResponse struct {
-	Ticket string `gorm:"column:UUID;type:varchar(36);unique;primary_key"`
-	Guild uint64 `gorm:"column:GUILDID"`
+	Ticket    string `gorm:"column:UUID;type:varchar(36);unique;primary_key"`
+	Guild     uint64 `gorm:"column:GUILDID"`
 	Responder uint64 `gorm:"column:USERID"`
-	Time uint64 `gorm:"column:RESPONSETIME"`
+	Time      int64  `gorm:"column:RESPONSETIME"`
 }
 
 func (TicketFirstResponse) TableName() string {
@@ -14,20 +14,20 @@ func (TicketFirstResponse) TableName() string {
 }
 
 func AddResponseTime(ticket string, guild uint64, responder uint64) {
-	openTimeChan := make(chan *uint64)
+	openTimeChan := make(chan *int64)
 	go GetOpenTime(ticket, openTimeChan)
 	openTime := <-openTimeChan
 	if openTime == nil {
 		return
 	}
 
-	current := uint64(time.Now().UnixNano() / int64(time.Millisecond))
+	current := time.Now().UnixNano() / int64(time.Millisecond)
 
 	Db.Create(&TicketFirstResponse{
-		Ticket: ticket,
-		Guild: guild,
+		Ticket:    ticket,
+		Guild:     guild,
 		Responder: responder,
-		Time: current - *openTime,
+		Time:      current - *openTime,
 	})
 }
 
@@ -37,11 +37,11 @@ func HasResponse(ticket string, ch chan bool) {
 	ch <- count != 0
 }
 
-func GetGuildResponseTimes(guild uint64, ch chan map[string]uint64) {
+func GetGuildResponseTimes(guild uint64, ch chan map[string]int64) {
 	var nodes []TicketFirstResponse
 	Db.Where(TicketFirstResponse{Guild: guild}).Find(&nodes)
 
-	times := make(map[string]uint64)
+	times := make(map[string]int64)
 	for _, node := range nodes {
 		times[node.Ticket] = node.Time
 	}
@@ -49,11 +49,11 @@ func GetGuildResponseTimes(guild uint64, ch chan map[string]uint64) {
 	ch <- times
 }
 
-func GetUserResponseTimes(guild uint64, user uint64, ch chan map[string]uint64) {
+func GetUserResponseTimes(guild uint64, user uint64, ch chan map[string]int64) {
 	var nodes []TicketFirstResponse
 	Db.Where(TicketFirstResponse{Guild: guild, Responder: user}).Find(&nodes)
 
-	times := make(map[string]uint64)
+	times := make(map[string]int64)
 	for _, node := range nodes {
 		times[node.Ticket] = node.Time
 	}

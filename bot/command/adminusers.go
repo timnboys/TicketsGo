@@ -27,7 +27,7 @@ func (AdminUsersCommand) PermissionLevel() utils.PermissionLevel {
 
 func (AdminUsersCommand) Execute(ctx utils.CommandContext) {
 	count := 0
-	for _, guild := range ctx.Shard.State.Guilds {
+	for _, guild := range (*ctx.Shard.Cache).GetGuilds() {
 		count += guild.MemberCount
 	}
 	ctx.SendEmbed(utils.Green, "Admin", fmt.Sprintf("There are %d users on this instance", count))

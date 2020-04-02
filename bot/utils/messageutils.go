@@ -19,11 +19,6 @@ const (
 	Blue   Colour = 472219
 )
 
-var (
-	AvatarUrl           string
-	Id                  uint64
-)
-
 type SentMessage struct {
 	Shard   *gateway.Shard
 	Message *message.Message
@@ -39,7 +34,7 @@ func SendEmbedWithResponse(shard *gateway.Shard, channel uint64, colour Colour, 
 		AddField(title, content, false)
 
 	if !isPremium {
-		msgEmbed.SetFooter("Powered by ticketsbot.net", AvatarUrl)
+		msgEmbed.SetFooter("Powered by ticketsbot.net", shard.SelfAvatar(256))
 	}
 
 	// Explicitly ignore error because it's usually a 403 (missing permissions)
@@ -85,7 +80,7 @@ func ReactWithCheck(shard *gateway.Shard, msg *message.Message) {
 	}
 }
 
-func ReactWithCross(shard *gateway.Shard, msg message.Message) {
+func ReactWithCross(shard *gateway.Shard, msg *message.Message) {
 	if err := shard.CreateReaction(msg.ChannelId, msg.Id, "❌"); err != nil {
 		sentry.LogWithContext(err, sentry.ErrorContext{
 			Guild:   msg.GuildId,

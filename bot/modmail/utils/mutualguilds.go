@@ -5,9 +5,9 @@ import (
 	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/jonas747/dshardmanager"
 	"github.com/jwangsadinata/go-multimap/slicemultimap"
 	gocache "github.com/patrickmn/go-cache"
+	"github.com/rxdn/gdl/gateway"
 	"strconv"
 	"sync"
 	"time"
@@ -30,7 +30,7 @@ var guildCache = gocache.New(time.Minute, time.Minute)
 
 func GetMutualGuilds(userId uint64, res chan []UserGuild) {
 	// Check cache
-	key := strconv.Itoa(int(userId))
+	key := strconv.FormatUint(userId, 10)
 	cached, ok := guildCache.Get(key)
 	if ok {
 		res <- cached.([]UserGuild)
@@ -112,7 +112,7 @@ func publishUserGuilds(userId uint64, shard int, guilds []UserGuild) {
 	cache.Client.Publish("tickets:userguilds", string(encoded))
 }
 
-func ListenMutualGuildRequests(manager *dshardmanager.Manager) {
+func ListenMutualGuildRequests(manager *gateway.ShardManager) {
 	pubsub := cache.Client.Subscribe("tickets:getuserguilds")
 
 	for {
@@ -122,28 +122,22 @@ func ListenMutualGuildRequests(manager *dshardmanager.Manager) {
 			continue
 		}
 
-		userId, err := strconv.ParseInt(msg.Payload, 10, 64); if err != nil {
+		userId, err := strconv.ParseUint(msg.Payload, 10, 64); if err != nil {
 			sentry.Error(err)
 			continue
 		}
 
-		for _, shard := range manager.Sessions {
+		for _, shard := range manager.Shards {
 			guilds := make([]UserGuild, 0)
 
 			// Loop over guilds managed by shard
-			for _, guild := range shard.State.Guilds {
+			for _, guild := range (*shard.Cache).GetGuilds() {
 				// Verify that the user is a member of the guild
 			memberloop:
 				for _, member := range guild.Members {
-					if member.User.ID == msg.Payload {
-						guildId, err := strconv.ParseInt(guild.ID, 10, 64)
-						if err != nil {
-							sentry.Error(err)
-							break memberloop
-						}
-
+					if strconv.FormatUint(member.User.Id, 10) == msg.Payload {
 						guilds = append(guilds, UserGuild{
-							Id:   guildId,
+							Id:   guild.Id,
 							Name: guild.Name,
 						})
 
@@ -152,7 +146,7 @@ func ListenMutualGuildRequests(manager *dshardmanager.Manager) {
 				}
 			}
 
-			go publishUserGuilds(userId, shard.ShardID, guilds)
+			go publishUserGuilds(userId, shard.ShardId, guilds)
 		}
 	}
 }

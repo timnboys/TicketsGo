@@ -7,7 +7,7 @@ import (
 
 type TicketCloseMessage struct {
 	Uuid   string
-	User   int64
+	User   uint64
 	Reason string
 }
 

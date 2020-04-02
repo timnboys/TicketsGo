@@ -1,9 +1,9 @@
-	package utils
+package utils
 
-	import (
-		"fmt"
-		"strconv"
-	)
+import (
+	"fmt"
+	"strconv"
+)
 
 func FormatTime(millis int64) string {
 	minutes := (millis / (1000 * 60)) % 60

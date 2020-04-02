@@ -6,36 +6,34 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/objects/channel/message"
+	"github.com/rxdn/gdl/permission"
+	"github.com/rxdn/gdl/rest"
 	"strings"
 )
 
-func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandContext) {
+func HandleClose(shard *modmaildatabase.ModMailSession, ctx utils.CommandContext) {
 	reason := strings.Join(ctx.Args, " ")
 
 	// Check the user is permitted to close the ticket
 	permissionLevel := utils.Everyone
 	if ctx.Member != nil {
 		permissionLevelChan := make(chan utils.PermissionLevel)
-		go utils.GetPermissionLevel(ctx.Shard, ctx.Member, permissionLevelChan)
+		go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permissionLevelChan)
 		permissionLevel = <-permissionLevelChan
 	}
 
 	usersCanCloseChan := make(chan bool)
-	go database.IsUserCanClose(session.Guild, usersCanCloseChan)
+	go database.IsUserCanClose(shard.Guild, usersCanCloseChan)
 	usersCanClose := <-usersCanCloseChan
 
-	if (permissionLevel == utils.Everyone && session.User != ctx.UserID) || (permissionLevel == utils.Everyone && !usersCanClose) {
+	if (permissionLevel == utils.Everyone && shard.User != ctx.User.Id) || (permissionLevel == utils.Everyone && !usersCanClose) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "You are not permitted to close this ticket")
 		return
 	}
 
-	hasPerm := make(chan bool)
-	go utils.MemberHasPermission(ctx.Shard, ctx.Guild.ID, utils.Id, utils.ManageChannels, hasPerm)
-
-	if !<-hasPerm {
+	if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), permission.ManageChannels) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "I do not have permission to delete this channel")
 		return
@@ -46,12 +44,15 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	}
 
 	// Archive
-	msgs := make([]*discordgo.Message, 0)
+	msgs := make([]*message.Message, 0)
 
-	lastId := ""
+	lastId := uint64(0)
 	count := -1
 	for count != 0 {
-		array, err := ctx.Shard.ChannelMessages(ctx.Channel, 100, lastId, "", "")
+		array, err := ctx.Shard.GetChannelMessages(ctx.ChannelId, rest.GetChannelMessagesData{
+			Before: lastId,
+			Limit:  100,
+		})
 
 		count = len(array)
 		if err != nil {
@@ -60,7 +61,7 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		}
 
 		if count > 0 {
-			lastId = array[len(array)-1].ID
+			lastId = array[len(array)-1].Id
 
 			msgs = append(msgs, array...)
 		}
@@ -73,24 +74,21 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 
 	logs := ""
 	for _, msg := range msgs {
-		var date string
-		if t, err := msg.Timestamp.Parse(); err == nil {
-			date = t.UTC().String()
-		}
+		date := msg.Timestamp.UTC().String()
 
 		content := msg.Content
 
 		// append attachments
 		for _, attachment := range msg.Attachments {
-			content += fmt.Sprintf(" %s", attachment.ProxyURL)
+			content += fmt.Sprintf(" %s", attachment.ProxyUrl)
 		}
 
-		logs += fmt.Sprintf("[%s][%s] %s: %s\n", date, msg.ID, msg.Author.Username, content)
+		logs += fmt.Sprintf("[%s][%d] %s: %s\n", date, msg.Id, msg.Author.Username, content)
 	}
 
 	// Get channel name
 	var channelName string
-	channel, err := ctx.Shard.Channel(strconv.Itoa(int(session.StaffChannel)))
+	channel, err := ctx.Shard.GetChannel(shard.StaffChannel)
 	if err == nil {
 		channelName = channel.Name
 	} else {
@@ -98,27 +96,23 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	}
 
 	// Set ticket state as closed and delete channel
-	go modmaildatabase.CloseModMailSessions(session.User)
-	if _, err := ctx.Shard.ChannelDelete(strconv.Itoa(int(session.StaffChannel))); err != nil {
+	go modmaildatabase.CloseModMailSessions(shard.User)
+	if _, err := ctx.Shard.DeleteChannel(shard.StaffChannel); err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 	}
 
 	// Send logs to archive channel
-	archiveChannelChan := make(chan int64)
-	go database.GetArchiveChannel(session.Guild, archiveChannelChan)
-	archiveChannelId := strconv.Itoa(int(<-archiveChannelChan))
+	archiveChannelChan := make(chan uint64)
+	go database.GetArchiveChannel(shard.Guild, archiveChannelChan)
+	archiveChannelId := <-archiveChannelChan
 
 	channelExists := true
-	_, err = ctx.Shard.State.Channel(archiveChannelId); if err != nil {
-		// Not cached
-		_, err = ctx.Shard.Channel(archiveChannelId); if err != nil {
-			// Channel doesn't exist
-			channelExists = false
-		}
+	if _, err := ctx.Shard.GetChannel(archiveChannelId); err != nil {
+		channelExists = false
 	}
 
 	// Save space - delete the webhook
-	go database.DeleteWebhookByUuid(session.Uuid)
+	go database.DeleteWebhookByUuid(shard.Uuid)
 
 	if channelExists {
 		msg := fmt.Sprintf("Archive of `#%s` (closed by %s#%s)", channelName, ctx.User.Username, ctx.User.Discriminator)
@@ -126,30 +120,28 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 			msg += fmt.Sprintf(" with reason `%s`", reason)
 		}
 
-		data := discordgo.MessageSend{
+		data := rest.CreateMessageData{
 			Content: msg,
-			Files: []*discordgo.File{
-				{
-					Name: fmt.Sprintf("%s.txt", channelName),
-					ContentType: "text/plain",
-					Reader: strings.NewReader(logs),
-				},
+			File: &rest.File{
+				Name:        fmt.Sprintf("%s.txt", channelName),
+				ContentType: "text/plain",
+				Reader:      strings.NewReader(logs),
 			},
 		}
 
 		// Errors occur when the bot doesn't have permission
-		m, err := ctx.Shard.ChannelMessageSendComplex(archiveChannelId, &data)
+		m, err := ctx.Shard.CreateMessageComplex(archiveChannelId, data)
 		if err == nil {
 			userNameChan := make(chan string)
-			go database.GetUsername(session.User, userNameChan)
+			go database.GetUsername(shard.User, userNameChan)
 			userName := <-userNameChan
 
 			archive := modmaildatabase.ModMailArchive{
-				Uuid:     session.Uuid,
-				Guild:    session.Guild,
-				User:     session.User,
+				Uuid:     shard.Uuid,
+				Guild:    shard.Guild,
+				User:     shard.User,
 				Username: userName,
-				CdnUrl:   m.Attachments[0].URL,
+				CdnUrl:   m.Attachments[0].Url,
 			}
 			go archive.Store()
 		} else {
@@ -158,19 +150,19 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	}
 
 	// Notify user and send logs in DMs
-	privateMessage, err := ctx.Shard.UserChannelCreate(strconv.Itoa(int(session.User)))
+	privateMessage, err := ctx.Shard.CreateDM(shard.User)
 	if err == nil {
 		var content string
 		// Create message content
-		if ctx.UserID == session.User {
-			content = fmt.Sprintf("You closed your modmail session in `%s`", ctx.Guild.Name)
+		if ctx.User.Id == shard.User {
+			content = fmt.Sprintf("You closed your modmail shard in `%s`", ctx.Guild.Name)
 		} else if len(ctx.Args) == 0 {
-			content = fmt.Sprintf("Your modmail session in `%s` was closed by %s", ctx.Guild.Name, ctx.User.Mention())
+			content = fmt.Sprintf("Your modmail shard in `%s` was closed by %s", ctx.Guild.Name, ctx.User.Mention())
 		} else {
-			content = fmt.Sprintf("Your modmail session in `%s` was closed by %s with reason `%s`", ctx.Guild.Name, ctx.User.Mention(), reason)
+			content = fmt.Sprintf("Your modmail shard in `%s` was closed by %s with reason `%s`", ctx.Guild.Name, ctx.User.Mention(), reason)
 		}
 
 		// Errors occur when users have privacy settings high
-		_, _ = ctx.Shard.ChannelMessageSend(privateMessage.ID, content)
+		_, _ = ctx.Shard.CreateMessage(privateMessage.Id, content)
 	}
 }

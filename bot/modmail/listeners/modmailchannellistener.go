@@ -3,40 +3,34 @@ package listeners
 import (
 	"fmt"
 	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
-	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/bwmarrin/discordgo"
-	"strconv"
+	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/payloads/events"
 )
 
-func OnModMailChannelMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
+func OnModMailChannelMessage(s *gateway.Shard, e *events.MessageCreate) {
 	go func() {
-		if e.Author.ID == utils.Id {
+		if e.Author.Id == s.SelfId() {
 			return
 		}
 
-		if e.GuildID == "" { // Guilds only
+		if e.GuildId == 0 { // Guilds only
 			return
 		}
 
 		errorContext := sentry.ErrorContext{
-			Guild:       e.GuildID,
-			Channel:     e.ChannelID,
-			Shard:       s.ShardID,
+			Guild:       e.GuildId,
+			Channel:     e.ChannelId,
+			Shard:       s.ShardId,
 		}
 
 		if e.Author != nil {
-			errorContext.User = e.Author.ID
-		}
-
-		channelId, err := strconv.ParseInt(e.ChannelID, 10, 64); if err != nil {
-			sentry.Error(err)
-			return
+			errorContext.User = e.Author.Id
 		}
 
 		sessionChan := make(chan *modmaildatabase.ModMailSession, 0)
-		go modmaildatabase.GetModMailSessionByStaffChannel(channelId, sessionChan)
+		go modmaildatabase.GetModMailSessionByStaffChannel(e.ChannelId, sessionChan)
 		session := <-sessionChan
 
 		if session == nil {
@@ -50,18 +44,18 @@ func OnModMailChannelMessage(s *discordgo.Session, e *discordgo.MessageCreate) {
 		username := <-usernameChan
 
 		// TODO: Make this less hacky
-		if e.Author.Username == username && e.WebhookID != "" {
+		if e.Author.Username == username && e.WebhookId != 0 {
 			return
 		}
 
 		// Create DM channel
-		privateMessageChannel, err := s.UserChannelCreate(strconv.Itoa(int(session.User))); if err != nil { // User probably has DMs disabled
+		privateMessageChannel, err := s.CreateDM(session.User); if err != nil { // User probably has DMs disabled
 			sentry.LogWithContext(err, errorContext)
 			return
 		}
 
 		message := fmt.Sprintf("**%s**: %s", e.Author.Username, e.Message.Content)
-		if _, err := s.ChannelMessageSend(privateMessageChannel.ID, message); err != nil {
+		if _, err := s.CreateMessage(privateMessageChannel.Id, message); err != nil {
 			sentry.LogWithContext(err, errorContext)
 			return
 		}

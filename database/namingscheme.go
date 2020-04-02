@@ -1,7 +1,7 @@
 package database
 
 type TicketNamingScheme struct {
-	Guild        int64  `gorm:"column:GUILDID;unique;primary_key"`
+	Guild        uint64  `gorm:"column:GUILDID;unique;primary_key"`
 	NamingScheme string `gorm:"column:NAMINGSCHEME;type:VARCHAR(16)"`
 }
 
@@ -18,7 +18,7 @@ func (TicketNamingScheme) TableName() string {
 	return "TicketNamingScheme"
 }
 
-func GetTicketNamingScheme(guild int64, ch chan NamingScheme) {
+func GetTicketNamingScheme(guild uint64, ch chan NamingScheme) {
 	var node TicketNamingScheme
 	Db.Where(TicketNamingScheme{Guild: guild}).First(&node)
 	namingScheme := node.NamingScheme
@@ -30,6 +30,6 @@ func GetTicketNamingScheme(guild int64, ch chan NamingScheme) {
 	}
 }
 
-func SetTicketNamingScheme(guild int64, scheme NamingScheme) {
+func SetTicketNamingScheme(guild uint64, scheme NamingScheme) {
 	Db.Where(&TicketNamingScheme{Guild: guild}).Assign(&TicketNamingScheme{NamingScheme: string(scheme)}).FirstOrCreate(&TicketNamingScheme{})
 }

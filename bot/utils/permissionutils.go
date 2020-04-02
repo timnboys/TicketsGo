@@ -5,7 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
-	"github.com/robfig/go-cache"
+	"github.com/patrickmn/go-cache"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/member"
 	"github.com/rxdn/gdl/permission"
