@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.14
     working_directory: /go/src/github.com/TicketsBot/TicketsGo
 
     steps:
@@ -11,6 +11,10 @@ jobs:
       - restore_cache:
           keys:
             - v1-pkg-cache
+
+      - run:
+          name: Install czlib
+          command: apt-get install -y zlib1g-dev
 
       - run: go get -v ./cmd/tickets/
       - run: go build cmd/tickets/main.go

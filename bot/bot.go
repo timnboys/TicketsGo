@@ -53,9 +53,7 @@ func Start(ch chan os.Signal) {
 		modmaillisteners.OnModMailChannelMessage,
 	)
 
-	if err := shardManager.Connect(); err != nil {
-		panic(err)
-	}
+	shardManager.Connect()
 
 	go messagequeue.ListenPanelCreations(&shardManager)
 	go messagequeue.ListenTicketClose(&shardManager)
