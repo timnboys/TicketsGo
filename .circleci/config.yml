@@ -16,7 +16,6 @@ jobs:
           name: Install czlib
           command: apt-get install -y zlib1g-dev
 
-      - run: go get -v ./cmd/tickets/
       - run: go build cmd/tickets/main.go
 
       - store_artifacts:
