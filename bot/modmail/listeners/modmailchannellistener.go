@@ -57,5 +57,25 @@ func OnModMailChannelMessage(s *gateway.Shard, e *events.MessageCreate) {
 			sentry.LogWithContext(err, errorContext)
 			return
 		}
+
+		// forward attachments
+		// don't re-upload attachments incase user has uploaded TOS breaking attachment
+		if len(e.Message.Attachments) > 0 {
+			var content string
+			if len(e.Message.Attachments) == 1 {
+				content = fmt.Sprintf("%s attached a file:", e.Author.Mention())
+			} else {
+				content = fmt.Sprintf("%s attached files:", e.Author.Mention())
+			}
+
+			for _, attachment := range e.Message.Attachments {
+				content += fmt.Sprintf("\n▶️ %s", attachment.ProxyUrl)
+			}
+
+			if _, err := s.CreateMessage(privateMessageChannel.Id, content); err != nil {
+				sentry.LogWithContext(err, errorContext)
+				return
+			}
+		}
 	}()
 }

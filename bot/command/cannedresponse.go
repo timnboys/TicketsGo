@@ -52,7 +52,7 @@ func (CannedResponseCommand) Execute(ctx utils.CommandContext) {
 	if <-isTicket {
 		ticketOwnerChan := make(chan uint64)
 		go database.GetOwnerByChannel(ctx.ChannelId, ticketOwnerChan)
-		mention := fmt.Sprintf("<@%s>", strconv.Itoa(int(<-ticketOwnerChan)))
+		mention := fmt.Sprintf("<@%s>", strconv.FormatUint(<-ticketOwnerChan, 10))
 		content = strings.Replace(content, "%user%", mention, -1)
 	}
 
