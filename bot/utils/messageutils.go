@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/channel/embed"
@@ -12,8 +13,8 @@ import (
 type Colour int
 
 const (
-	Green  Colour = 2335514
-	Red    Colour = 11010048
+	Green  Colour = 0x2ECC71
+	Red    Colour = 0xFC3F35
 	Orange Colour = 16740864
 	Lime   Colour = 7658240
 	Blue   Colour = 472219
@@ -25,10 +26,10 @@ type SentMessage struct {
 }
 
 func SendEmbed(session *gateway.Shard, channel uint64, colour Colour, title, content string, deleteAfter int, isPremium bool) {
-	_ = SendEmbedWithResponse(session, channel, colour, title, content, deleteAfter, isPremium)
+	_, _ = SendEmbedWithResponse(session, channel, colour, title, content, deleteAfter, isPremium)
 }
 
-func SendEmbedWithResponse(shard *gateway.Shard, channel uint64, colour Colour, title, content string, deleteAfter int, isPremium bool) *message.Message {
+func SendEmbedWithResponse(shard *gateway.Shard, channel uint64, colour Colour, title, content string, deleteAfter int, isPremium bool) (message.Message, error) {
 	msgEmbed := embed.NewEmbed().
 		SetColor(int(colour)).
 		AddField(title, content, false)
@@ -48,13 +49,15 @@ func SendEmbedWithResponse(shard *gateway.Shard, channel uint64, colour Colour, 
 			Shard:   shard.ShardId,
 			Premium: isPremium,
 		})
+
+		return msg, err
 	}
 
 	if deleteAfter > 0 {
-		DeleteAfter(SentMessage{shard, msg}, deleteAfter)
+		DeleteAfter(SentMessage{shard, &msg}, deleteAfter)
 	}
 
-	return msg
+	return msg, err
 }
 
 func DeleteAfter(msg SentMessage, secs int) {
@@ -89,4 +92,8 @@ func ReactWithCross(shard *gateway.Shard, msg *message.Message) {
 			Shard:   shard.ShardId,
 		})
 	}
+}
+
+func PadDiscriminator(discrim uint16) string {
+	return fmt.Sprintf("%04d", discrim)
 }

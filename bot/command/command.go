@@ -13,6 +13,7 @@ type Command interface {
 	Parent() interface{}
 	Children() []Command
 	PremiumOnly() bool
+	Category() Category
 	AdminOnly() bool
 	HelperOnly() bool
 }

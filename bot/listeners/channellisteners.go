@@ -16,9 +16,9 @@ func OnChannelCreate(s *gateway.Shard, e *events.ChannelCreate) {
 		return
 	}
 
-	storeChannel(e.Channel)
+	storeChannel(&e.Channel)
 }
 
 func OnChannelUpdate(_ *gateway.Shard, e *events.ChannelUpdate) {
-	storeChannel(e.Channel)
+	storeChannel(&e.Channel)
 }

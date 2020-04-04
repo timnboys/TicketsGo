@@ -106,7 +106,7 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	if err != nil {
 		sentry.LogWithContext(err, ctx.ToErrorContext())
 	} else {
-		utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: msg}, 60)
+		utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: &msg}, 60)
 	}
 }
 
@@ -120,6 +120,10 @@ func (ViewStaffCommand) Children() []Command {
 
 func (ViewStaffCommand) PremiumOnly() bool {
 	return false
+}
+
+func (ViewStaffCommand) Category() Category {
+	return Settings
 }
 
 func (ViewStaffCommand) AdminOnly() bool {

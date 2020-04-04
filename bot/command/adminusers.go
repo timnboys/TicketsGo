@@ -27,7 +27,7 @@ func (AdminUsersCommand) PermissionLevel() utils.PermissionLevel {
 
 func (AdminUsersCommand) Execute(ctx utils.CommandContext) {
 	count := 0
-	for _, guild := range (*ctx.Shard.Cache).GetGuilds() {
+	for _, guild := range ctx.Shard.Cache.GetGuilds() {
 		count += guild.MemberCount
 	}
 	ctx.SendEmbed(utils.Green, "Admin", fmt.Sprintf("There are %d users on this instance", count))
@@ -43,6 +43,10 @@ func (AdminUsersCommand) Children() []Command {
 
 func (AdminUsersCommand) PremiumOnly() bool {
 	return false
+}
+
+func (AdminUsersCommand) Category() Category {
+	return Settings
 }
 
 func (AdminUsersCommand) AdminOnly() bool {

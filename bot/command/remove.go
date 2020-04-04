@@ -95,6 +95,10 @@ func (RemoveCommand) PremiumOnly() bool {
 	return false
 }
 
+func (RemoveCommand) Category() Category {
+	return Tickets
+}
+
 func (RemoveCommand) AdminOnly() bool {
 	return false
 }

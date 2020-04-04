@@ -60,6 +60,10 @@ func (AdminCommand) PremiumOnly() bool {
 	return false
 }
 
+func (AdminCommand) Category() Category {
+	return Settings
+}
+
 func (AdminCommand) AdminOnly() bool {
 	return false
 }

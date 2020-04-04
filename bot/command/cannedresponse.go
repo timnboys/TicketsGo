@@ -74,6 +74,10 @@ func (CannedResponseCommand) PremiumOnly() bool {
 	return false
 }
 
+func (CannedResponseCommand) Category() Category {
+	return CannedResponses
+}
+
 func (CannedResponseCommand) AdminOnly() bool {
 	return false
 }

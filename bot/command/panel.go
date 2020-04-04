@@ -89,6 +89,10 @@ func (PanelCommand) PremiumOnly() bool {
 	return false
 }
 
+func (PanelCommand) Category() Category {
+	return Settings
+}
+
 func (PanelCommand) AdminOnly() bool {
 	return false
 }

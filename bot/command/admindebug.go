@@ -49,6 +49,9 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 			ticketCategory = channel.Name
 		}
 	}
+	if ticketCategory == "" {
+		ticketCategory = "None"
+	}
 
 	// Get owner
 	invalidOwner := false
@@ -57,10 +60,10 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	var ownerFormatted string
-	if invalidOwner || owner == nil {
+	if invalidOwner {
 		ownerFormatted = strconv.FormatUint(ctx.Guild.OwnerId, 10)
 	} else {
-		ownerFormatted = fmt.Sprintf("%s#%d", owner.User.Username, owner.User.Discriminator)
+		ownerFormatted = fmt.Sprintf("%s#%s", owner.User.Username, utils.PadDiscriminator(owner.User.Discriminator))
 	}
 
 	// Get archive channel
@@ -83,7 +86,7 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: msg}, 30)
+	utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: &msg}, 30)
 }
 
 func (AdminDebugCommand) Parent() interface{} {
@@ -96,6 +99,10 @@ func (AdminDebugCommand) Children() []Command {
 
 func (AdminDebugCommand) PremiumOnly() bool {
 	return false
+}
+
+func (AdminDebugCommand) Category() Category {
+	return Settings
 }
 
 func (AdminDebugCommand) AdminOnly() bool {

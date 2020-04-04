@@ -74,6 +74,10 @@ func (BlacklistCommand) PremiumOnly() bool {
 	return false
 }
 
+func (BlacklistCommand) Category() Category {
+	return Settings
+}
+
 func (BlacklistCommand) AdminOnly() bool {
 	return false
 }

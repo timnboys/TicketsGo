@@ -93,6 +93,10 @@ func (RemoveSupportCommand) PremiumOnly() bool {
 	return false
 }
 
+func (RemoveSupportCommand) Category() Category {
+	return Settings
+}
+
 func (RemoveSupportCommand) AdminOnly() bool {
 	return false
 }

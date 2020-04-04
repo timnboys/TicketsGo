@@ -1,8 +1,8 @@
 package database
 
 type ChannelCategory struct {
-	Guild uint64  `gorm:"column:GUILDID;unique;primary_key"`
-	Category  uint64 `gorm:"column:CATEGORYID"`
+	Guild    uint64 `gorm:"column:GUILDID;unique;primary_key"`
+	Category uint64 `gorm:"column:CATEGORYID"`
 }
 
 func (ChannelCategory) TableName() string {

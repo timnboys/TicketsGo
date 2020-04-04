@@ -138,6 +138,10 @@ func (PurgeCommand) PremiumOnly() bool {
 	return false
 }
 
+func (PurgeCommand) Category() Category {
+	return Settings
+}
+
 func (PurgeCommand) AdminOnly() bool {
 	return false
 }

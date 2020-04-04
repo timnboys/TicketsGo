@@ -14,7 +14,7 @@ import (
 
 // Fires when we receive a guild
 func OnGuildCreate(s *gateway.Shard, e *events.GuildCreate) {
-	servercounter.UpdateCache(s.ShardId, len((*s.Cache).GetGuilds()))
+	servercounter.UpdateCache(s.ShardId, len(s.Cache.GetGuilds()))
 
 	// Determine whether this is a join or lazy load
 	JoinedGuildsLock.Lock()
@@ -44,10 +44,10 @@ func OnGuildCreate(s *gateway.Shard, e *events.GuildCreate) {
 			})
 		}
 
-		go cache.Client.CacheGuildProperties(e.Guild)
+		go cache.Client.CacheGuildProperties(&e.Guild)
 		go database.InsertChannels(channels)
 
-		sendOwnerMessage(s, e.Guild)
+		sendOwnerMessage(s, &e.Guild)
 	}
 }
 

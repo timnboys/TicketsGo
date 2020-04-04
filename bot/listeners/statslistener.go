@@ -9,7 +9,7 @@ import (
 
 func OnFirstResponse(shard *gateway.Shard, e *events.MessageCreate) {
 	// Make sure this is a guild
-	if e.GuildId == 0 || e.Member == nil {
+	if e.GuildId == 0 {
 		return
 	}
 
@@ -17,7 +17,7 @@ func OnFirstResponse(shard *gateway.Shard, e *events.MessageCreate) {
 
 	// Only count replies from support reps
 	permLevel := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(shard, e.Member, e.GuildId, permLevel)
+	go utils.GetPermissionLevel(shard, &e.Member, e.GuildId, permLevel)
 	if <-permLevel > 0 {
 		// Make sure that the channel is a ticket
 		isTicket := make(chan bool)

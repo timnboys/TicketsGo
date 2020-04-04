@@ -95,7 +95,7 @@ func (AddSupportCommand) Execute(ctx utils.CommandContext) {
 		if user {
 			// If adding individual admins, apply each override individually
 			for _, mention := range ctx.Message.Mentions {
-				overwrites = append(overwrites, &channel.PermissionOverwrite{
+				overwrites = append(overwrites, channel.PermissionOverwrite{
 					Id: mention.Id,
 					Type: channel.PermissionTypeMember,
 					Allow: permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),
@@ -105,7 +105,7 @@ func (AddSupportCommand) Execute(ctx utils.CommandContext) {
 		} else {
 			// If adding a role as an admin, apply overrides to role
 			for _, role := range roles {
-				overwrites = append(overwrites, &channel.PermissionOverwrite{
+				overwrites = append(overwrites, channel.PermissionOverwrite{
 					Id:    role,
 					Type:  channel.PermissionTypeRole,
 					Allow: permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),
@@ -137,6 +137,10 @@ func (AddSupportCommand) Children() []Command {
 
 func (AddSupportCommand) PremiumOnly() bool {
 	return false
+}
+
+func (AddSupportCommand) Category() Category {
+	return Settings
 }
 
 func (AddSupportCommand) AdminOnly() bool {

@@ -41,10 +41,8 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 		hasVoted := make(chan bool)
 		go database.HasVoted(ctx.Guild.OwnerId, hasVoted)
 		if <-hasVoted {
-			ch <- true
-
 			premiumCache.Set(guildStr, true, 10 * time.Minute)
-
+			ch <- true
 			return
 		}
 
@@ -77,7 +75,10 @@ func IsPremiumGuild(ctx CommandContext, ch chan bool) {
 		}
 
 		premiumCache.Set(guildStr, proxyResponse.Premium, 10 * time.Minute)
-
 		ch <-proxyResponse.Premium
 	}
+}
+
+func CacheGuildAsPremium(guildId uint64) {
+	premiumCache.Set(strconv.FormatUint(guildId, 10), true, 10 * time.Minute)
 }

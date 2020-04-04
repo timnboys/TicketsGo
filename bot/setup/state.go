@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/channel/message"
 )
@@ -38,6 +39,11 @@ func (s *State) Process(shard *gateway.Shard, msg message.Message) {
 	}
 
 	(*stage).Process(shard, msg)
+
+	utils.DeleteAfter(utils.SentMessage{
+		Shard:   shard,
+		Message: &msg,
+	}, 0)
 }
 
 func GetMaxStage() int {

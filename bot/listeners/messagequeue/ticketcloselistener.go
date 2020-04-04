@@ -50,7 +50,7 @@ func ListenTicketClose(shardManager *gateway.ShardManager) {
 		isPremium := make(chan bool)
 		go utils.IsPremiumGuild(utils.CommandContext{
 			Shard: s,
-			Guild: guild,
+			Guild: &guild,
 		}, isPremium)
 
 		// Get the member object
@@ -65,15 +65,15 @@ func ListenTicketClose(shardManager *gateway.ShardManager) {
 
 		ctx := utils.CommandContext{
 			Shard:       s,
-			User:        member.User,
-			Guild:       guild,
+			User:        &member.User,
+			Guild:       &guild,
 			ChannelId:   *ticket.Channel,
 			Message:     nil,
 			Root:        "close",
 			Args:        reason,
 			IsPremium:   <-isPremium,
 			ShouldReact: false,
-			Member:      member,
+			Member:      &member,
 		}
 
 		go command.CloseCommand{}.Execute(ctx)

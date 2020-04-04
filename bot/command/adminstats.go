@@ -44,7 +44,7 @@ func (AdminStatsCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: msg}, 30)
+	utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: &msg}, 30)
 }
 
 func (AdminStatsCommand) Parent() interface{} {
@@ -57,6 +57,10 @@ func (AdminStatsCommand) Children() []Command {
 
 func (AdminStatsCommand) PremiumOnly() bool {
 	return false
+}
+
+func (AdminStatsCommand) Category() Category {
+	return Settings
 }
 
 func (AdminStatsCommand) AdminOnly() bool {

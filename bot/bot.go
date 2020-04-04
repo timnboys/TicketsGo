@@ -24,11 +24,13 @@ func Start(ch chan os.Signal) {
 		VoiceStates: false,
 	})
 
-	shardManager := gateway.NewShardManager(config.Conf.Bot.Token, gateway.ShardOptions{
+	shardOptions := gateway.ShardOptions{
 		Total:   config.Conf.Bot.Sharding.Total,
 		Lowest:  config.Conf.Bot.Sharding.Lowest,
 		Highest: config.Conf.Bot.Sharding.Max,
-	}, cacheFactory)
+	}
+
+	shardManager := gateway.NewShardManager(config.Conf.Bot.Token, shardOptions, cacheFactory)
 
 	shardManager.Presence = user.BuildStatus(user.ActivityTypePlaying, "DM for help | t!help")
 

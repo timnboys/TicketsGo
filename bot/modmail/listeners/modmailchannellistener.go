@@ -20,13 +20,10 @@ func OnModMailChannelMessage(s *gateway.Shard, e *events.MessageCreate) {
 		}
 
 		errorContext := sentry.ErrorContext{
-			Guild:       e.GuildId,
-			Channel:     e.ChannelId,
-			Shard:       s.ShardId,
-		}
-
-		if e.Author != nil {
-			errorContext.User = e.Author.Id
+			Guild:   e.GuildId,
+			Channel: e.ChannelId,
+			Shard:   s.ShardId,
+			User:    e.Author.Id,
 		}
 
 		sessionChan := make(chan *modmaildatabase.ModMailSession, 0)
@@ -49,7 +46,8 @@ func OnModMailChannelMessage(s *gateway.Shard, e *events.MessageCreate) {
 		}
 
 		// Create DM channel
-		privateMessageChannel, err := s.CreateDM(session.User); if err != nil { // User probably has DMs disabled
+		privateMessageChannel, err := s.CreateDM(session.User)
+		if err != nil { // User probably has DMs disabled
 			sentry.LogWithContext(err, errorContext)
 			return
 		}

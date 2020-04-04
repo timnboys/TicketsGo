@@ -46,6 +46,10 @@ func (AdminShardRestartCommand) PremiumOnly() bool {
 	return false
 }
 
+func (AdminShardRestartCommand) Category() Category {
+	return Settings
+}
+
 func (AdminShardRestartCommand) AdminOnly() bool {
 	return false
 }

@@ -104,7 +104,7 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 	premiumChan := make(chan bool)
 	go utils.IsPremiumGuild(utils.CommandContext{
 		Shard: s,
-		Guild: guild,
+		Guild: &guild,
 	}, premiumChan)
 	premiumGuild := <-premiumChan
 
@@ -112,15 +112,15 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 
 	ctx := utils.CommandContext{
 		Shard:       s,
-		User:        e.Author,
-		Guild:       guild,
+		User:        &e.Author,
+		Guild:       &guild,
 		ChannelId:   e.ChannelId,
-		Message:     e.Message,
+		Message:     &e.Message,
 		Root:        root,
 		Args:        args,
 		IsPremium:   premiumGuild,
 		ShouldReact: true,
-		Member:      e.Member,
+		Member:      &e.Member,
 		IsFromPanel: false,
 	}
 
@@ -164,7 +164,7 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 		go c.Execute(ctx)
 		go statsd.IncrementKey(statsd.COMMANDS)
 
-		utils.DeleteAfter(utils.SentMessage{Shard: s, Message: e.Message}, 30)
+		utils.DeleteAfter(utils.SentMessage{Shard: s, Message: &e.Message}, 30)
 	}
 }
 

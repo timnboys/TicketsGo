@@ -74,7 +74,7 @@ func OnCloseReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 	isPremium := make(chan bool)
 	go utils.IsPremiumGuild(utils.CommandContext{
 		Shard: s,
-		Guild: guild,
+		Guild: &guild,
 	}, isPremium)
 
 	// Get the member object
@@ -86,14 +86,14 @@ func OnCloseReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 
 	ctx := utils.CommandContext{
 		Shard:       s,
-		User:        user,
-		Guild:       guild,
+		User:        &user,
+		Guild:       &guild,
 		ChannelId:   e.ChannelId,
 		Root:        "close",
 		Args:        make([]string, 0),
 		IsPremium:   <-isPremium,
 		ShouldReact: false,
-		Member:      member,
+		Member:      &member,
 	}
 
 	go command.CloseCommand{}.Execute(ctx)

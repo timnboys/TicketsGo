@@ -40,6 +40,10 @@ func (VoteCommand) PremiumOnly() bool {
 	return false
 }
 
+func (VoteCommand) Category() Category {
+	return General
+}
+
 func (VoteCommand) AdminOnly() bool {
 	return false
 }

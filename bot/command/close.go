@@ -98,7 +98,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	// Archive
-	msgs := make([]*message.Message, 0)
+	msgs := make([]message.Message, 0)
 
 	lastId := uint64(0)
 	count := -1
@@ -160,7 +160,7 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	go database.DeleteWebhookByUuid(ticket.Uuid)
 
 	if channelExists {
-		msg := fmt.Sprintf("Archive of `#ticket-%d` (closed by %s#%s)", ticket.Id, ctx.User.Username, ctx.User.Discriminator)
+		msg := fmt.Sprintf("Archive of `#ticket-%d` (closed by %s#%s)", ticket.Id, ctx.User.Username, utils.PadDiscriminator(ctx.User.Discriminator))
 		if reason != "" {
 			msg += fmt.Sprintf(" with reason `%s`", reason)
 		}
@@ -232,6 +232,10 @@ func (CloseCommand) Children() []Command {
 
 func (CloseCommand) PremiumOnly() bool {
 	return false
+}
+
+func (CloseCommand) Category() Category {
+	return Tickets
 }
 
 func (CloseCommand) AdminOnly() bool {

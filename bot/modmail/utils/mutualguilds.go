@@ -131,7 +131,7 @@ func ListenMutualGuildRequests(manager *gateway.ShardManager) {
 			guilds := make([]UserGuild, 0)
 
 			// Loop over guilds managed by shard
-			for _, guild := range (*shard.Cache).GetGuilds() {
+			for _, guild := range shard.Cache.GetGuilds() {
 				// Verify that the user is a member of the guild
 			memberloop:
 				for _, member := range guild.Members {

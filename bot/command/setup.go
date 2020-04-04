@@ -62,6 +62,10 @@ func (SetupCommand) PremiumOnly() bool {
 	return false
 }
 
+func (SetupCommand) Category() Category {
+	return Settings
+}
+
 func (SetupCommand) AdminOnly() bool {
 	return false
 }

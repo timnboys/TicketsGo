@@ -54,6 +54,10 @@ func (CancelCommand) PremiumOnly() bool {
 	return false
 }
 
+func (CancelCommand) Category() Category {
+	return Settings
+}
+
 func (CancelCommand) AdminOnly() bool {
 	return false
 }

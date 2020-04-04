@@ -70,9 +70,8 @@ func OpenModMailTicket(shard *gateway.Shard, guild modmailutils.UserGuild, user 
 	}
 
 	if useCategory {
-		channels, err := shard.GetGuildChannels(guild.Id)
-		if err != nil {
-			channels = make([]*channel.Channel, 0)
+		channels, err := shard.GetGuildChannels(guild.Id); if err != nil {
+			return 0, err
 		}
 
 		channelCount := 0
@@ -112,7 +111,7 @@ func OpenModMailTicket(shard *gateway.Shard, guild modmailutils.UserGuild, user 
 }
 
 func createWebhook(shard *gateway.Shard, guildId, channelId uint64, uuid string) {
-	self := (*shard.Cache).GetSelf()
+	self := shard.Cache.GetSelf()
 	if self == nil {
 		return
 	}

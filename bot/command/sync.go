@@ -190,6 +190,10 @@ func (SyncCommand) PremiumOnly() bool {
 	return false
 }
 
+func (SyncCommand) Category() Category {
+	return Settings
+}
+
 func (SyncCommand) AdminOnly() bool {
 	return false
 }

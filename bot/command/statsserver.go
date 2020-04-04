@@ -103,7 +103,7 @@ func (StatsServerCommand) Execute(ctx utils.CommandContext) {
 		AddField("Average First Response Time (Monthly)", utils.FormatTime(monthly), true)
 
 	if m, err := ctx.Shard.CreateMessageEmbed(ctx.ChannelId, embed); err == nil {
-		utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: m}, 60)
+		utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: &m}, 60)
 	}
 }
 
@@ -117,6 +117,10 @@ func (StatsServerCommand) Children() []Command {
 
 func (StatsServerCommand) PremiumOnly() bool {
 	return true
+}
+
+func (StatsServerCommand) Category() Category {
+	return Statistics
 }
 
 func (StatsServerCommand) AdminOnly() bool {

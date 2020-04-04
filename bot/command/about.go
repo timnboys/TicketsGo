@@ -40,6 +40,10 @@ func (AboutCommand) PremiumOnly() bool {
 	return false
 }
 
+func (AboutCommand) Category() Category {
+	return General
+}
+
 func (AboutCommand) AdminOnly() bool {
 	return false
 }

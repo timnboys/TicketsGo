@@ -68,7 +68,7 @@ func OnPanelReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 		isPremium := make(chan bool)
 		go utils.IsPremiumGuild(utils.CommandContext{
 			Shard: s,
-			Guild: guild,
+			Guild: &guild,
 		}, isPremium)
 
 		member, err := s.GetGuildMember(e.GuildId, e.UserId)
@@ -86,15 +86,15 @@ func OnPanelReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 
 		ctx := utils.CommandContext{
 			Shard:       s,
-			User:        user,
-			Guild:       guild,
+			User:        &user,
+			Guild:       &guild,
 			ChannelId:   e.ChannelId,
 			Message:     &panelMessage,
 			Root:        "new",
 			Args:        make([]string, 0),
 			IsPremium:   <-isPremium,
 			ShouldReact: false,
-			Member:      member,
+			Member:      &member,
 			IsFromPanel: true,
 		}
 

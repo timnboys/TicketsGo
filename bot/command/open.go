@@ -121,7 +121,12 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 
 	if ticketCount >= ticketLimit {
 		if ctx.ShouldReact {
-			ctx.SendEmbed(utils.Red, "Error", fmt.Sprintf("You are only able to open %d tickets at once", ticketLimit))
+			ticketsPluralised := "ticket"
+			if ticketLimit > 1 {
+				ticketsPluralised += "s"
+			}
+
+			ctx.SendEmbed(utils.Red, "Error", fmt.Sprintf("You are only able to open %d %s at once", ticketLimit, ticketsPluralised))
 			ctx.ReactWithCross()
 		}
 		return
@@ -210,7 +215,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 	// UpdateUser channel in DB
 	go database.SetTicketChannel(id, ctx.Guild.Id, channel.Id)
 
-	sendWelcomeMessage(ctx, channel, subject, id)
+	sendWelcomeMessage(ctx, &channel, subject, id)
 
 	// Ping @everyone
 	pingEveryoneChan := make(chan bool)
@@ -254,6 +259,10 @@ func (OpenCommand) Children() []Command {
 
 func (OpenCommand) PremiumOnly() bool {
 	return false
+}
+
+func (OpenCommand) Category() Category {
+	return Tickets
 }
 
 func (OpenCommand) AdminOnly() bool {
@@ -337,7 +346,7 @@ func sendWelcomeMessage(ctx utils.CommandContext, channel *channel.Channel, subj
 	}
 
 	// Send welcome message
-	if msg := utils.SendEmbedWithResponse(ctx.Shard, channel.Id, utils.Green, subject, welcomeMessage, 0, ctx.IsPremium); msg != nil {
+	if msg, err := utils.SendEmbedWithResponse(ctx.Shard, channel.Id, utils.Green, subject, welcomeMessage, 0, ctx.IsPremium); err != nil {
 		// Add close reaction to the welcome message
 		err := ctx.Shard.CreateReaction(channel.Id, msg.Id, "🔒")
 		if err != nil {

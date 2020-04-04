@@ -10,8 +10,14 @@ import (
 	"github.com/rxdn/gdl/gateway/payloads/events"
 )
 
+// proxy messages to web UI
 func OnMessage(s *gateway.Shard, e *events.MessageCreate) {
 	go statsd.IncrementKey(statsd.MESSAGES)
+
+	// ignore DMs
+	if e.GuildId == 0 {
+		return
+	}
 
 	// Get guild obj
 	guild, err := s.GetGuild(e.GuildId); if err != nil {
@@ -27,7 +33,7 @@ func OnMessage(s *gateway.Shard, e *events.MessageCreate) {
 	premiumChan := make(chan bool)
 	go utils.IsPremiumGuild(utils.CommandContext{
 		Shard:   s,
-		Guild:   guild,
+		Guild:   &guild,
 	}, premiumChan)
 
 	if <-premiumChan {

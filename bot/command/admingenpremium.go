@@ -89,6 +89,10 @@ func (AdminGeneratePremium) PremiumOnly() bool {
 	return false
 }
 
+func (AdminGeneratePremium) Category() Category {
+	return Settings
+}
+
 func (AdminGeneratePremium) AdminOnly() bool {
 	return true
 }

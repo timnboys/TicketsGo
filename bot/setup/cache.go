@@ -49,11 +49,11 @@ func (u *SetupUser) Finish() {
 	msg := fmt.Sprintf("The setup has been completed!\n" +
 		"You can add / remove support staff / admins using:\n" +
 		"`t!addadmin [@User / Role Name]`\n" +
-		"`t!removadmin [@User / Role Name]`\n" +
+		"`t!removeadmin [@User / Role Name]`\n" +
 		"`t!addsupport [@User / Role Name]`\n" +
 		"`t!removesupprt [@User / Role Name]`\n" +
 		"You can access more settings on the web panel at <https://panel.ticketsbot.net>\n" +
-		"You should also consider creating a panel by visiting https://panel.ticketsbot.net/manage/%s/panels",
+		"You should also consider creating a panel by visiting https://panel.ticketsbot.net/manage/%d/panels",
 		u.Guild,
 	)
 

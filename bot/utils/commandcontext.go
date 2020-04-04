@@ -53,7 +53,7 @@ func (ctx *CommandContext) SendMessage(content string) {
 	if err != nil {
 		sentry.LogWithContext(err, ctx.ToErrorContext())
 	} else {
-		DeleteAfter(SentMessage{Shard: ctx.Shard, Message: msg}, 60)
+		DeleteAfter(SentMessage{Shard: ctx.Shard, Message: &msg}, 60)
 	}
 }
 

@@ -65,6 +65,7 @@ func (PremiumCommand) Execute(ctx utils.CommandContext) {
 		length := <-lengthChan
 
 		go database.AddPremium(key.String(), ctx.Guild.Id, ctx.User.Id, length, ctx.User.Id)
+		utils.CacheGuildAsPremium(ctx.Guild.Id)
 		ctx.ReactWithCheck()
 	}
 }
@@ -79,6 +80,10 @@ func (PremiumCommand) Children() []Command {
 
 func (PremiumCommand) PremiumOnly() bool {
 	return false
+}
+
+func (PremiumCommand) Category() Category {
+	return Settings
 }
 
 func (PremiumCommand) AdminOnly() bool {

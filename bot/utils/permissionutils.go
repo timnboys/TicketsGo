@@ -36,7 +36,7 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 		})
 	}
 
-	if guild != nil {
+	if err == nil {
 		if member.User.Id == guild.OwnerId {
 			ch <- Admin
 			return
@@ -53,8 +53,8 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 	adminUser := make(chan bool)
 	go database.IsAdmin(guildId, member.User.Id, adminUser)
 	if <-adminUser {
-		ch <- Admin
 		permissionCache.Set(getMemberId(guildId, member), Admin, cacheTime)
+		ch <- Admin
 		return
 	}
 
@@ -63,8 +63,8 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 	for _, userRole := range member.Roles {
 		if permLevel, ok := permissionCache.Get(strconv.FormatUint(userRole, 10)); ok { // TODO: Cache with int based key
 			if permLevel == Admin {
-				ch <- Admin
 				permissionCache.Set(getMemberId(guildId, member), Admin, cacheTime)
+				ch <- Admin
 				return
 			}
 		}
@@ -78,8 +78,8 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 		permissionCache.Set(strconv.FormatUint(adminRoleId, 10), Admin, cacheTime) // TODO: Cache with int based key
 
 		if member.HasRole(adminRoleId) {
-			ch <- Admin
 			permissionCache.Set(getMemberId(guildId, member), Admin, cacheTime)
+			ch <- Admin
 			return
 		}
 	}
@@ -87,8 +87,8 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 	// Check if user has Administrator permission
 	hasAdminPermission := permission.HasPermissions(shard, guildId, member.User.Id, permission.Administrator)
 	if hasAdminPermission {
-		ch <- Admin
 		permissionCache.Set(getMemberId(guildId, member), Admin, cacheTime)
+		ch <- Admin
 		return
 	}
 
@@ -96,8 +96,8 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 	supportUser := make(chan bool)
 	go database.IsSupport(guildId, member.User.Id, supportUser)
 	if <-supportUser {
-		ch <- Support
 		permissionCache.Set(getMemberId(guildId, member), Support, cacheTime)
+		ch <- Support
 		return
 	}
 
@@ -106,8 +106,8 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 	for _, userRole := range member.Roles {
 		if permLevel, ok := permissionCache.Get(strconv.FormatUint(userRole, 10)); ok { // TODO: Cache with int based key
 			if permLevel == Support {
-				ch <- Support
 				permissionCache.Set(getMemberId(guildId, member), Support, cacheTime)
+				ch <- Support
 				return
 			}
 		}
@@ -121,14 +121,14 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 		permissionCache.Set(strconv.FormatUint(supportRoleId, 10), Support, cacheTime)
 
 		if member.HasRole(supportRoleId) {
-			ch <- Support
 			permissionCache.Set(getMemberId(guildId, member), Support, cacheTime)
+			ch <- Support
 			return
 		}
 	}
 
-	ch <- Everyone
 	permissionCache.Set(getMemberId(guildId, member), Everyone, cacheTime)
+	ch <- Everyone
 }
 
 func getMemberId(guildId uint64, member *member.Member) string {

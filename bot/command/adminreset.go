@@ -40,6 +40,10 @@ func (AdminResetCommand) PremiumOnly() bool {
 	return false
 }
 
+func (AdminResetCommand) Category() Category {
+	return Settings
+}
+
 func (AdminResetCommand) AdminOnly() bool {
 	return false
 }

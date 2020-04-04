@@ -38,7 +38,7 @@ func ListenPanelCreations(shardManager *gateway.ShardManager) {
 		isPremiumChan := make(chan bool)
 		go utils.IsPremiumGuild(utils.CommandContext{
 			Shard:   shard,
-			Guild:   guild,
+			Guild:   &guild,
 		}, isPremiumChan)
 		isPremium := <-isPremiumChan
 

@@ -44,7 +44,7 @@ func HandleClose(shard *modmaildatabase.ModMailSession, ctx utils.CommandContext
 	}
 
 	// Archive
-	msgs := make([]*message.Message, 0)
+	msgs := make([]message.Message, 0)
 
 	lastId := uint64(0)
 	count := -1
@@ -115,7 +115,7 @@ func HandleClose(shard *modmaildatabase.ModMailSession, ctx utils.CommandContext
 	go database.DeleteWebhookByUuid(shard.Uuid)
 
 	if channelExists {
-		msg := fmt.Sprintf("Archive of `#%s` (closed by %s#%s)", channelName, ctx.User.Username, ctx.User.Discriminator)
+		msg := fmt.Sprintf("Archive of `#%s` (closed by %s#%d)", channelName, ctx.User.Username, ctx.User.Discriminator)
 		if reason != "" {
 			msg += fmt.Sprintf(" with reason `%s`", reason)
 		}

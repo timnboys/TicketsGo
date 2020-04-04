@@ -103,6 +103,10 @@ func (AddCommand) PremiumOnly() bool {
 	return false
 }
 
+func (AddCommand) Category() Category {
+	return Tickets
+}
+
 func (AddCommand) AdminOnly() bool {
 	return false
 }

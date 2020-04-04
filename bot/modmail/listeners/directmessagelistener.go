@@ -33,11 +33,11 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 
 		ctx := utils.CommandContext{
 			Shard:       s,
-			User:        e.Author,
-			Message:     e.Message,
+			User:        &e.Author,
+			Message:     &e.Message,
 			IsPremium:   false,
 			ShouldReact: true,
-			Member:      e.Member,
+			Member:      &e.Member,
 		}
 
 		sessionChan := make(chan *modmaildatabase.ModMailSession, 0)
@@ -70,7 +70,7 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 			}
 
 			targetGuild := guilds[targetGuildId - 1]
-			staffChannel, err := modmail.OpenModMailTicket(s, targetGuild, e.Author)
+			staffChannel, err := modmail.OpenModMailTicket(s, targetGuild, &e.Author)
 			if err == nil {
 				utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), 0, true)
 

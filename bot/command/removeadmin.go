@@ -92,6 +92,10 @@ func (RemoveAdminCommand) PremiumOnly() bool {
 	return false
 }
 
+func (RemoveAdminCommand) Category() Category {
+	return Settings
+}
+
 func (RemoveAdminCommand) AdminOnly() bool {
 	return false
 }

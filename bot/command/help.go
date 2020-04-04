@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
+	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/elliotchance/orderedmap"
 	"github.com/rxdn/gdl/objects/channel/embed"
 	"strings"
 )
@@ -29,32 +31,86 @@ func (HelpCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (HelpCommand) Execute(ctx utils.CommandContext) {
-	msg := ""
-	for _, cmd := range Commands {
-		msg += fmt.Sprintf("`%s%s` - %s\n", config.Conf.Bot.Prefix, cmd.Name(), cmd.Description())
+	commandCategories := orderedmap.NewOrderedMap()
+
+	// initialise map with the correct order of categories
+	for _, category := range categories {
+		commandCategories.Set(category, make([]Command, 0))
 	}
-	msg = strings.Trim(msg, "\n")
+
+	for _, command := range Commands {
+		permissionLevel := make(chan utils.PermissionLevel)
+		go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permissionLevel)
+		if <-permissionLevel >= command.PermissionLevel() { // only send commands the user has permissions for
+			var current []Command
+			if commands, ok := commandCategories.Get(command.Category()); ok {
+				current = commands.([]Command)
+			}
+			current = append(current, command)
+
+			commandCategories.Set(command.Category(), current)
+		}
+	}
+
+	// get prefix
+	prefixChan := make(chan string)
+	go getPrefix(ctx.Guild.Id, prefixChan)
+	prefix := <-prefixChan
+
+	embed := embed.NewEmbed().
+		SetColor(int(utils.Green)).
+		SetTitle("Help")
+
+	for _, category := range commandCategories.Keys() {
+		var commands []Command
+		if retrieved, ok := commandCategories.Get(category.(Category)); ok {
+			commands = retrieved.([]Command)
+		}
+
+		if len(commands) > 0 {
+			formatted := make([]string, 0)
+			for _, command := range commands {
+				formatted = append(formatted, formatHelp(command, prefix))
+			}
+
+			embed.AddField(string(category.(Category)), strings.Join(formatted, "\n"), false)
+		}
+	}
 
 	dmChannel, err := ctx.Shard.CreateDM(ctx.User.Id); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
-	if dmChannel != nil {
-		embed := embed.NewEmbed().
-			SetColor(int(utils.Green)).
-			SetTitle("Help").
-			SetDescription(msg)
-
-		if !ctx.IsPremium {
-			embed.SetFooter("Powered by ticketsbot.net", ctx.Shard.SelfAvatar(256))
-		}
-
-		// Explicitly ignore error to fix 403 (Cannot send messages to this user)
-		_, _ = ctx.Shard.CreateMessageEmbed(dmChannel.Id, embed)
+	if !ctx.IsPremium {
+		embed.SetFooter("Powered by ticketsbot.net", ctx.Shard.SelfAvatar(256))
 	}
 
-	ctx.ReactWithCheck()
+	// Explicitly ignore error to fix 403 (Cannot send messages to this user)
+	_, err = ctx.Shard.CreateMessageEmbed(dmChannel.Id, embed)
+	if err == nil {
+		ctx.ReactWithCheck()
+	} else {
+		fmt.Print(err.Error()) // TODO: Make blank field use a zws
+		ctx.ReactWithCross()
+		ctx.SendEmbed(utils.Red, "Error", "I couldn't send you a direct message: make sure your privacy settings aren't too high")
+	}
+}
+
+func formatHelp(c Command, prefix string) string {
+	return fmt.Sprintf("**%s%s**: %s", prefix, c.Name(), c.Description())
+}
+
+func getPrefix(guildId uint64, res chan string) {
+	ch := make(chan string)
+	go database.GetPrefix(guildId, ch)
+	customPrefix := <-ch
+
+	if customPrefix != "" {
+		res <- customPrefix
+	} else { // return default prefix
+		res <- config.Conf.Bot.Prefix
+	}
 }
 
 func (HelpCommand) Parent() interface{} {
@@ -67,6 +123,10 @@ func (HelpCommand) Children() []Command {
 
 func (HelpCommand) PremiumOnly() bool {
 	return false
+}
+
+func (HelpCommand) Category() Category {
+	return General
 }
 
 func (HelpCommand) AdminOnly() bool {

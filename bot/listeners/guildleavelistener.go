@@ -14,7 +14,7 @@ import (
  */
 func OnGuildLeave(s *gateway.Shard, e *events.GuildDelete) {
 	if e.Unavailable != nil && !*e.Unavailable {
-		servercounter.UpdateCache(s.ShardId, len((*s.Cache).GetGuilds()))
+		servercounter.UpdateCache(s.ShardId, len(s.Cache.GetGuilds()))
 		go statsd.IncrementKey(statsd.LEAVES)
 	}
 }

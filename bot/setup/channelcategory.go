@@ -63,9 +63,7 @@ func (ChannelCategoryStage) Process(shard *gateway.Shard, msg message.Message) {
 			return
 		}
 
-		if category != nil {
-			categoryId = (*category).Id
-		}
+		categoryId = category.Id
 
 		utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("I have created the channel category %s for you, you may need to adjust permissions yourself", category.Name), 15, true)
 	}

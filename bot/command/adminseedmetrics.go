@@ -52,6 +52,10 @@ func (AdminSeedMetrics) PremiumOnly() bool {
 	return false
 }
 
+func (AdminSeedMetrics) Category() Category {
+	return Settings
+}
+
 func (AdminSeedMetrics) AdminOnly() bool {
 	return true
 }

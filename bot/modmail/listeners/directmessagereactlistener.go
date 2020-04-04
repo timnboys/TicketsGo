@@ -61,7 +61,7 @@ func OnDirectMessageReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 			return
 		}
 
-		staffChannel, err := modmail.OpenModMailTicket(s, targetGuild, user)
+		staffChannel, err := modmail.OpenModMailTicket(s, targetGuild, &user)
 		if err == nil {
 			utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), 0, true)
 

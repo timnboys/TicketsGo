@@ -69,6 +69,10 @@ func (RenameCommand) PremiumOnly() bool {
 	return false
 }
 
+func (RenameCommand) Category() Category {
+	return Tickets
+}
+
 func (RenameCommand) AdminOnly() bool {
 	return false
 }

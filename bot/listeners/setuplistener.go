@@ -17,7 +17,7 @@ func OnSetupProgress(s *gateway.Shard, e *events.MessageCreate) {
 
 	if u.InSetup() {
 		// Process current stage
-		u.GetState().Process(s, *e.Message)
+		u.GetState().Process(s, e.Message)
 
 		// Start next stage
 		u.Next()

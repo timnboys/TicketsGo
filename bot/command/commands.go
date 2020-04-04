@@ -1,7 +1,6 @@
 package command
 
 var Commands = []Command{
-	SyncCommand{},
 	AddCommand{},
 	AddAdminCommand{},
 	AddSupportCommand{},
@@ -15,7 +14,6 @@ var Commands = []Command{
 	OpenCommand{},
 	PanelCommand{},
 	PremiumCommand{},
-	PurgeCommand{},
 	RemoveCommand{},
 	RemoveAdminCommand{},
 	RemoveSupportCommand{},

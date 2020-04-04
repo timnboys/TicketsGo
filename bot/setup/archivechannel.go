@@ -70,10 +70,6 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 
 		found := false
 		for _, channel := range channels {
-			if channel == nil { // Best to be safe
-				continue
-			}
-
 			if channel.Name == name {
 				found = true
 				archiveChannelId = channel.Id

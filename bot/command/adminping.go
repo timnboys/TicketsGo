@@ -41,6 +41,10 @@ func (AdminPingCommand) PremiumOnly() bool {
 	return false
 }
 
+func (AdminPingCommand) Category() Category {
+	return Settings
+}
+
 func (AdminPingCommand) AdminOnly() bool {
 	return false
 }

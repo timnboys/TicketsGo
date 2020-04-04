@@ -52,6 +52,10 @@ func (ManageCannedResponsesList) PremiumOnly() bool {
 	return false
 }
 
+func (ManageCannedResponsesList) Category() Category {
+	return CannedResponses
+}
+
 func (ManageCannedResponsesList) AdminOnly() bool {
 	return false
 }

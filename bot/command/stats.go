@@ -75,7 +75,7 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 			AddField("Open Tickets", fmt.Sprintf("%d / %d", len(<-openTickets), <-ticketLimit), true)
 
 		if m, err := ctx.Shard.CreateMessageEmbed(ctx.ChannelId, embed); err == nil {
-			utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: m}, 60)
+			utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: &m}, 60)
 		}
 	} else { // Support rep stats
 		responseTimesChan := make(chan map[string]int64)
@@ -147,7 +147,7 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 			AddField("Average First Response Time (Monthly)", utils.FormatTime(monthly), true)
 
 		if m, err := ctx.Shard.CreateMessageEmbed(ctx.ChannelId, embed); err == nil {
-			utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: m}, 60)
+			utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: &m}, 60)
 		}
 	}
 }
@@ -164,6 +164,10 @@ func (StatsCommand) Children() []Command {
 
 func (StatsCommand) PremiumOnly() bool {
 	return true
+}
+
+func (StatsCommand) Category() Category {
+	return Statistics
 }
 
 func (StatsCommand) AdminOnly() bool {
