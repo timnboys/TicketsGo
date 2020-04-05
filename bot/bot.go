@@ -6,10 +6,12 @@ import (
 	modmaillisteners "github.com/TicketsBot/TicketsGo/bot/modmail/listeners"
 	"github.com/TicketsBot/TicketsGo/bot/modmail/utils"
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
+	redis "github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/rxdn/gdl/cache"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/user"
+	"github.com/rxdn/gdl/rest/ratelimit"
 	"os"
 	"time"
 )
@@ -18,6 +20,7 @@ func Start(ch chan os.Signal) {
 	cacheFactory := cache.MemoryCacheFactory(cache.CacheOptions{
 		Guilds:      true,
 		Users:       true,
+		Members:     true,
 		Channels:    true,
 		Roles:       true,
 		Emojis:      false,
@@ -25,14 +28,18 @@ func Start(ch chan os.Signal) {
 	})
 
 	shardOptions := gateway.ShardOptions{
-		Total:   config.Conf.Bot.Sharding.Total,
-		Lowest:  config.Conf.Bot.Sharding.Lowest,
-		Highest: config.Conf.Bot.Sharding.Max,
+		ShardCount: gateway.ShardCount{
+			Total:   config.Conf.Bot.Sharding.Total,
+			Lowest:  config.Conf.Bot.Sharding.Lowest,
+			Highest: config.Conf.Bot.Sharding.Max,
+		},
+		CacheFactory:       cacheFactory,
+		RateLimitStore:     ratelimit.NewRedisStore(redis.Client.Client, "ratelimit"),
+		GuildSubscriptions: false,
+		Presence:           user.BuildStatus(user.ActivityTypePlaying, "DM for help | t!help"),
 	}
 
-	shardManager := gateway.NewShardManager(config.Conf.Bot.Token, shardOptions, cacheFactory)
-
-	shardManager.Presence = user.BuildStatus(user.ActivityTypePlaying, "DM for help | t!help")
+	shardManager := gateway.NewShardManager(config.Conf.Bot.Token, shardOptions)
 
 	shardManager.RegisterListeners(
 		listeners.OnChannelCreate,
