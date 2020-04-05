@@ -36,17 +36,18 @@ func (AddCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	// Check channel is mentioned
-	if len(ctx.Message.MentionChannels) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention a ticketChannel channel to add the user(s) in")
+	mentions := ctx.Message.ChannelMentions()
+	if len(mentions) == 0 {
+		ctx.SendEmbed(utils.Red, "Error", "You need to mention a ticket channel to add the user(s) in")
 		ctx.ReactWithCross()
 		return
 	}
 
 	// Verify that the specified channel is a real ticketChannel
-	ticketChannel := ctx.Message.MentionChannels[0]
+	ticketChannel := mentions[0]
 
 	isTicketChan := make(chan bool)
-	go database.IsTicketChannel(ticketChannel.Id, isTicketChan)
+	go database.IsTicketChannel(ticketChannel, isTicketChan)
 	isTicket := <- isTicketChan
 
 	if !isTicket {

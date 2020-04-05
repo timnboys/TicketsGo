@@ -40,8 +40,9 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 	var archiveChannelId uint64
 
 	// Prefer channel mention
-	if len(msg.MentionChannels) > 0 {
-		archiveChannelId = msg.MentionChannels[0].Id
+	mentions := msg.ChannelMentions()
+	if len(mentions) > 0 {
+		archiveChannelId = mentions[0]
 
 		// Verify that the channel exists
 		exists := false
