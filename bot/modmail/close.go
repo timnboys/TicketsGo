@@ -7,7 +7,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel/message"
-	"github.com/rxdn/gdl/permission"
+	//"github.com/rxdn/gdl/permission"
 	"github.com/rxdn/gdl/rest"
 	"strings"
 )
