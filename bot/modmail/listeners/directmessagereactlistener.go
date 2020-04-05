@@ -47,6 +47,11 @@ func OnDirectMessageReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 		guildsChan := make(chan []modmailutils.UserGuild)
 		go modmailutils.GetMutualGuilds(e.UserId, guildsChan)
 		guilds := <-guildsChan
+
+		if reaction - 1 >= len(guilds) {
+			return
+		}
+
 		targetGuild := guilds[reaction - 1]
 
 		// Create DM channel
