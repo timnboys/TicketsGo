@@ -33,11 +33,12 @@ func HandleClose(shard *modmaildatabase.ModMailSession, ctx utils.CommandContext
 		return
 	}
 
-	if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), permission.ManageChannels) {
+	// TODO: Re-add perm checks
+	/*if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), permission.ManageChannels) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "I do not have permission to delete this channel")
 		return
-	}
+	}*/
 
 	if ctx.ShouldReact {
 		ctx.ReactWithCheck()
