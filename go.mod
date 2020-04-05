@@ -20,5 +20,3 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0
 )
-
-replace github.com/rxdn/gdl v0.0.0-20200405214915-78651f1dfb7d => ../../rxdn/gdl
