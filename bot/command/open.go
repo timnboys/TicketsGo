@@ -63,7 +63,8 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		}
 	}
 
-	requiredPerms := []permission.Permission{
+	// TODO: Re-add perm checks
+	/*requiredPerms := []permission.Permission{
 		permission.ManageChannels,
 		permission.ManageRoles,
 		permission.ViewChannel,
@@ -71,8 +72,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		permission.ReadMessageHistory,
 	}
 
-	// TODO: Re-add perm checks
-	/*if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), permission.Administrator) {
+	if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), permission.Administrator) {
 		if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), requiredPerms...) {
 			ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
 			if ctx.ShouldReact {

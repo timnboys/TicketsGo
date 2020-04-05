@@ -7,8 +7,8 @@ import (
 )
 
 type Channel struct {
-	ChannelId uint64  `gorm:"column:CHANNELID;primary_key;unique"`
-	GuildId   uint64  `gorm:"column:GUILDID"`
+	ChannelId uint64 `gorm:"column:CHANNELID;primary_key;unique"`
+	GuildId   uint64 `gorm:"column:GUILDID"`
 	Name      string `gorm:"column:NAME;type:VARCHAR(32)"`
 	Type      int    `gorm:"column:CHANNELTYPE;type:TINYINT(1)"`
 }
@@ -25,7 +25,7 @@ func StoreChannel(channelId, guildId uint64, name string, channelType int) {
 		Type:      channelType,
 	}
 
-	Db.Where(&Channel{ChannelId:channelId}).Assign(&channel).FirstOrCreate(&Channel{})
+	Db.Where(&Channel{ChannelId: channelId}).Assign(&channel).FirstOrCreate(&Channel{})
 }
 
 func DeleteChannel(channelId uint64) {
