@@ -16,7 +16,7 @@ require (
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/rxdn/gdl v0.0.0-20200405175723-57ab578ec299
+	github.com/rxdn/gdl v0.0.0-20200405180645-90466c402ab5
 	github.com/satori/go.uuid v1.2.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0
 )
