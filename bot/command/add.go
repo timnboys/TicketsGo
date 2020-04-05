@@ -58,7 +58,7 @@ func (AddCommand) Execute(ctx utils.CommandContext) {
 
 	// Get ticketChannel ID
 	ticketIdChan := make(chan int)
-	go database.GetTicketId(ticketChannel.Id, ticketIdChan)
+	go database.GetTicketId(ticketChannel, ticketIdChan)
 	ticketId := <- ticketIdChan
 
 	// Verify that the user is allowed to modify the ticketChannel
@@ -80,7 +80,7 @@ func (AddCommand) Execute(ctx utils.CommandContext) {
 		// Add user to ticketChannel in DB
 		go database.AddMember(ticketId, ctx.Guild.Id, user.Id)
 
-		if err := ctx.Shard.EditChannelPermissions(ticketChannel.Id, channel.PermissionOverwrite{
+		if err := ctx.Shard.EditChannelPermissions(ticketChannel, channel.PermissionOverwrite{
 			Id:    user.Id,
 			Type:  channel.PermissionTypeMember,
 			Allow: permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),
