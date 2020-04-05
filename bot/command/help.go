@@ -39,6 +39,11 @@ func (HelpCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	for _, command := range Commands {
+		// check bot admin / helper only commands
+		if (command.AdminOnly() && !utils.IsBotAdmin(ctx.User.Id)) || (command.HelperOnly() && !utils.IsBotHelper(ctx.User.Id)) {
+			continue
+		}
+
 		permissionLevel := make(chan utils.PermissionLevel)
 		go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permissionLevel)
 		if <-permissionLevel >= command.PermissionLevel() { // only send commands the user has permissions for

@@ -338,8 +338,9 @@ func sendWelcomeMessage(ctx utils.CommandContext, channel *channel.Channel, subj
 		welcomeMessage = strings.Replace(welcomeMessage, "%average_response%", utils.FormatTime(<-weeklyResponseTime), -1)
 	}
 
-	// %user%
+	// variables
 	welcomeMessage = strings.Replace(welcomeMessage, "%user%", ctx.User.Mention(), -1)
+	welcomeMessage = strings.Replace(welcomeMessage, "%server%", ctx.Guild.Name, -1)
 
 	if welcomeMessage == "" {
 		welcomeMessage = "No message specified"
