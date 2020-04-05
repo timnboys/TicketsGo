@@ -96,7 +96,6 @@ func (HelpCommand) Execute(ctx utils.CommandContext) {
 	if err == nil {
 		ctx.ReactWithCheck()
 	} else {
-		fmt.Print(err.Error()) // TODO: Make blank field use a zws
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "I couldn't send you a direct message: make sure your privacy settings aren't too high")
 	}

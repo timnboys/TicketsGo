@@ -61,12 +61,13 @@ func OpenModMailTicket(shard *gateway.Shard, guild modmailutils.UserGuild, user 
 			return 0, errors.New("Ticket category is not a ticket category")
 		}
 
-		hasAdmin := permission.HasPermissionsChannel(shard, guild.Id, shard.SelfId(), category, permission.Administrator)
+		// TODO: Re-add perm checks
+		/*hasAdmin := permission.HasPermissionsChannel(shard, guild.Id, shard.SelfId(), category, permission.Administrator)
 		if !hasAdmin {
 			if !permission.HasPermissionsChannel(shard, guild.Id, shard.SelfId(), category, requiredPerms...) {
 				return 0, errors.New("I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions")
 			}
-		}
+		}*/
 	}
 
 	if useCategory {

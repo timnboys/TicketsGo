@@ -43,9 +43,9 @@ func (ChannelCategoryStage) Process(shard *gateway.Shard, msg message.Message) {
 	}
 
 	var categoryId uint64
-	for _, channel := range guild.Channels {
-		if strings.ToLower(channel.Name) == strings.ToLower(name) {
-			categoryId = channel.Id
+	for _, ch := range guild.Channels {
+		if ch.Type == channel.ChannelTypeGuildCategory && strings.ToLower(ch.Name) == strings.ToLower(name) {
+			categoryId = ch.Id
 			break
 		}
 	}

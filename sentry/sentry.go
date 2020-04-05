@@ -1,6 +1,6 @@
 package sentry
 
-import(
+import (
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/getsentry/raven-go"
 	"github.com/go-errors/errors"
