@@ -347,7 +347,7 @@ func sendWelcomeMessage(ctx utils.CommandContext, channel *channel.Channel, subj
 	}
 
 	// Send welcome message
-	if msg, err := utils.SendEmbedWithResponse(ctx.Shard, channel.Id, utils.Green, subject, welcomeMessage, 0, ctx.IsPremium); err != nil {
+	if msg, err := utils.SendEmbedWithResponse(ctx.Shard, channel.Id, utils.Green, subject, welcomeMessage, 0, ctx.IsPremium); err == nil {
 		// Add close reaction to the welcome message
 		err := ctx.Shard.CreateReaction(channel.Id, msg.Id, "🔒")
 		if err != nil {
