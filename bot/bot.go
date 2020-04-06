@@ -8,6 +8,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	redis "github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/config"
+	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/rxdn/gdl/cache"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/user"
@@ -37,6 +38,17 @@ func Start(ch chan os.Signal) {
 		RateLimitStore:     ratelimit.NewRedisStore(redis.Client.Client, "ratelimit"),
 		GuildSubscriptions: false,
 		Presence:           user.BuildStatus(user.ActivityTypePlaying, "DM for help | t!help"),
+		Hooks: gateway.Hooks{
+			ReconnectHook: func(shard *gateway.Shard) {
+				go statsd.IncrementKey(statsd.RECONNECT)
+			},
+			IdentifyHook: func(shard *gateway.Shard) {
+				go statsd.IncrementKey(statsd.IDENTIFY)
+			},
+			RestHook: func(url string) {
+				go statsd.IncrementKey(statsd.REST)
+			},
+		},
 	}
 
 	shardManager := gateway.NewShardManager(config.Conf.Bot.Token, shardOptions)
