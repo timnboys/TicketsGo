@@ -8,6 +8,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel/message"
+	"github.com/rxdn/gdl/permission"
 	"github.com/rxdn/gdl/rest"
 	"strings"
 )
@@ -87,12 +88,11 @@ func (CloseCommand) Execute(ctx utils.CommandContext) {
 	}
 
 
-	// TODO: Re-add perm checks
-	/*if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), permission.ManageChannels) {
+	if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), permission.ManageChannels) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "I do not have permission to delete this channel")
 		return
-	}*/
+	}
 
 	if ctx.ShouldReact {
 		ctx.ReactWithCheck()

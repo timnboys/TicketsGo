@@ -63,8 +63,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		}
 	}
 
-	// TODO: Re-add perm checks
-	/*requiredPerms := []permission.Permission{
+	requiredPerms := []permission.Permission{
 		permission.ManageChannels,
 		permission.ManageRoles,
 		permission.ViewChannel,
@@ -80,7 +79,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 			}
 			return
 		}
-	}*/
+	}
 
 	useCategory := category != 0
 	if useCategory {
@@ -99,8 +98,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		}
 
 
-		// TODO: Re-add perm checks
-		/*if !permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), category, permission.Administrator) {
+		if !permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), category, permission.Administrator) {
 			if !permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), category, requiredPerms...) {
 				ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
 				if ctx.ShouldReact {
@@ -108,7 +106,7 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 				}
 				return
 			}
-		}*/
+		}
 	}
 
 	// Make sure ticket count is whithin ticket limit
