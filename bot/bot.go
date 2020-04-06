@@ -9,6 +9,7 @@ import (
 	redis "github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/cache"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/user"
@@ -47,6 +48,7 @@ func Start(ch chan os.Signal) {
 			},
 			RestHook: func(url string) {
 				go statsd.IncrementKey(statsd.REST)
+				go sentry.LogRestRequest(url)
 			},
 		},
 		Debug: true,

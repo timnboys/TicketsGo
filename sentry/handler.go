@@ -32,6 +32,10 @@ func LogWithContext(e error, ctx ErrorContext) {
 	})
 }
 
+func LogRestRequest(url string) {
+	raven.CaptureMessage(url, nil, nil)
+}
+
 func ErrorWithContext(e error, ctx ErrorContext) {
 	wrapped := errors.New(e)
 	raven.Capture(ConstructErrorPacket(wrapped), map[string]string{
