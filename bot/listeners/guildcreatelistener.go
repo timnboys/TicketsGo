@@ -19,17 +19,15 @@ func OnGuildCreate(s *gateway.Shard, e *events.GuildCreate) {
 	go cache.Client.CacheGuildProperties(&e.Guild)
 
 	// Determine whether this is a join or lazy load
-	JoinedGuildsLock.Lock()
-	cachedGuilds := JoinedGuilds[s.ShardId]
-	JoinedGuildsLock.Unlock()
-
+	joinedGuildsLock.RLock()
 	isJoin := true
-	for _, cachedId := range cachedGuilds {
+	for _, cachedId := range joinedGuilds[s.ShardId] {
 		if cachedId == e.Guild.Id {
 			isJoin = false
 			break
 		}
 	}
+	joinedGuildsLock.RUnlock()
 
 	trackCachedGuild(s.ShardId, e.Guild.Id)
 

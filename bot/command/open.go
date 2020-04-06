@@ -71,14 +71,12 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		permission.ReadMessageHistory,
 	}
 
-	if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), permission.Administrator) {
-		if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), requiredPerms...) {
-			ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
-			if ctx.ShouldReact {
-				ctx.ReactWithCross()
-			}
-			return
+	if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), requiredPerms...) {
+		ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
+		if ctx.ShouldReact {
+			ctx.ReactWithCross()
 		}
+		return
 	}
 
 	useCategory := category != 0
@@ -98,14 +96,12 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		}
 
 
-		if !permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), category, permission.Administrator) {
-			if !permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), category, requiredPerms...) {
-				ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
-				if ctx.ShouldReact {
-					ctx.ReactWithCross()
-				}
-				return
+		if !permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), category, requiredPerms...) {
+			ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
+			if ctx.ShouldReact {
+				ctx.ReactWithCross()
 			}
+			return
 		}
 	}
 

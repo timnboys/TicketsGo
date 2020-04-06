@@ -38,11 +38,8 @@ func OpenModMailTicket(shard *gateway.Shard, guild modmailutils.UserGuild, user 
 		permission.ReadMessageHistory,
 	}
 
-	hasAdmin := permission.HasPermissions(shard, guild.Id, shard.SelfId(), permission.Administrator)
-	if !hasAdmin {
-		if !permission.HasPermissions(shard, guild.Id, shard.SelfId(), requiredPerms...) {
-			return 0, errors.New("I do not have the correct permissions required to create the channel in the server")
-		}
+	if !permission.HasPermissions(shard, guild.Id, shard.SelfId(), requiredPerms...) {
+		return 0, errors.New("I do not have the correct permissions required to create the channel in the server")
 	}
 
 	useCategory := category != 0
@@ -61,11 +58,8 @@ func OpenModMailTicket(shard *gateway.Shard, guild modmailutils.UserGuild, user 
 			return 0, errors.New("Ticket category is not a ticket category")
 		}
 
-		hasAdmin := permission.HasPermissionsChannel(shard, guild.Id, shard.SelfId(), category, permission.Administrator)
-		if !hasAdmin {
-			if !permission.HasPermissionsChannel(shard, guild.Id, shard.SelfId(), category, requiredPerms...) {
-				return 0, errors.New("I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions")
-			}
+		if !permission.HasPermissionsChannel(shard, guild.Id, shard.SelfId(), category, requiredPerms...) {
+			return 0, errors.New("I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions")
 		}
 	}
 
