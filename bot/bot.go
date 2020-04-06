@@ -49,6 +49,7 @@ func Start(ch chan os.Signal) {
 				go statsd.IncrementKey(statsd.REST)
 			},
 		},
+		Debug: true,
 	}
 
 	shardManager := gateway.NewShardManager(config.Conf.Bot.Token, shardOptions)
