@@ -12,7 +12,6 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/jackc/pgx/v4 v4.6.0
 	github.com/jinzhu/gorm v1.9.12
-	github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/rxdn/gdl v0.0.0-20200407194400-f4a868e07272
 	github.com/satori/go.uuid v1.2.0
