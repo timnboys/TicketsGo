@@ -7,9 +7,9 @@ import (
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/go-errors/errors"
+	"github.com/rxdn/gdl/gateway"
 	"io/ioutil"
 	"net/http"
-	"sync"
 	"time"
 )
 
@@ -19,25 +19,17 @@ type ServerCount struct {
 	ServerCount int `json:"serverCount"`
 }
 
-var(
-	serverCountCache = make(map[int]int)
-	cacheLock sync.Mutex
-)
 
-func UpdateServerCount() {
-	cacheLock.Lock()
-	clone := copyCache()
-	cacheLock.Unlock()
-
-	for shard, count := range clone {
+func UpdateServerCount(shardManager *gateway.ShardManager) {
+	for _, shard := range shardManager.Shards {
 		client := http.Client{
 			Timeout: 5 * time.Second,
 		}
 
 		data := ServerCount{
 			Key: config.Conf.ServerCounter.Key,
-			Shard: shard,
-			ServerCount: count,
+			Shard: shard.ShardId,
+			ServerCount: len(shard.GetShardGuildIds()),
 		}
 
 		encoded, err := json.Marshal(data); if err != nil {
@@ -67,20 +59,4 @@ func UpdateServerCount() {
 
 		res.Body.Close()
 	}
-}
-
-func UpdateCache(shard, count int) {
-	cacheLock.Lock()
-	serverCountCache[shard] = count
-	cacheLock.Unlock()
-}
-
-func copyCache() map[int]int {
-	clone := make(map[int]int)
-
-	for k, v := range serverCountCache {
-		clone[k] = v
-	}
-
-	return clone
 }

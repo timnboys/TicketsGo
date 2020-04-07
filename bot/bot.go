@@ -77,7 +77,7 @@ func Start(ch chan os.Signal) {
 		go func() {
 			for {
 				time.Sleep(20 * time.Second)
-				servercounter.UpdateServerCount()
+				servercounter.UpdateServerCount(&shardManager)
 			}
 		}()
 	}

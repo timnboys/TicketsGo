@@ -2,7 +2,6 @@ package listeners
 
 import (
 	"fmt"
-	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/database"
@@ -14,8 +13,6 @@ import (
 
 // Fires when we receive a guild
 func OnGuildCreate(s *gateway.Shard, e *events.GuildCreate) {
-	servercounter.UpdateCache(s.ShardId, len(s.Cache.GetGuilds()))
-
 	go cache.Client.CacheGuildProperties(&e.Guild)
 
 	// Determine whether this is a join or lazy load

@@ -1,7 +1,6 @@
 package listeners
 
 import (
-	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
@@ -14,7 +13,6 @@ import (
  */
 func OnGuildLeave(s *gateway.Shard, e *events.GuildDelete) {
 	if e.Unavailable != nil && !*e.Unavailable {
-		servercounter.UpdateCache(s.ShardId, len(s.Cache.GetGuilds()))
 		go statsd.IncrementKey(statsd.LEAVES)
 	}
 }
