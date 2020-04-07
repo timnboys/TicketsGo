@@ -71,13 +71,14 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 		permission.ReadMessageHistory,
 	}
 
-	if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), requiredPerms...) {
+	// TODO: Re-add permission check
+	/*if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), requiredPerms...) {
 		ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
 		if ctx.ShouldReact {
 			ctx.ReactWithCross()
 		}
 		return
-	}
+	}*/
 
 	useCategory := category != 0
 	if useCategory {
@@ -95,14 +96,14 @@ func (OpenCommand) Execute(ctx utils.CommandContext) {
 			return
 		}
 
-
-		if !permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), category, requiredPerms...) {
+		// TODO: Re-add permission check
+		/*if !permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), category, requiredPerms...) {
 			ctx.SendEmbed(utils.Red, "Error", "I am missing the required permissions on the ticket category. Please ask the guild owner to assign me permissions to manage channels and manage roles / manage permissions.")
 			if ctx.ShouldReact {
 				ctx.ReactWithCross()
 			}
 			return
-		}
+		}*/
 	}
 
 	// Make sure ticket count is whithin ticket limit
@@ -271,7 +272,8 @@ func (OpenCommand) HelperOnly() bool {
 }
 
 func createWebhook(ctx utils.CommandContext, channelId uint64, uuid string) {
-	if permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), channelId, permission.ManageWebhooks) { // Do we actually need this?
+	// TODO: Re-add permission check
+	//if permission.HasPermissionsChannel(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), channelId, permission.ManageWebhooks) { // Do we actually need this?
 		webhook, err := ctx.Shard.CreateWebhook(channelId, rest.WebhookData{
 			Username: ctx.Shard.SelfUsername(),
 			Avatar:   ctx.Shard.SelfAvatar(256),
@@ -288,7 +290,7 @@ func createWebhook(ctx utils.CommandContext, channelId uint64, uuid string) {
 			WebhookUrl: formatted,
 		}
 		ticketWebhook.AddWebhook()
-	}
+	//}
 }
 
 func calculateWeeklyResponseTime(ctx utils.CommandContext, res chan int64) {

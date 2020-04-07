@@ -38,9 +38,10 @@ func OpenModMailTicket(shard *gateway.Shard, guild modmailutils.UserGuild, user 
 		permission.ReadMessageHistory,
 	}
 
-	if !permission.HasPermissions(shard, guild.Id, shard.SelfId(), requiredPerms...) {
+	// TODO: Re-add permission check
+	/*if !permission.HasPermissions(shard, guild.Id, shard.SelfId(), requiredPerms...) {
 		return 0, errors.New("I do not have the correct permissions required to create the channel in the server")
-	}
+	}*/
 
 	useCategory := category != 0
 	if useCategory {
