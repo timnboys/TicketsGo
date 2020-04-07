@@ -46,7 +46,7 @@ func OnGuildCreate(s *gateway.Shard, e *events.GuildCreate) {
 
 		go database.InsertChannels(channels)
 
-		sendOwnerMessage(s, &e.Guild)
+		//sendOwnerMessage(s, &e.Guild)
 	}
 }
 
