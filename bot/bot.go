@@ -1,14 +1,15 @@
 package bot
 
 import (
+	"context"
 	"github.com/TicketsBot/TicketsGo/bot/listeners"
 	"github.com/TicketsBot/TicketsGo/bot/listeners/messagequeue"
 	modmaillisteners "github.com/TicketsBot/TicketsGo/bot/modmail/listeners"
-	"github.com/TicketsBot/TicketsGo/bot/modmail/utils"
 	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	redis "github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rxdn/gdl/cache"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/user"
@@ -18,15 +19,6 @@ import (
 )
 
 func Start(ch chan os.Signal) {
-	cacheFactory := cache.MemoryCacheFactory(cache.CacheOptions{
-		Guilds:      true,
-		Users:       true,
-		Members:     true,
-		Channels:    true,
-		Roles:       true,
-		Emojis:      false,
-		VoiceStates: false,
-	})
 
 	shardOptions := gateway.ShardOptions{
 		ShardCount: gateway.ShardCount{
@@ -34,7 +26,7 @@ func Start(ch chan os.Signal) {
 			Lowest:  config.Conf.Bot.Sharding.Lowest,
 			Highest: config.Conf.Bot.Sharding.Max,
 		},
-		CacheFactory:       cacheFactory,
+		CacheFactory:       buildCache(),
 		RateLimitStore:     ratelimit.NewRedisStore(redis.Client.Client, "ratelimit"),
 		GuildSubscriptions: false,
 		Presence:           user.BuildStatus(user.ActivityTypePlaying, "DM for help | t!help"),
@@ -80,8 +72,6 @@ func Start(ch chan os.Signal) {
 
 	go messagequeue.ListenPanelCreations(&shardManager)
 	go messagequeue.ListenTicketClose(&shardManager)
-	go utils.ListenMutualGuildRequests(&shardManager)
-	go utils.ListenMutualGuildResponses()
 
 	if config.Conf.ServerCounter.Enabled {
 		go func() {
@@ -93,4 +83,23 @@ func Start(ch chan os.Signal) {
 	}
 
 	<-ch
+}
+
+func buildCache() cache.CacheFactory {
+	pool, err := pgxpool.Connect(context.Background(), config.Conf.Cache.Uri)
+	if err != nil {
+		panic(err)
+	}
+
+	options := cache.CacheOptions{
+		Guilds:      true,
+		Users:       true,
+		Members:     true,
+		Channels:    true,
+		Roles:       true,
+		Emojis:      false,
+		VoiceStates: false,
+	}
+
+	return cache.PgCacheFactory(pool, options)
 }

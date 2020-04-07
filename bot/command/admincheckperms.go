@@ -26,9 +26,9 @@ func (AdminCheckPermsCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (AdminCheckPermsCommand) Execute(ctx utils.CommandContext) {
-	guild := ctx.Shard.Cache.GetGuild(ctx.Guild.Id)
+	guild, found := ctx.Shard.Cache.GetGuild(ctx.Guild.Id, false)
 
-	if guild == nil {
+	if !found {
 		ctx.SendMessage("guild not cached")
 	} else {
 		g, err := rest.GetGuild(ctx.Shard.Token, ctx.Shard.ShardManager.RateLimiter, ctx.Guild.Id)
@@ -36,7 +36,7 @@ func (AdminCheckPermsCommand) Execute(ctx utils.CommandContext) {
 			ctx.SendMessage(err.Error())
 			return
 		}
-		guild = &g
+		guild = g
 	}
 
 	ctx.SendMessage(fmt.Sprintf("roles: %d", len(guild.Roles)))

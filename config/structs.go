@@ -8,6 +8,7 @@ type (
 		ServerCounter ServerCounter
 		Metrics       Metrics
 		Redis         Redis
+		Cache         Cache
 		Sentry        Sentry
 	}
 
@@ -63,6 +64,10 @@ type (
 		Enabled bool
 		Uri     string
 		Threads int
+	}
+
+	Cache struct {
+		Uri string
 	}
 
 	Sentry struct {

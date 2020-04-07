@@ -47,8 +47,12 @@ key=""
   key=""
 
 [redis]
+enabled=true
 uri="redis://:password@localhost:6379"
 threads=5
+
+[cache]
+uri="postgres://pwd:user@localhost/cache?pool_max_conns=10"
 
 [sentry]
 dsn=""

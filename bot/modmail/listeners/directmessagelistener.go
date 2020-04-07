@@ -52,9 +52,7 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 
 		// No active session
 		if session == nil {
-			guildsChan := make(chan []modmailutils.UserGuild)
-			go modmailutils.GetMutualGuilds(ctx.User.Id, guildsChan)
-			guilds := <-guildsChan
+			guilds := modmailutils.GetMutualGuilds(ctx.Shard, ctx.User.Id)
 
 			if len(e.Message.Content) == 0 {
 				modmailutils.SendModMailIntro(ctx, dmChannel.Id)

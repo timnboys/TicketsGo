@@ -4,18 +4,18 @@ import (
 	"errors"
 	"fmt"
 	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
-	modmailutils "github.com/TicketsBot/TicketsGo/bot/modmail/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/channel"
+	"github.com/rxdn/gdl/objects/guild"
 	"github.com/rxdn/gdl/objects/user"
 	"github.com/rxdn/gdl/permission"
 	"github.com/rxdn/gdl/rest"
 	uuid "github.com/satori/go.uuid"
 )
 
-func OpenModMailTicket(shard *gateway.Shard, guild modmailutils.UserGuild, user *user.User) (uint64, error) {
+func OpenModMailTicket(shard *gateway.Shard, guild guild.Guild, user *user.User) (uint64, error) {
 	ticketId := uuid.NewV4()
 
 	// If we're using a panel, then we need to create the ticket in the specified category
@@ -106,8 +106,9 @@ func OpenModMailTicket(shard *gateway.Shard, guild modmailutils.UserGuild, user 
 }
 
 func createWebhook(shard *gateway.Shard, guildId, channelId uint64, uuid string) {
-	self := shard.Cache.GetSelf()
-	if self == nil {
+	self, found := shard.Cache.GetSelf()
+	if !found {
+		sentry.Error(errors.New("self is not cached"))
 		return
 	}
 
