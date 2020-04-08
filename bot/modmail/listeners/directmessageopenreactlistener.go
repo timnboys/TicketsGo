@@ -12,7 +12,7 @@ import (
 	"github.com/rxdn/gdl/gateway/payloads/events"
 )
 
-func OnDirectMessageReact(s *gateway.Shard, e *events.MessageReactionAdd) {
+func OnDirectOpenMessageReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 	if e.GuildId != 0 { // DMs only
 		return
 	}

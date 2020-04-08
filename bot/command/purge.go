@@ -92,8 +92,8 @@ For example, to mute someone for 1 month, 3 weeks and 2 hours, use the time peri
 		if before.After(time) { // We should purge
 			fakeContext := utils.CommandContext{
 				Shard:     ctx.Shard,
-				User:      ctx.User,
-				UserID:    ctx.UserID,
+				User:      ctx.Author,
+				UserID:    ctx.AuthorID,
 				Guild:     ctx.Guild,
 				GuildId:   ctx.GuildId,
 				Channel:   channelId,

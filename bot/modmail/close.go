@@ -15,25 +15,22 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	reason := strings.Join(ctx.Args, " ")
 
 	// Check the user is permitted to close the ticket
-	permissionLevel := utils.Everyone
-	if ctx.Member != nil {
-		permissionLevelChan := make(chan utils.PermissionLevel)
-		go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permissionLevelChan)
-		permissionLevel = <-permissionLevelChan
-	}
+	permissionLevelChan := make(chan utils.PermissionLevel)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permissionLevelChan)
+	permissionLevel := <-permissionLevelChan
 
 	usersCanCloseChan := make(chan bool)
 	go database.IsUserCanClose(session.Guild, usersCanCloseChan)
 	usersCanClose := <-usersCanCloseChan
 
-	if (permissionLevel == utils.Everyone && session.User != ctx.User.Id) || (permissionLevel == utils.Everyone && !usersCanClose) {
+	if (permissionLevel == utils.Everyone && session.User != ctx.Author.Id) || (permissionLevel == utils.Everyone && !usersCanClose) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "You are not permitted to close this ticket")
 		return
 	}
 
 	// TODO: Re-add permission check
-	/*if !permission.HasPermissions(ctx.Shard, ctx.Guild.Id, ctx.Shard.SelfId(), permission.ManageChannels) {
+	/*if !permission.HasPermissions(ctx.Shard, ctx.GuildId, ctx.Shard.SelfId(), permission.ManageChannels) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "I do not have permission to delete this channel")
 		return
@@ -115,7 +112,7 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	go database.DeleteWebhookByUuid(session.Uuid)
 
 	if channelExists {
-		msg := fmt.Sprintf("Archive of `#%s` (closed by %s#%s)", channelName, ctx.User.Username, utils.PadDiscriminator(ctx.User.Discriminator))
+		msg := fmt.Sprintf("Archive of `#%s` (closed by %s#%s)", channelName, ctx.Author.Username, utils.PadDiscriminator(ctx.Author.Discriminator))
 		if reason != "" {
 			msg += fmt.Sprintf(" with reason `%s`", reason)
 		}
@@ -159,12 +156,12 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	if err == nil {
 		var content string
 		// Create message content
-		if ctx.User.Id == session.User {
+		if ctx.Author.Id == session.User {
 			content = fmt.Sprintf("You closed your modmail ticket in `%s`", guild.Name)
 		} else if len(ctx.Args) == 0 {
-			content = fmt.Sprintf("Your modmail ticket in `%s` was closed by %s", guild.Name, ctx.User.Mention())
+			content = fmt.Sprintf("Your modmail ticket in `%s` was closed by %s", guild.Name, ctx.Author.Mention())
 		} else {
-			content = fmt.Sprintf("Your modmail ticket in `%s` was closed by %s with reason `%s`", guild.Name, ctx.User.Mention(), reason)
+			content = fmt.Sprintf("Your modmail ticket in `%s` was closed by %s with reason `%s`", guild.Name, ctx.Author.Mention(), reason)
 		}
 
 		// Errors occur when users have privacy settings high

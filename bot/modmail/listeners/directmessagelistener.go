@@ -33,11 +33,9 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 
 		ctx := utils.CommandContext{
 			Shard:       s,
-			User:        &e.Author,
-			Message:     &e.Message,
-			IsPremium:   false,
+			Message:     e.Message,
 			ShouldReact: true,
-			Member:      &e.Member,
+			IsFromPanel: false,
 		}
 
 		sessionChan := make(chan *modmaildatabase.ModMailSession, 0)
@@ -52,7 +50,7 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 
 		// No active session
 		if session == nil {
-			guilds := modmailutils.GetMutualGuilds(ctx.Shard, ctx.User.Id)
+			guilds := modmailutils.GetMutualGuilds(ctx.Shard, ctx.Author.Id)
 
 			if len(e.Message.Content) == 0 {
 				modmailutils.SendModMailIntro(ctx, dmChannel.Id)
@@ -83,20 +81,12 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 				utils.SendEmbed(s, dmChannel.Id, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), 30, true)
 			}
 		} else { // Forward message to guild or handle command
-			// Create fake guild object
-			guildChan := make(chan guild.Guild)
-			go createFakeGuild(session.Guild, guildChan)
-			guild := <-guildChan
-
 			// Determine whether premium guild
 			premiumChan := make(chan bool)
-			go utils.IsPremiumGuild(utils.CommandContext{
-				Guild:   &guild,
-			}, premiumChan)
+			go utils.IsPremiumGuild(s, session.Guild, premiumChan)
 			isPremium := <-premiumChan
 
 			// Update context
-			ctx.Guild = &guild
 			ctx.IsPremium = isPremium
 			ctx.ChannelId = dmChannel.Id
 
@@ -125,7 +115,7 @@ func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 
 	success := false
 	if webhook != nil {
-		success = executeWebhook(session.Uuid, *webhook, ctx.Message.Content, ctx.User.Username, ctx.User.AvatarUrl(256))
+		success = executeWebhook(session.Uuid, *webhook, ctx.Message.Content, ctx.Author.Username, ctx.Author.AvatarUrl(256))
 	}
 
 	if !success {
@@ -140,9 +130,9 @@ func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	if len(ctx.Message.Attachments) > 0 {
 		var content string
 		if len(ctx.Message.Attachments) == 1 {
-			content = fmt.Sprintf("%s attached a file:", ctx.User.Mention())
+			content = fmt.Sprintf("%s attached a file:", ctx.Author.Mention())
 		} else {
-			content = fmt.Sprintf("%s attached files:", ctx.User.Mention())
+			content = fmt.Sprintf("%s attached files:", ctx.Author.Mention())
 		}
 
 		for _, attachment := range ctx.Message.Attachments {

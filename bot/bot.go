@@ -58,13 +58,12 @@ func Start(ch chan os.Signal) {
 		listeners.OnGuildCreateUserData,
 		listeners.OnGuildLeave,
 		listeners.OnPanelReact,
-		listeners.OnReady,
 		listeners.OnSetupProgress,
 		listeners.OnUserJoin,
 		listeners.OnUserUpdate,
 
 		modmaillisteners.OnDirectMessage,
-		modmaillisteners.OnDirectMessageReact,
+		modmaillisteners.OnDirectOpenMessageReact,
 		modmaillisteners.OnModMailChannelMessage,
 	)
 

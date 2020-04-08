@@ -1,7 +1,7 @@
 package messagequeue
 
 import (
-	"github.com/TicketsBot/TicketsGo/bot/command"
+	"github.com/TicketsBot/TicketsGo/bot/logic"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/database"
@@ -38,20 +38,10 @@ func ListenTicketClose(shardManager *gateway.ShardManager) {
 			Shard: s.ShardId,
 		}
 
-		// Get guild obj
-		guild, err := s.GetGuild(ticket.Guild)
-		if err != nil {
-			sentry.ErrorWithContext(err, errorContext)
-			return
-		}
-
 		// Get whether the guild is premium
 		// TODO: Check whether we actually need this
 		isPremium := make(chan bool)
-		go utils.IsPremiumGuild(utils.CommandContext{
-			Shard: s,
-			Guild: &guild,
-		}, isPremium)
+		go utils.IsPremiumGuild(s, ticket.Guild, isPremium)
 
 		// Get the member object
 		member, err := s.GetGuildMember(ticket.Guild, payload.User)
@@ -63,19 +53,6 @@ func ListenTicketClose(shardManager *gateway.ShardManager) {
 		// Add reason to args
 		reason := strings.Split(payload.Reason, " ")
 
-		ctx := utils.CommandContext{
-			Shard:       s,
-			User:        &member.User,
-			Guild:       &guild,
-			ChannelId:   *ticket.Channel,
-			Message:     nil,
-			Root:        "close",
-			Args:        reason,
-			IsPremium:   <-isPremium,
-			ShouldReact: false,
-			Member:      &member,
-		}
-
-		go command.CloseCommand{}.Execute(ctx)
+		logic.CloseTicket(s, ticket.Guild, *ticket.Channel, 0, member, reason, false, <-isPremium)
 	}
 }

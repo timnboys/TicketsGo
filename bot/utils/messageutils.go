@@ -72,22 +72,20 @@ func DeleteAfter(msg SentMessage, secs int) {
 	}()
 }
 
-func ReactWithCheck(shard *gateway.Shard, msg *message.Message) {
-	if err := shard.CreateReaction(msg.ChannelId, msg.Id, "✅"); err != nil {
+func ReactWithCheck(shard *gateway.Shard, msg message.MessageReference) {
+	if err := shard.CreateReaction(msg.ChannelId, msg.MessageId, "✅"); err != nil {
 		sentry.LogWithContext(err, sentry.ErrorContext{
 			Guild:   msg.GuildId,
-			User:    msg.Author.Id,
 			Channel: msg.ChannelId,
 			Shard:   shard.ShardId,
 		})
 	}
 }
 
-func ReactWithCross(shard *gateway.Shard, msg *message.Message) {
-	if err := shard.CreateReaction(msg.ChannelId, msg.Id, "❌"); err != nil {
+func ReactWithCross(shard *gateway.Shard, msg message.MessageReference) {
+	if err := shard.CreateReaction(msg.ChannelId, msg.MessageId, "❌"); err != nil {
 		sentry.LogWithContext(err, sentry.ErrorContext{
 			Guild:   msg.GuildId,
-			User:    msg.Author.Id,
 			Channel: msg.ChannelId,
 			Shard:   shard.ShardId,
 		})

@@ -41,7 +41,7 @@ func (ManageCannedResponsesAdd) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	go database.AddCannedResponse(ctx.Guild.Id, id, strings.Join(content, " "))
+	go database.AddCannedResponse(ctx.GuildId, id, strings.Join(content, " "))
 	ctx.ReactWithCheck()
 }
 

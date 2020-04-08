@@ -13,11 +13,9 @@ func OnFirstResponse(shard *gateway.Shard, e *events.MessageCreate) {
 		return
 	}
 
-	e.Member.User = e.Author
-
 	// Only count replies from support reps
 	permLevel := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(shard, &e.Member, e.GuildId, permLevel)
+	go utils.GetPermissionLevel(shard, e.Member, e.GuildId, permLevel)
 	if <-permLevel > 0 {
 		// Make sure that the channel is a ticket
 		isTicket := make(chan bool)

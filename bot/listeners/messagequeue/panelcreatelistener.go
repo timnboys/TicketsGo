@@ -25,21 +25,12 @@ func ListenPanelCreations(shardManager *gateway.ShardManager) {
 			Shard:       shard.ShardId,
 		}
 
-		// Get guild object
-		guild, err := shard.GetGuild(panel.GuildId); if err != nil {
-			sentry.ErrorWithContext(err, errorContext)
-			continue
-		}
-
 		// Create embed object
 		embed := embed.NewEmbed()
 
 		// Get whether guild is premium
 		isPremiumChan := make(chan bool)
-		go utils.IsPremiumGuild(utils.CommandContext{
-			Shard:   shard,
-			Guild:   &guild,
-		}, isPremiumChan)
+		go utils.IsPremiumGuild(shard, panel.GuildId, isPremiumChan)
 		isPremium := <-isPremiumChan
 
 		if !isPremium {

@@ -1,7 +1,7 @@
 package listeners
 
 import (
-	"github.com/TicketsBot/TicketsGo/bot/command"
+	"github.com/TicketsBot/TicketsGo/bot/logic"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -23,6 +23,10 @@ func OnPanelReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 		return
 	}
 
+	if e.UserId == s.SelfId() {
+		return
+	}
+
 	// Get panel from DB
 	panelChan := make(chan database.Panel)
 	go database.GetPanelByMessageId(e.MessageId, panelChan)
@@ -37,18 +41,9 @@ func OnPanelReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 			return
 		}
 
-		user, err := s.GetUser(e.UserId)
-		if err != nil {
-			sentry.ErrorWithContext(err, errorContext)
-			return
-		}
-
-		if user.Bot {
-			return
-		}
-
+		// TODO: Check perms
 		// Remove the reaction from the message
-		if err = s.DeleteUserReaction(e.ChannelId, e.MessageId, e.UserId, emoji); err != nil {
+		if err := s.DeleteUserReaction(e.ChannelId, e.MessageId, e.UserId, emoji); err != nil {
 			sentry.LogWithContext(err, errorContext)
 		}
 
@@ -66,38 +61,20 @@ func OnPanelReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 		}
 
 		isPremium := make(chan bool)
-		go utils.IsPremiumGuild(utils.CommandContext{
-			Shard: s,
-			Guild: &guild,
-		}, isPremium)
-
-		member, err := s.GetGuildMember(e.GuildId, e.UserId)
-		if err != nil {
-			sentry.LogWithContext(err, errorContext)
-			return
-		}
+		go utils.IsPremiumGuild(s, guild.Id, isPremium)
 
 		// construct fake message
-		panelMessage := message.Message{
-			Id:        e.MessageId,
+		messageReference := message.MessageReference{
 			ChannelId: e.ChannelId,
 			GuildId:   e.GuildId,
 		}
 
-		ctx := utils.CommandContext{
-			Shard:       s,
-			User:        &user,
-			Guild:       &guild,
-			ChannelId:   e.ChannelId,
-			Message:     &panelMessage,
-			Root:        "new",
-			Args:        make([]string, 0),
-			IsPremium:   <-isPremium,
-			ShouldReact: false,
-			Member:      &member,
-			IsFromPanel: true,
+		// get user object
+		user, err := s.GetUser(e.UserId); if err != nil {
+			sentry.Error(err)
+			return
 		}
 
-		go command.OpenCommand{}.Execute(ctx)
+		logic.OpenTicket(s, user, messageReference, <-isPremium, nil, &panel)
 	}
 }

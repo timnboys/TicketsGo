@@ -21,7 +21,7 @@ var Emojis = map[int]string{
 }
 
 func SendModMailIntro(ctx utils.CommandContext, dmChannelId uint64) {
-	guilds := GetMutualGuilds(ctx.Shard, ctx.User.Id)
+	guilds := GetMutualGuilds(ctx.Shard, ctx.Author.Id)
 
 	message := "```fix\n"
 	for i, guild := range guilds {

@@ -52,14 +52,14 @@ func (RemoveCommand) Execute(ctx utils.CommandContext) {
 
 	// Verify that the user is allowed to modify the ticket
 	permLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permLevelChan)
 	permLevel := <-permLevelChan
 
 	ownerChan := make(chan uint64)
-	go database.GetOwner(ticketId, ctx.Guild.Id, ownerChan)
+	go database.GetOwner(ticketId, ctx.GuildId, ownerChan)
 	owner := <-ownerChan
 
-	if permLevel == 0 && owner != ctx.User.Id {
+	if permLevel == 0 && owner != ctx.Author.Id {
 		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to add people to this ticket")
 		ctx.ReactWithCross()
 		return
@@ -67,7 +67,7 @@ func (RemoveCommand) Execute(ctx utils.CommandContext) {
 
 	for _, user := range ctx.Message.Mentions {
 		// Remove user from ticket in DB
-		go database.RemoveMember(ticketId, ctx.Guild.Id, user.Id)
+		go database.RemoveMember(ticketId, ctx.GuildId, user.Id)
 
 		// Remove user from ticket
 		if err := ctx.Shard.EditChannelPermissions(ctx.ChannelId, channel.PermissionOverwrite{

@@ -35,7 +35,7 @@ func (ManageCannedResponsesDelete) Execute(ctx utils.CommandContext) {
 	id := ctx.Args[0]
 
 	idsChan := make(chan []string)
-	go database.GetCannedResponses(ctx.Guild.Id, idsChan)
+	go database.GetCannedResponses(ctx.GuildId, idsChan)
 	ids := <-idsChan
 
 	found := false
@@ -52,7 +52,7 @@ func (ManageCannedResponsesDelete) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	go database.DeleteCannedResponse(ctx.Guild.Id, id)
+	go database.DeleteCannedResponse(ctx.GuildId, id)
 	ctx.ReactWithCheck()
 }
 

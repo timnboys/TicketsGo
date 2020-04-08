@@ -1,7 +1,7 @@
 package listeners
 
 import (
-	"github.com/TicketsBot/TicketsGo/bot/command"
+	"github.com/TicketsBot/TicketsGo/bot/logic"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -60,22 +60,12 @@ func OnCloseReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 		return
 	}
 
-	// No need to remove the reaction since we'ere deleting the channel anyway
-
-	// Get guild obj
-	guild, err := s.GetGuild(e.GuildId)
-	if err != nil {
-		sentry.ErrorWithContext(err, errorContext)
-		return
-	}
+	// No need to remove the reaction since we're deleting the channel anyway
 
 	// Get whether the guild is premium
 	// TODO: Check whether we actually need this
 	isPremium := make(chan bool)
-	go utils.IsPremiumGuild(utils.CommandContext{
-		Shard: s,
-		Guild: &guild,
-	}, isPremium)
+	go utils.IsPremiumGuild(s, e.GuildId, isPremium)
 
 	// Get the member object
 	member, err := s.GetGuildMember(e.GuildId, e.UserId)
@@ -84,17 +74,5 @@ func OnCloseReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 		return
 	}
 
-	ctx := utils.CommandContext{
-		Shard:       s,
-		User:        &user,
-		Guild:       &guild,
-		ChannelId:   e.ChannelId,
-		Root:        "close",
-		Args:        make([]string, 0),
-		IsPremium:   <-isPremium,
-		ShouldReact: false,
-		Member:      &member,
-	}
-
-	go command.CloseCommand{}.Execute(ctx)
+	logic.CloseTicket(s, e.GuildId, e.ChannelId, 0, member, nil, true, <-isPremium)
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
-	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
 	"strings"
@@ -86,47 +85,25 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 		}
 	}
 
-	errorContext := sentry.ErrorContext{
-		Guild:   e.GuildId,
-		User:    e.Author.Id,
-		Channel: e.ChannelId,
-		Shard:   s.ShardId,
-		Command: root,
-	}
-
-	// Get guild obj
-	guild, err := s.GetGuild(e.GuildId)
-	if err != nil {
-		sentry.ErrorWithContext(err, errorContext)
-		return
-	}
-
 	premiumChan := make(chan bool)
-	go utils.IsPremiumGuild(utils.CommandContext{
-		Shard: s,
-		Guild: &guild,
-	}, premiumChan)
+	go utils.IsPremiumGuild(s, e.GuildId, premiumChan)
 	premiumGuild := <-premiumChan
 
 	e.Member.User = e.Author
 
 	ctx := utils.CommandContext{
 		Shard:       s,
-		User:        &e.Author,
-		Guild:       &guild,
-		ChannelId:   e.ChannelId,
-		Message:     &e.Message,
+		Message:     e.Message,
 		Root:        root,
 		Args:        args,
 		IsPremium:   premiumGuild,
 		ShouldReact: true,
-		Member:      &e.Member,
 		IsFromPanel: false,
 	}
 
 	// Ensure user isn't blacklisted
 	blacklisted := make(chan bool)
-	go database.IsBlacklisted(ctx.Guild.Id, ctx.User.Id, blacklisted)
+	go database.IsBlacklisted(ctx.GuildId, ctx.Author.Id, blacklisted)
 	if <-blacklisted {
 		ctx.ReactWithCross()
 		return

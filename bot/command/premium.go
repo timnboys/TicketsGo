@@ -31,7 +31,7 @@ func (PremiumCommand) Execute(ctx utils.CommandContext) {
 	if len(ctx.Args) == 0 {
 		if ctx.IsPremium {
 			expiryChan := make(chan int64)
-			go database.GetExpiry(ctx.Guild.Id, expiryChan)
+			go database.GetExpiry(ctx.GuildId, expiryChan)
 			expiry := <-expiryChan // millis
 
 			parsed := time.Unix(0, expiry * int64(time.Millisecond))
@@ -64,8 +64,8 @@ func (PremiumCommand) Execute(ctx utils.CommandContext) {
 		go database.PopKey(key, lengthChan)
 		length := <-lengthChan
 
-		go database.AddPremium(key.String(), ctx.Guild.Id, ctx.User.Id, length, ctx.User.Id)
-		utils.CacheGuildAsPremium(ctx.Guild.Id)
+		go database.AddPremium(key.String(), ctx.GuildId, ctx.Author.Id, length, ctx.Author.Id)
+		utils.CacheGuildAsPremium(ctx.GuildId)
 		ctx.ReactWithCheck()
 	}
 }

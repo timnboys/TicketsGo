@@ -41,10 +41,16 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 
 	// Get ticket category
 	ticketCategoryChan := make(chan uint64)
-	go database.GetCategory(ctx.Guild.Id, ticketCategoryChan)
+	go database.GetCategory(ctx.GuildId, ticketCategoryChan)
 	ticketCategoryId := <- ticketCategoryChan
 	var ticketCategory string
-	for _, channel := range ctx.Guild.Channels {
+
+	// get guild channels
+	channels, err := ctx.Shard.GetGuildChannels(ctx.GuildId); if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
+
+	for _, channel := range channels {
 		if channel.Id == ticketCategoryId { // Don't need to compare channel types
 			ticketCategory = channel.Name
 		}
@@ -53,15 +59,20 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 		ticketCategory = "None"
 	}
 
+	// get guild object
+	guild, err := ctx.Guild(); if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
+
 	// Get owner
 	invalidOwner := false
-	owner, err := ctx.Shard.GetGuildMember(ctx.Guild.Id, ctx.Guild.OwnerId); if err != nil {
+	owner, err := ctx.Shard.GetGuildMember(ctx.GuildId, guild.OwnerId); if err != nil {
 		invalidOwner = true
 	}
 
 	var ownerFormatted string
 	if invalidOwner {
-		ownerFormatted = strconv.FormatUint(ctx.Guild.OwnerId, 10)
+		ownerFormatted = strconv.FormatUint(guild.OwnerId, 10)
 	} else {
 		ownerFormatted = fmt.Sprintf("%s#%s", owner.User.Username, utils.PadDiscriminator(owner.User.Discriminator))
 	}

@@ -32,7 +32,7 @@ func (AdminSeedCommand) Execute(ctx utils.CommandContext) {
 			guilds = append(guilds, shard.GetShardGuildIds()...)
 		}
 	} else {
-		guilds = []uint64{ctx.Guild.Id}
+		guilds = []uint64{ctx.GuildId}
 	}
 
 	ctx.SendEmbed(utils.Green, "Admin", fmt.Sprintf("Seeding %d guild(s)", len(guilds)))

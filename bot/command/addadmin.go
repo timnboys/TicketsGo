@@ -42,18 +42,23 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 	if len(ctx.Message.Mentions) > 0 {
 		user = true
 		for _, mention := range ctx.Message.Mentions {
-			go database.AddAdmin(ctx.Guild.Id, mention.Id)
+			go database.AddAdmin(ctx.GuildId, mention.Id)
 		}
 	} else if len(ctx.Message.MentionRoles) > 0 {
 		for _, mention := range ctx.Message.MentionRoles {
 			roles = append(roles, mention)
 		}
 	} else {
+		guildRoles, err := ctx.Shard.GetGuildRoles(ctx.GuildId); if err != nil {
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			return
+		}
+
 		roleName := strings.ToLower(strings.Join(ctx.Args, " "))
 
 		// Get role ID from name
 		valid := false
-		for _, role := range ctx.Guild.Roles {
+		for _, role := range guildRoles {
 			if strings.ToLower(role.Name) == roleName {
 				valid = true
 				roles = append(roles, role.Id)
@@ -71,11 +76,11 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 
 	// Add roles to DB
 	for _, role := range roles {
-		go database.AddAdminRole(ctx.Guild.Id, role)
+		go database.AddAdminRole(ctx.GuildId, role)
 	}
 
 	openTicketsChan := make(chan []*uint64)
-	go database.GetOpenTicketChannelIds(ctx.Guild.Id, openTicketsChan)
+	go database.GetOpenTicketChannelIds(ctx.GuildId, openTicketsChan)
 
 	// Update permissions for existing tickets
 	for _, channelId := range <-openTicketsChan {

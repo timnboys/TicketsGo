@@ -5,7 +5,6 @@ import (
 	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
-	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
 )
@@ -19,22 +18,8 @@ func OnMessage(s *gateway.Shard, e *events.MessageCreate) {
 		return
 	}
 
-	// Get guild obj
-	guild, err := s.GetGuild(e.GuildId); if err != nil {
-		sentry.ErrorWithContext(err, sentry.ErrorContext{
-			Guild:   e.GuildId,
-			User:    e.Author.Id,
-			Channel: e.ChannelId,
-			Shard:   s.ShardId,
-		})
-		return
-	}
-
 	premiumChan := make(chan bool)
-	go utils.IsPremiumGuild(utils.CommandContext{
-		Shard:   s,
-		Guild:   &guild,
-	}, premiumChan)
+	go utils.IsPremiumGuild(s, e.GuildId, premiumChan)
 
 	if <-premiumChan {
 		isTicket := make(chan bool)

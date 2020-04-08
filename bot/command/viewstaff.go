@@ -37,7 +37,7 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 
 	// Add field for admin users
 	adminUsers := make(chan []uint64)
-	go database.GetAdmins(ctx.Guild.Id, adminUsers)
+	go database.GetAdmins(ctx.GuildId, adminUsers)
 	for _, adminUserId := range <-adminUsers {
 		fieldContent += fmt.Sprintf("• <@%d> (`%d`)\n", adminUserId, adminUserId)
 	}
@@ -49,13 +49,13 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	fieldContent = ""
 
 	// get existing guild roles
-	allRoles, err := ctx.Shard.GetGuildRoles(ctx.Guild.Id); if err != nil {
+	allRoles, err := ctx.Shard.GetGuildRoles(ctx.GuildId); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 	}
 
 	// Add field for admin roles
 	adminRoles := make(chan []uint64)
-	go database.GetAdminRoles(ctx.Guild.Id, adminRoles)
+	go database.GetAdminRoles(ctx.GuildId, adminRoles)
 	for _, adminRoleId := range <-adminRoles {
 		for _, guildRole := range allRoles {
 			if guildRole.Id == adminRoleId {
@@ -74,7 +74,7 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 
 	// Add field for support representatives
 	supportUsers := make(chan []uint64)
-	go database.GetSupport(ctx.Guild.Id, supportUsers)
+	go database.GetSupport(ctx.GuildId, supportUsers)
 	for _, supportUserId := range <-supportUsers {
 		fieldContent += fmt.Sprintf("• <@%d> (`%d`)\n", supportUserId, supportUserId)
 	}
@@ -87,7 +87,7 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 
 	// Add field for admin roles
 	supportRoles := make(chan []uint64)
-	go database.GetSupportRoles(ctx.Guild.Id, supportRoles)
+	go database.GetSupportRoles(ctx.GuildId, supportRoles)
 	for _, supportRoleId := range <-supportRoles {
 		for _, guildRole := range allRoles {
 			if guildRole.Id == supportRoleId {

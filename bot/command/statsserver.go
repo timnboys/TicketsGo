@@ -29,17 +29,17 @@ func (StatsServerCommand) PermissionLevel() utils.PermissionLevel {
 
 func (StatsServerCommand) Execute(ctx utils.CommandContext) {
 	totalTickets := make(chan int)
-	go database.GetTotalTicketCount(ctx.Guild.Id, totalTickets)
+	go database.GetTotalTicketCount(ctx.GuildId, totalTickets)
 
 	openTickets := make(chan []string)
-	go database.GetOpenTickets(ctx.Guild.Id, openTickets)
+	go database.GetOpenTickets(ctx.GuildId, openTickets)
 
 	responseTimesChan := make(chan map[string]int64)
-	go database.GetGuildResponseTimes(ctx.Guild.Id, responseTimesChan)
+	go database.GetGuildResponseTimes(ctx.GuildId, responseTimesChan)
 	responseTimes := <-responseTimesChan
 
 	openTimesChan := make(chan map[string]*int64)
-	go database.GetOpenTimes(ctx.Guild.Id, openTimesChan)
+	go database.GetOpenTimes(ctx.GuildId, openTimesChan)
 	openTimes := <-openTimesChan
 
 	// total average response

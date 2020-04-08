@@ -13,11 +13,20 @@ import (
 	"time"
 )
 
+const cacheTime = time.Minute * 2
+
 // Snowflake -> PermissionLevel
-var cacheTime = time.Minute * 2
 var permissionCache = cache.New(time.Minute * 2, cacheTime)
 
-func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uint64, ch chan PermissionLevel) {
+func GetPermissionLevel(shard *gateway.Shard, member member.Member, guildId uint64, ch chan PermissionLevel) {
+	memberId := getMemberId(guildId, member.User.Id)
+
+	// Check user ID in cache
+	if cached, ok := permissionCache.Get(memberId); ok {
+		ch <- cached.(PermissionLevel)
+		return
+	}
+
 	// Check if the user is a bot adminUser
 	for _, admin := range config.Conf.Bot.Admins {
 		if admin == member.User.Id {
@@ -38,22 +47,17 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 
 	if err == nil {
 		if member.User.Id == guild.OwnerId {
+			permissionCache.Set(memberId, Admin, cacheTime)
 			ch <- Admin
 			return
 		}
-	}
-
-	// Check user ID in cache
-	if cached, ok := permissionCache.Get(getMemberId(guildId, member)); ok {
-		ch <- cached.(PermissionLevel)
-		return
 	}
 
 	// Check user perms for admin
 	adminUser := make(chan bool)
 	go database.IsAdmin(guildId, member.User.Id, adminUser)
 	if <-adminUser {
-		permissionCache.Set(getMemberId(guildId, member), Admin, cacheTime)
+		permissionCache.Set(memberId, Admin, cacheTime)
 		ch <- Admin
 		return
 	}
@@ -63,7 +67,7 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 	for _, userRole := range member.Roles {
 		if permLevel, ok := permissionCache.Get(strconv.FormatUint(userRole, 10)); ok { // TODO: Cache with int based key
 			if permLevel == Admin {
-				permissionCache.Set(getMemberId(guildId, member), Admin, cacheTime)
+				permissionCache.Set(memberId, Admin, cacheTime)
 				ch <- Admin
 				return
 			}
@@ -78,7 +82,7 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 		permissionCache.Set(strconv.FormatUint(adminRoleId, 10), Admin, cacheTime) // TODO: Cache with int based key
 
 		if member.HasRole(adminRoleId) {
-			permissionCache.Set(getMemberId(guildId, member), Admin, cacheTime)
+			permissionCache.Set(memberId, Admin, cacheTime)
 			ch <- Admin
 			return
 		}
@@ -87,7 +91,7 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 	// Check if user has Administrator permission
 	hasAdminPermission := permission.HasPermissions(shard, guildId, member.User.Id, permission.Administrator)
 	if hasAdminPermission {
-		permissionCache.Set(getMemberId(guildId, member), Admin, cacheTime)
+		permissionCache.Set(memberId, Admin, cacheTime)
 		ch <- Admin
 		return
 	}
@@ -96,7 +100,7 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 	supportUser := make(chan bool)
 	go database.IsSupport(guildId, member.User.Id, supportUser)
 	if <-supportUser {
-		permissionCache.Set(getMemberId(guildId, member), Support, cacheTime)
+		permissionCache.Set(memberId, Support, cacheTime)
 		ch <- Support
 		return
 	}
@@ -106,7 +110,7 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 	for _, userRole := range member.Roles {
 		if permLevel, ok := permissionCache.Get(strconv.FormatUint(userRole, 10)); ok { // TODO: Cache with int based key
 			if permLevel == Support {
-				permissionCache.Set(getMemberId(guildId, member), Support, cacheTime)
+				permissionCache.Set(memberId, Support, cacheTime)
 				ch <- Support
 				return
 			}
@@ -121,16 +125,16 @@ func GetPermissionLevel(shard *gateway.Shard, member *member.Member, guildId uin
 		permissionCache.Set(strconv.FormatUint(supportRoleId, 10), Support, cacheTime)
 
 		if member.HasRole(supportRoleId) {
-			permissionCache.Set(getMemberId(guildId, member), Support, cacheTime)
+			permissionCache.Set(memberId, Support, cacheTime)
 			ch <- Support
 			return
 		}
 	}
 
-	permissionCache.Set(getMemberId(guildId, member), Everyone, cacheTime)
+	permissionCache.Set(memberId, Everyone, cacheTime)
 	ch <- Everyone
 }
 
-func getMemberId(guildId uint64, member *member.Member) string {
-	return fmt.Sprintf("%d-%d", guildId, member.User.Id)
+func getMemberId(guildId, userId uint64) string {
+	return fmt.Sprintf("%d-%d", guildId, userId)
 }

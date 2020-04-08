@@ -40,12 +40,12 @@ func (HelpCommand) Execute(ctx utils.CommandContext) {
 
 	for _, command := range Commands {
 		// check bot admin / helper only commands
-		if (command.AdminOnly() && !utils.IsBotAdmin(ctx.User.Id)) || (command.HelperOnly() && !utils.IsBotHelper(ctx.User.Id)) {
+		if (command.AdminOnly() && !utils.IsBotAdmin(ctx.Author.Id)) || (command.HelperOnly() && !utils.IsBotHelper(ctx.Author.Id)) {
 			continue
 		}
 
 		permissionLevel := make(chan utils.PermissionLevel)
-		go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permissionLevel)
+		go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permissionLevel)
 		if <-permissionLevel >= command.PermissionLevel() { // only send commands the user has permissions for
 			var current []Command
 			if commands, ok := commandCategories.Get(command.Category()); ok {
@@ -59,7 +59,7 @@ func (HelpCommand) Execute(ctx utils.CommandContext) {
 
 	// get prefix
 	prefixChan := make(chan string)
-	go getPrefix(ctx.Guild.Id, prefixChan)
+	go getPrefix(ctx.GuildId, prefixChan)
 	prefix := <-prefixChan
 
 	embed := embed.NewEmbed().
@@ -82,7 +82,7 @@ func (HelpCommand) Execute(ctx utils.CommandContext) {
 		}
 	}
 
-	dmChannel, err := ctx.Shard.CreateDM(ctx.User.Id); if err != nil {
+	dmChannel, err := ctx.Shard.CreateDM(ctx.Author.Id); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}

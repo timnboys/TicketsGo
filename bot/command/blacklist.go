@@ -33,14 +33,14 @@ func (BlacklistCommand) Execute(ctx utils.CommandContext) {
 
 	user := ctx.Message.Mentions[0]
 
-	if ctx.User.Id == user.Id {
+	if ctx.Author.Id == user.Id {
 		ctx.SendEmbed(utils.Red, "Error", "You cannot blacklist yourself")
 		ctx.ReactWithCross()
 		return
 	}
 
 	permissionLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permissionLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permissionLevelChan)
 	permissionLevel := <- permissionLevelChan
 
 	if permissionLevel > 0 {
@@ -50,13 +50,13 @@ func (BlacklistCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	isBlacklistedChan := make(chan bool)
-	go database.IsBlacklisted(ctx.Guild.Id, user.Id, isBlacklistedChan)
+	go database.IsBlacklisted(ctx.GuildId, user.Id, isBlacklistedChan)
 	isBlacklisted := <- isBlacklistedChan
 
 	if isBlacklisted {
-		go database.RemoveBlacklist(ctx.Guild.Id, user.Id)
+		go database.RemoveBlacklist(ctx.GuildId, user.Id)
 	} else {
-		go database.AddBlacklist(ctx.Guild.Id, user.Id)
+		go database.AddBlacklist(ctx.GuildId, user.Id)
 	}
 
 	ctx.ReactWithCheck()

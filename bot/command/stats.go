@@ -46,22 +46,22 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 
 	// Get user permission level
 	permLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.Guild.Id, permLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permLevelChan)
 	permLevel := <-permLevelChan
 
 	// User stats
 	if permLevel == 0 {
 		blacklisted := make(chan bool)
-		go database.IsBlacklisted(ctx.Guild.Id, user.Id, blacklisted)
+		go database.IsBlacklisted(ctx.GuildId, user.Id, blacklisted)
 
 		totalTickets := make(chan map[uint64]int)
-		go database.GetTicketsOpenedBy(ctx.Guild.Id, user.Id, totalTickets)
+		go database.GetTicketsOpenedBy(ctx.GuildId, user.Id, totalTickets)
 
 		openTickets := make(chan []string)
-		go database.GetOpenTicketsOpenedBy(ctx.Guild.Id, user.Id, openTickets)
+		go database.GetOpenTicketsOpenedBy(ctx.GuildId, user.Id, openTickets)
 
 		ticketLimit := make(chan int)
-		go database.GetTicketLimit(ctx.Guild.Id, ticketLimit)
+		go database.GetTicketLimit(ctx.GuildId, ticketLimit)
 
 		embed := embed.NewEmbed().
 			SetTitle("Statistics").
@@ -79,11 +79,11 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 		}
 	} else { // Support rep stats
 		responseTimesChan := make(chan map[string]int64)
-		go database.GetUserResponseTimes(ctx.Guild.Id, user.Id, responseTimesChan)
+		go database.GetUserResponseTimes(ctx.GuildId, user.Id, responseTimesChan)
 		responseTimes := <-responseTimesChan
 
 		openTimesChan := make(chan map[string]*int64)
-		go database.GetOpenTimes(ctx.Guild.Id, openTimesChan)
+		go database.GetOpenTimes(ctx.GuildId, openTimesChan)
 		openTimes := <-openTimesChan
 
 		// total average response

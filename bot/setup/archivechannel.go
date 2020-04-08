@@ -55,7 +55,7 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 
 		if !exists {
 			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
-			utils.ReactWithCross(shard, &msg)
+			utils.ReactWithCross(shard, msg.MessageReference)
 			return
 		}
 	} else {
@@ -80,11 +80,11 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 
 		if !found {
 			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
-			utils.ReactWithCross(shard, &msg)
+			utils.ReactWithCross(shard, msg.MessageReference)
 			return
 		}
 	}
 
 	go database.SetArchiveChannel(msg.GuildId, archiveChannelId)
-	utils.ReactWithCheck(shard, &msg)
+	utils.ReactWithCheck(shard, msg.MessageReference)
 }

@@ -3,6 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"strings"
 )
 
@@ -32,21 +33,27 @@ func (RemoveSupportCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
+	// get guild object
+	guild, err := ctx.Guild(); if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		return
+	}
+
 	roles := make([]uint64, 0)
 	if len(ctx.Message.Mentions) > 0 { // Individual users
 		for _, mention := range ctx.Message.Mentions {
 			// Verify that we're allowed to perform the remove operation
-			if ctx.Guild.OwnerId == mention.Id {
+			if guild.OwnerId == mention.Id {
 				ctx.SendEmbed(utils.Red, "Error", "The guild owner must be an admin")
 				continue
 			}
 
-			if ctx.User.Id == mention.Id {
+			if ctx.Author.Id == mention.Id {
 				ctx.SendEmbed(utils.Red, "Error", "You cannot revoke your own privileges")
 				continue
 			}
 
-			go database.RemoveSupport(ctx.Guild.Id, mention.Id)
+			go database.RemoveSupport(ctx.GuildId, mention.Id)
 		}
 	} else if len(ctx.Message.MentionRoles) > 0 {
 		for _, mention := range ctx.Message.MentionRoles {
@@ -57,7 +64,7 @@ func (RemoveSupportCommand) Execute(ctx utils.CommandContext) {
 
 		// Get role ID from name
 		valid := false
-		for _, role := range ctx.Guild.Roles {
+		for _, role := range guild.Roles {
 			if strings.ToLower(role.Name) == roleName {
 				roles = append(roles, role.Id)
 				valid = true
@@ -75,7 +82,7 @@ func (RemoveSupportCommand) Execute(ctx utils.CommandContext) {
 
 	// Remove roles from DB
 	for _, role := range roles {
-		go database.RemoveSupportRole(ctx.Guild.Id, role)
+		go database.RemoveSupportRole(ctx.GuildId, role)
 	}
 
 	ctx.ReactWithCheck()

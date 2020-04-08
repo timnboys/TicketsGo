@@ -38,7 +38,7 @@ func (CannedResponseCommand) Execute(ctx utils.CommandContext) {
 	id := strings.ToLower(ctx.Args[0])
 
 	contentChan := make(chan string)
-	go database.GetCannedResponse(ctx.Guild.Id, id, contentChan)
+	go database.GetCannedResponse(ctx.GuildId, id, contentChan)
 	content := <-contentChan
 
 	if content == "" {

@@ -24,5 +24,5 @@ func (WelcomeMessageStage) Default() string {
 
 func (WelcomeMessageStage) Process(shard *gateway.Shard, msg message.Message) {
 	go database.SetWelcomeMessage(msg.GuildId, msg.Content)
-	utils.ReactWithCheck(shard, &msg)
+	utils.ReactWithCheck(shard, msg.MessageReference)
 }

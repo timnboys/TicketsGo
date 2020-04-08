@@ -29,7 +29,7 @@ func (ManageCannedResponsesList) PermissionLevel() utils.PermissionLevel {
 
 func (ManageCannedResponsesList) Execute(ctx utils.CommandContext) {
 	idsChan := make(chan []string)
-	go database.GetCannedResponses(ctx.Guild.Id, idsChan)
+	go database.GetCannedResponses(ctx.GuildId, idsChan)
 	
 	var joined string
 	for _, id := range <-idsChan {

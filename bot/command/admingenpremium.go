@@ -55,7 +55,7 @@ func (AdminGeneratePremium) Execute(ctx utils.CommandContext) {
 		keys = append(keys, (<-key).String())
 	}
 
-	dmChannel, err := ctx.Shard.CreateDM(ctx.User.Id); if err != nil {
+	dmChannel, err := ctx.Shard.CreateDM(ctx.Author.Id); if err != nil {
 		ctx.SendEmbed(utils.Red, "Admin", err.Error())
 		ctx.ReactWithCross()
 		return
