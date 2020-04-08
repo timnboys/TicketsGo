@@ -52,13 +52,21 @@ func (ctx *CommandContext) SendMessage(content string) {
 
 func (ctx *CommandContext) ReactWithCheck() {
 	if ctx.ShouldReact {
-		ReactWithCheck(ctx.Shard, ctx.Message.MessageReference)
+		ReactWithCheck(ctx.Shard, message.MessageReference{
+			MessageId: ctx.Id,
+			ChannelId: ctx.ChannelId,
+			GuildId:   ctx.GuildId,
+		})
 	}
 }
 
 func (ctx *CommandContext) ReactWithCross() {
 	if ctx.ShouldReact {
-		ReactWithCross(ctx.Shard, ctx.Message.MessageReference)
+		ReactWithCross(ctx.Shard, message.MessageReference{
+			MessageId: ctx.Id,
+			ChannelId: ctx.ChannelId,
+			GuildId:   ctx.GuildId,
+		})
 	}
 }
 
