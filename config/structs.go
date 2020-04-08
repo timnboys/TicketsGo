@@ -5,7 +5,6 @@ type (
 		AboutMessage  string
 		Bot           Bot
 		Database      Database
-		ServerCounter ServerCounter
 		Metrics       Metrics
 		Redis         Redis
 		Cache         Cache
@@ -41,12 +40,6 @@ type (
 	Pool struct {
 		MaxConnections int
 		MaxIdle        int
-	}
-
-	ServerCounter struct {
-		Enabled bool
-		BaseUrl string
-		Key     string
 	}
 
 	Metrics struct {

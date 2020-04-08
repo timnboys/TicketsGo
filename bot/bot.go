@@ -5,7 +5,6 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/listeners"
 	"github.com/TicketsBot/TicketsGo/bot/listeners/messagequeue"
 	modmaillisteners "github.com/TicketsBot/TicketsGo/bot/modmail/listeners"
-	"github.com/TicketsBot/TicketsGo/bot/servercounter"
 	redis "github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
@@ -15,7 +14,6 @@ import (
 	"github.com/rxdn/gdl/objects/user"
 	"github.com/rxdn/gdl/rest/ratelimit"
 	"os"
-	"time"
 )
 
 func Start(ch chan os.Signal) {
@@ -71,15 +69,6 @@ func Start(ch chan os.Signal) {
 
 	go messagequeue.ListenPanelCreations(&shardManager)
 	go messagequeue.ListenTicketClose(&shardManager)
-
-	if config.Conf.ServerCounter.Enabled {
-		go func() {
-			for {
-				time.Sleep(20 * time.Second)
-				servercounter.UpdateServerCount(&shardManager)
-			}
-		}()
-	}
 
 	<-ch
 }

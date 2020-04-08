@@ -26,9 +26,6 @@ var(
 // if panel != nil, msg should be artifically filled, excluding the message ID
 func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, isPremium bool, args []string, panel *database.Panel) {
 	// If we're using a panel, then we need to create the ticket in the specified category
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(1)
-	}
 
 	var category uint64
 	if panel != nil && panel.TargetCategory != 0 {
@@ -56,10 +53,6 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		return
 	}*/
 
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(2)
-	}
-
 	useCategory := category != 0
 	if useCategory {
 		// Check if the category still exists
@@ -79,10 +72,6 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		}
 	}
 
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(3)
-	}
-
 	// target channel for messaging the user
 	// either DMs or the channel where the command was run
 	var targetChannel uint64
@@ -94,10 +83,6 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		} else {
 			return
 		}
-	}
-
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(4)
 	}
 
 	// Make sure ticket count is within ticket limit
@@ -114,10 +99,6 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		return
 	}
 
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(5)
-	}
-
 	// Generate subject
 	subject := "No subject given"
 	if panel != nil && panel.Title != "" { // If we're using a panel, use the panel title as the subject
@@ -129,10 +110,6 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		if len(subject) > 256 {
 			subject = subject[0:255]
 		}
-	}
-
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(6)
 	}
 
 	// Make sure there's not > 50 channels in a category
@@ -152,16 +129,8 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		}
 	}
 
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(7)
-	}
-
 	if panel == nil {
 		utils.ReactWithCheck(s, msg)
-	}
-
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(8)
 	}
 
 	// ID lock: If we open 2 tickets simultaneously, they will end up having the same ID. Instead we should lock the guild until the ticket has been opened
@@ -173,10 +142,6 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 	}
 	idLocksLock.Unlock()
 
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(9)
-	}
-
 	// Create channel
 	ticketUuid := uuid.NewV4()
 
@@ -186,15 +151,7 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 	id := <-idChan
 	lock.Unlock()
 
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(10)
-	}
-
 	overwrites := createOverwrites(msg.GuildId, user.Id, s.SelfId())
-
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(11)
-	}
 
 	// Create ticket name
 	var name string
@@ -205,10 +162,6 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		name = fmt.Sprintf("ticket-%s", user.Username)
 	} else {
 		name = fmt.Sprintf("ticket-%d", id)
-	}
-
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(12)
 	}
 
 	data := rest.CreateChannelData{
@@ -228,16 +181,8 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		return
 	}
 
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(13)
-	}
-
 	// UpdateUser channel in DB
 	go database.SetTicketChannel(id, msg.GuildId, channel.Id)
-
-	if msg.GuildId == 508392876359680000 {
-		fmt.Println(4)
-	}
 
 	sendWelcomeMessage(s, msg.GuildId, channel.Id, user.Id, isPremium, subject, id)
 
