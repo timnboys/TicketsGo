@@ -13,7 +13,7 @@ require (
 	github.com/jackc/pgx/v4 v4.6.0
 	github.com/jinzhu/gorm v1.9.12
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/rxdn/gdl v0.0.0-20200408224028-8cbb4825fbfe
+	github.com/rxdn/gdl v0.0.0-20200408231818-15f72df954a4
 	github.com/satori/go.uuid v1.2.0
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0
 )
