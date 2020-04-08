@@ -12,7 +12,6 @@ import (
 	"strings"
 )
 
-// TODO: MODMAIL CLOSE REACT
 func CloseTicket(s *gateway.Shard, guildId, channelId, messageId uint64, member member.Member, args []string, fromReaction, isPremium bool) {
 	reference := message.MessageReference{
 		MessageId: messageId,
