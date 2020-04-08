@@ -72,29 +72,30 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		}
 	}
 
+	// create DM channel
+	dmChannel, err := s.CreateDM(user.Id)
+
 	// target channel for messaging the user
 	// either DMs or the channel where the command was run
 	var targetChannel uint64
 	if panel == nil {
 		targetChannel = msg.ChannelId
 	} else {
-		if dmChannel, err := s.CreateDM(user.Id); err == nil {
-			targetChannel = dmChannel.Id
-		} else {
-			return
-		}
+		targetChannel = dmChannel.Id
 	}
 
 	// Make sure ticket count is within ticket limit
 	violatesTicketLimit, limit := getTicketLimit(msg.GuildId, user.Id)
 	if violatesTicketLimit {
 		// Notify the user
-		ticketsPluralised := "ticket"
-		if limit > 1 {
-			ticketsPluralised += "s"
+		if targetChannel != 0 {
+			ticketsPluralised := "ticket"
+			if limit > 1 {
+				ticketsPluralised += "s"
+			}
+			content := fmt.Sprintf("You are only able to open %d %s at once", limit, ticketsPluralised)
+			utils.SendEmbed(s, targetChannel, utils.Red, "Error", content, 30, isPremium)
 		}
-		content := fmt.Sprintf("You are only able to open %d %s at once", limit, ticketsPluralised)
-		utils.SendEmbed(s, targetChannel, utils.Red, "Error", content, 30, isPremium)
 
 		return
 	}
@@ -206,7 +207,15 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 	}
 
 	// Let the user know the ticket has been opened
-	utils.SendEmbed(s, targetChannel, utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", channel.Mention()), 30, isPremium)
+	if panel == nil {
+		utils.SendEmbed(s, msg.ChannelId, utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", channel.Mention()), 30, isPremium)
+	} else {
+		dmOnOpen := make(chan bool)
+		go database.IsDmOnOpen(msg.GuildId, dmOnOpen)
+		if <-dmOnOpen && dmChannel.Id != 0 {
+			utils.SendEmbed(s, dmChannel.Id, utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", channel.Mention()), 0, isPremium)
+		}
+	}
 
 	go statsd.IncrementKey(statsd.TICKETS)
 

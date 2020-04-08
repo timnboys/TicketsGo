@@ -1,8 +1,8 @@
 package database
 
 type UserCanClose struct {
-	Guild   uint64 `gorm:"column:GUILDID;unique;primary_key"`
-	CanClose *bool `gorm:"column:CANCLOSE"`
+	Guild    uint64 `gorm:"column:GUILDID;unique;primary_key"`
+	CanClose *bool  `gorm:"column:CANCLOSE"`
 }
 
 func (UserCanClose) TableName() string {
