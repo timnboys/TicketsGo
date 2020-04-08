@@ -44,6 +44,7 @@ func Setup() {
 		CannedResponse{},
 		ChannelCategory{},
 		Channel{},
+		DmOnOpen{},
 		Panel{},
 		PanelSettings{},
 		Permissions{},
