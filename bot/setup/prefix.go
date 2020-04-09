@@ -33,5 +33,9 @@ func (PrefixStage) Process(shard *gateway.Shard, msg message.Message) {
 	}
 
 	go database.SetPrefix(msg.GuildId, msg.Content)
-	utils.ReactWithCheck(shard, msg.MessageReference)
+	utils.ReactWithCheck(shard, message.MessageReference{
+		MessageId: msg.Id,
+		ChannelId: msg.ChannelId,
+		GuildId:   msg.GuildId,
+	})
 }

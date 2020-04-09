@@ -39,6 +39,12 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 
 	var archiveChannelId uint64
 
+	ref := message.MessageReference{
+		MessageId: msg.Id,
+		ChannelId: msg.ChannelId,
+		GuildId:   msg.GuildId,
+	}
+
 	// Prefer channel mention
 	mentions := msg.ChannelMentions()
 	if len(mentions) > 0 {
@@ -55,7 +61,7 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 
 		if !exists {
 			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
-			utils.ReactWithCross(shard, msg.MessageReference)
+			utils.ReactWithCross(shard, ref)
 			return
 		}
 	} else {
@@ -80,11 +86,11 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 
 		if !found {
 			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
-			utils.ReactWithCross(shard, msg.MessageReference)
+			utils.ReactWithCross(shard, ref)
 			return
 		}
 	}
 
 	go database.SetArchiveChannel(msg.GuildId, archiveChannelId)
-	utils.ReactWithCheck(shard, msg.MessageReference)
+	utils.ReactWithCheck(shard, ref)
 }

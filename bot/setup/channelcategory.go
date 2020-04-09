@@ -69,5 +69,9 @@ func (ChannelCategoryStage) Process(shard *gateway.Shard, msg message.Message) {
 	}
 
 	go database.SetCategory(msg.GuildId, categoryId)
-	utils.ReactWithCheck(shard, msg.MessageReference)
+	utils.ReactWithCheck(shard, message.MessageReference{
+		MessageId: msg.Id,
+		ChannelId: msg.ChannelId,
+		GuildId:   msg.GuildId,
+	})
 }
