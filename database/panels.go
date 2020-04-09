@@ -8,9 +8,10 @@ type Panel struct {
 	Title          string `gorm:"column:TITLE;type:VARCHAR(255)"`
 	Content        string `gorm:"column:CONTENT;type:TEXT"`
 	Colour         int    `gorm:"column:COLOUR`
-	TargetCategory uint64  `gorm:"column:TARGETCATEGORY"`
+	TargetCategory uint64 `gorm:"column:TARGETCATEGORY"`
 	ReactionEmote  string `gorm:"column:REACTIONEMOTE;type:VARCHAR(32)"`
 }
+
 func (Panel) TableName() string {
 	return "panels"
 }
