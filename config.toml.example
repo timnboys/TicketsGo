@@ -23,6 +23,7 @@ port=3306
 username="root"
 password="root"
 database="tickets"
+lifetime=120
   [database.pool]
   maxConnections=5
   maxIdle=5

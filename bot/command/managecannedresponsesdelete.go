@@ -4,31 +4,38 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/rxdn/gdl/objects/channel/embed"
 )
 
-type ManageCannedResponsesDelete struct {
+type ManageTagsDelete struct {
 }
 
-func (ManageCannedResponsesDelete) Name() string {
+func (ManageTagsDelete) Name() string {
 	return "delete"
 }
 
-func (ManageCannedResponsesDelete) Description() string {
-	return "Deletes a canned response"
+func (ManageTagsDelete) Description() string {
+	return "Deletes a tag"
 }
 
-func (ManageCannedResponsesDelete) Aliases() []string {
+func (ManageTagsDelete) Aliases() []string {
 	return []string{"del", "rm", "remove"}
 }
 
-func (ManageCannedResponsesDelete) PermissionLevel() utils.PermissionLevel {
+func (ManageTagsDelete) PermissionLevel() utils.PermissionLevel {
 	return utils.Support
 }
 
-func (ManageCannedResponsesDelete) Execute(ctx utils.CommandContext) {
+func (ManageTagsDelete) Execute(ctx utils.CommandContext) {
+	usageEmbed := embed.EmbedField{
+		Name:   "Usage",
+		Value:  "`t!managetags delete [TagID]`",
+		Inline: false,
+	}
+
 	if len(ctx.Args) == 0 {
 		ctx.ReactWithCross()
-		ctx.SendEmbed(utils.Red, "Error", "You must specify a canned response ID to delete")
+		ctx.SendEmbed(utils.Red, "Error", "You must specify a tag ID to delete", usageEmbed)
 		return
 	}
 
@@ -48,7 +55,7 @@ func (ManageCannedResponsesDelete) Execute(ctx utils.CommandContext) {
 
 	if !found {
 		ctx.ReactWithCross()
-		ctx.SendEmbed(utils.Red, "Error", fmt.Sprintf("A canned response with the ID `%s` could not be found", id))
+		ctx.SendEmbed(utils.Red, "Error", fmt.Sprintf("A tag with the ID `%s` could not be found", id))
 		return
 	}
 
@@ -56,26 +63,26 @@ func (ManageCannedResponsesDelete) Execute(ctx utils.CommandContext) {
 	ctx.ReactWithCheck()
 }
 
-func (ManageCannedResponsesDelete) Parent() interface{} {
-	return ManageCannedResponses{}
+func (ManageTagsDelete) Parent() interface{} {
+	return ManageTags{}
 }
 
-func (ManageCannedResponsesDelete) Children() []Command {
+func (ManageTagsDelete) Children() []Command {
 	return make([]Command, 0)
 }
 
-func (ManageCannedResponsesDelete) PremiumOnly() bool {
+func (ManageTagsDelete) PremiumOnly() bool {
 	return false
 }
 
-func (ManageCannedResponsesDelete) Category() Category {
-	return CannedResponses
+func (ManageTagsDelete) Category() Category {
+	return Tags
 }
 
-func (ManageCannedResponsesDelete) AdminOnly() bool {
+func (ManageTagsDelete) AdminOnly() bool {
 	return false
 }
 
-func (ManageCannedResponsesDelete) HelperOnly() bool {
+func (ManageTagsDelete) HelperOnly() bool {
 	return false
 }

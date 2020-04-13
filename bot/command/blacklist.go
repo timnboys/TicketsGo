@@ -3,6 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/rxdn/gdl/objects/channel/embed"
 )
 
 type BlacklistCommand struct {
@@ -25,8 +26,14 @@ func (BlacklistCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (BlacklistCommand) Execute(ctx utils.CommandContext) {
+	usageEmbed := embed.EmbedField{
+		Name:   "Usage",
+		Value:  "`t!blacklist @User`",
+		Inline: false,
+	}
+
 	if len(ctx.Message.Mentions) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user to toggle the blacklist state for")
+		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user to toggle the blacklist state for", usageEmbed)
 		ctx.ReactWithCross()
 		return
 	}

@@ -5,32 +5,39 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"strconv"
 	"strings"
 )
 
-type CannedResponseCommand struct {
+type TagCommand struct {
 }
 
-func (CannedResponseCommand) Name() string {
-	return "c"
+func (TagCommand) Name() string {
+	return "tag"
 }
 
-func (CannedResponseCommand) Description() string {
-	return "Sends a predefined canned response"
+func (TagCommand) Description() string {
+	return "Sends a message snippet"
 }
 
-func (CannedResponseCommand) Aliases() []string {
-	return []string{"canned", "cannedresponse", "cr", "tags", "tag"}
+func (TagCommand) Aliases() []string {
+	return []string{"canned", "cannedresponse", "cr", "tags", "tag", "snippet", "c"}
 }
 
-func (CannedResponseCommand) PermissionLevel() utils.PermissionLevel {
+func (TagCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Support
 }
 
-func (CannedResponseCommand) Execute(ctx utils.CommandContext) {
+func (TagCommand) Execute(ctx utils.CommandContext) {
+	usageEmbed := embed.EmbedField{
+		Name:   "Usage",
+		Value:  "`t!tag [TagID]`",
+		Inline: false,
+	}
+
 	if len(ctx.Args) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You must provide the ID of the canned response. For more help with canned responses, visit <https://ticketsbot.net#canned>.")
+		ctx.SendEmbed(utils.Red, "Error", "You must provide the ID of the tag. For more help with tag, visit <https://ticketsbot.net/cannedresponses>.", usageEmbed)
 		ctx.ReactWithCross()
 		return
 	}
@@ -42,7 +49,7 @@ func (CannedResponseCommand) Execute(ctx utils.CommandContext) {
 	content := <-contentChan
 
 	if content == "" {
-		ctx.SendEmbed(utils.Red, "Error", "Invalid canned response. For more help with canned responses, visit <https://ticketsbot.net#canned>.")
+		ctx.SendEmbed(utils.Red, "Error", "Invalid tag. For more help with tags, visit <https://ticketsbot.net/cannedresponses>.", usageEmbed)
 		ctx.ReactWithCross()
 		return
 	}
@@ -62,26 +69,26 @@ func (CannedResponseCommand) Execute(ctx utils.CommandContext) {
 	}
 }
 
-func (CannedResponseCommand) Parent() interface{} {
+func (TagCommand) Parent() interface{} {
 	return nil
 }
 
-func (CannedResponseCommand) Children() []Command {
+func (TagCommand) Children() []Command {
 	return make([]Command, 0)
 }
 
-func (CannedResponseCommand) PremiumOnly() bool {
+func (TagCommand) PremiumOnly() bool {
 	return false
 }
 
-func (CannedResponseCommand) Category() Category {
-	return CannedResponses
+func (TagCommand) Category() Category {
+	return Tags
 }
 
-func (CannedResponseCommand) AdminOnly() bool {
+func (TagCommand) AdminOnly() bool {
 	return false
 }
 
-func (CannedResponseCommand) HelperOnly() bool {
+func (TagCommand) HelperOnly() bool {
 	return false
 }

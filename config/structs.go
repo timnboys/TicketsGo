@@ -2,13 +2,13 @@ package config
 
 type (
 	Config struct {
-		AboutMessage  string
-		Bot           Bot
-		Database      Database
-		Metrics       Metrics
-		Redis         Redis
-		Cache         Cache
-		Sentry        Sentry
+		AboutMessage string
+		Bot          Bot
+		Database     Database
+		Metrics      Metrics
+		Redis        Redis
+		Cache        Cache
+		Sentry       Sentry
 	}
 
 	Bot struct {
@@ -35,6 +35,7 @@ type (
 		Password string
 		Database string
 		Pool     Pool
+		Lifetime int
 	}
 
 	Pool struct {

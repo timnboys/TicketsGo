@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"github.com/rxdn/gdl/permission"
 )
 
@@ -27,31 +28,35 @@ func (AddCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (AddCommand) Execute(ctx utils.CommandContext) {
+func (a AddCommand) Execute(ctx utils.CommandContext) {
+	usageEmbed := embed.EmbedField{
+		Name:   "Usage",
+		Value:  "`t!add @User #ticket-channel`",
+		Inline: false,
+	}
+
 	// Check users are mentioned
 	if len(ctx.Message.Mentions) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention members to add to the ticketChannel")
+		ctx.SendEmbed(utils.Red, "Error", "You need to mention members to add to the ticket", usageEmbed)
 		ctx.ReactWithCross()
 		return
 	}
 
 	// Check channel is mentioned
-	mentions := ctx.Message.ChannelMentions()
-	if len(mentions) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention a ticket channel to add the user(s) in")
+	ticketChannel := ctx.GetChannelFromArgs()
+	if ticketChannel == 0 {
+		ctx.SendEmbed(utils.Red, "Error", "You need to mention a ticket channel to add the user(s) in", usageEmbed)
 		ctx.ReactWithCross()
 		return
 	}
 
-	// Verify that the specified channel is a real ticketChannel
-	ticketChannel := mentions[0]
+	ticketChan := make(chan database.Ticket)
+	go database.GetTicketByChannel(ticketChannel, ticketChan)
+	ticket := <-ticketChan
 
-	isTicketChan := make(chan bool)
-	go database.IsTicketChannel(ticketChannel, isTicketChan)
-	isTicket := <- isTicketChan
-
-	if !isTicket {
-		ctx.SendEmbed(utils.Red, "Error", "The specified channel is not a ticketChannel")
+	// 2 in 1: verify guild is the same & the channel is valid
+	if ticket.Guild != ctx.GuildId {
+		ctx.SendEmbed(utils.Red, "Error", "The mentioned channel is not a ticket", usageEmbed)
 		ctx.ReactWithCross()
 		return
 	}
@@ -71,7 +76,7 @@ func (AddCommand) Execute(ctx utils.CommandContext) {
 	owner := <-ownerChan
 
 	if permLevel == 0 && owner != ctx.Author.Id {
-		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to add people to this ticketChannel")
+		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to add people to this ticket")
 		ctx.ReactWithCross()
 		return
 	}

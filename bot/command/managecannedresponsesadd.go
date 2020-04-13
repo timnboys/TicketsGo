@@ -3,32 +3,39 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"strings"
 )
 
-type ManageCannedResponsesAdd struct {
+type ManageTagsAdd struct {
 }
 
-func (ManageCannedResponsesAdd) Name() string {
+func (ManageTagsAdd) Name() string {
 	return "add"
 }
 
-func (ManageCannedResponsesAdd) Description() string {
-	return "Adds a new canned response"
+func (ManageTagsAdd) Description() string {
+	return "Adds a new tag"
 }
 
-func (ManageCannedResponsesAdd) Aliases() []string {
-	return []string{"new"}
+func (ManageTagsAdd) Aliases() []string {
+	return []string{"new", "create"}
 }
 
-func (ManageCannedResponsesAdd) PermissionLevel() utils.PermissionLevel {
+func (ManageTagsAdd) PermissionLevel() utils.PermissionLevel {
 	return utils.Support
 }
 
-func (ManageCannedResponsesAdd) Execute(ctx utils.CommandContext) {
+func (ManageTagsAdd) Execute(ctx utils.CommandContext) {
+	usageEmbed := embed.EmbedField{
+		Name:   "Usage",
+		Value:  "`t!managetags add [TagID] [Tag contents]`",
+		Inline: false,
+	}
+
 	if len(ctx.Args) < 2 {
 		ctx.ReactWithCross()
-		ctx.SendEmbed(utils.Red, "Error", "You must specify a canned response ID and the contents of the response")
+		ctx.SendEmbed(utils.Red, "Error", "You must specify a tag ID and contents", usageEmbed)
 		return
 	}
 
@@ -37,7 +44,7 @@ func (ManageCannedResponsesAdd) Execute(ctx utils.CommandContext) {
 
 	if len(id) > 16 {
 		ctx.ReactWithCross()
-		ctx.SendEmbed(utils.Red, "Error", "A canned response with the ID `$id` already exists. You can delete the response using `t!mcr delete $id`")
+		ctx.SendEmbed(utils.Red, "Error", "A tag with the ID `$id` already exists. You can delete the response using `t!managetags delete [ID]`", usageEmbed)
 		return
 	}
 
@@ -45,26 +52,26 @@ func (ManageCannedResponsesAdd) Execute(ctx utils.CommandContext) {
 	ctx.ReactWithCheck()
 }
 
-func (ManageCannedResponsesAdd) Parent() interface{} {
-	return ManageCannedResponses{}
+func (ManageTagsAdd) Parent() interface{} {
+	return ManageTags{}
 }
 
-func (ManageCannedResponsesAdd) Children() []Command {
+func (ManageTagsAdd) Children() []Command {
 	return make([]Command, 0)
 }
 
-func (ManageCannedResponsesAdd) PremiumOnly() bool {
+func (ManageTagsAdd) PremiumOnly() bool {
 	return false
 }
 
-func (ManageCannedResponsesAdd) Category() Category {
-	return CannedResponses
+func (ManageTagsAdd) Category() Category {
+	return Tags
 }
 
-func (ManageCannedResponsesAdd) AdminOnly() bool {
+func (ManageTagsAdd) AdminOnly() bool {
 	return false
 }
 
-func (ManageCannedResponsesAdd) HelperOnly() bool {
+func (ManageTagsAdd) HelperOnly() bool {
 	return false
 }

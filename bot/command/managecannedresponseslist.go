@@ -41,7 +41,7 @@ func (ManageCannedResponsesList) Execute(ctx utils.CommandContext) {
 }
 
 func (ManageCannedResponsesList) Parent() interface{} {
-	return ManageCannedResponses{}
+	return ManageTags{}
 }
 
 func (ManageCannedResponsesList) Children() []Command {
@@ -53,7 +53,7 @@ func (ManageCannedResponsesList) PremiumOnly() bool {
 }
 
 func (ManageCannedResponsesList) Category() Category {
-	return CannedResponses
+	return Tags
 }
 
 func (ManageCannedResponsesList) AdminOnly() bool {

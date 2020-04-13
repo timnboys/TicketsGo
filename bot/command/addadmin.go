@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"github.com/rxdn/gdl/permission"
 	"github.com/rxdn/gdl/rest"
 	"strings"
@@ -30,8 +31,14 @@ func (AddAdminCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (AddAdminCommand) Execute(ctx utils.CommandContext) {
+	usageEmbed := embed.EmbedField{
+		Name:   "Usage",
+		Value:  "`t!addadmin @User`\n`t!addadmin @Role`\n`t!addadmin role name`",
+		Inline: false,
+	}
+
 	if len(ctx.Args) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to grant admin privileges to")
+		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to grant admin privileges to", usageEmbed)
 		ctx.ReactWithCross()
 		return
 	}
@@ -68,7 +75,7 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 
 		// Verify a valid role was mentioned
 		if !valid {
-			ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to grant admin privileges to")
+			ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to grant admin privileges to", usageEmbed)
 			ctx.ReactWithCross()
 			return
 		}

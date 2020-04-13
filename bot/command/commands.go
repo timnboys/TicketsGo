@@ -1,16 +1,17 @@
 package command
 
 var Commands = []Command{
+	AboutCommand{},
 	AddCommand{},
 	AddAdminCommand{},
 	AddSupportCommand{},
 	AdminCommand{},
 	BlacklistCommand{},
 	CancelCommand{},
-	CannedResponseCommand{},
+	TagCommand{},
 	CloseCommand{},
 	HelpCommand{},
-	ManageCannedResponses{},
+	ManageTags{},
 	OpenCommand{},
 	PanelCommand{},
 	PremiumCommand{},

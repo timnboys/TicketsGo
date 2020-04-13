@@ -25,14 +25,19 @@ type SentMessage struct {
 	Message *message.Message
 }
 
-func SendEmbed(session *gateway.Shard, channel uint64, colour Colour, title, content string, deleteAfter int, isPremium bool) {
-	_, _ = SendEmbedWithResponse(session, channel, colour, title, content, deleteAfter, isPremium)
+func SendEmbed(session *gateway.Shard, channel uint64, colour Colour, title, content string, fields []embed.EmbedField, deleteAfter int, isPremium bool) {
+	_, _ = SendEmbedWithResponse(session, channel, colour, title, content, fields, deleteAfter, isPremium)
 }
 
-func SendEmbedWithResponse(shard *gateway.Shard, channel uint64, colour Colour, title, content string, deleteAfter int, isPremium bool) (message.Message, error) {
+func SendEmbedWithResponse(shard *gateway.Shard, channel uint64, colour Colour, title, content string, fields []embed.EmbedField, deleteAfter int, isPremium bool) (message.Message, error) {
 	msgEmbed := embed.NewEmbed().
 		SetColor(int(colour)).
-		AddField(title, content, false)
+		SetTitle(title).
+		SetDescription(content)
+
+	for _, field := range fields {
+		msgEmbed.AddField(field.Name, field.Value, field.Inline)
+	}
 
 	if !isPremium {
 		msgEmbed.SetFooter("Powered by ticketsbot.net", shard.SelfAvatar(256))

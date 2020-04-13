@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/config"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	"time"
 )
 
 type Database struct {
@@ -30,6 +31,8 @@ func Connect() {
 
 	db.DB().SetMaxOpenConns(config.Conf.Database.Pool.MaxConnections)
 	db.DB().SetMaxIdleConns(config.Conf.Database.Pool.MaxIdle)
+
+	db.DB().SetConnMaxLifetime(time.Duration(config.Conf.Database.Lifetime) * time.Second)
 
 	db.Set("gorm:table_options", "charset=utf8mb4")
 	db.BlockGlobalUpdate(true)

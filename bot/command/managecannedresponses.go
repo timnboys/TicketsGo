@@ -7,29 +7,29 @@ import (
 	"strings"
 )
 
-type ManageCannedResponses struct {
+type ManageTags struct {
 }
 
-func (ManageCannedResponses) Name() string {
-	return "mcr"
+func (ManageTags) Name() string {
+	return "managetags"
 }
 
-func (ManageCannedResponses) Description() string {
-	return "Command for managing canned responses"
+func (ManageTags) Description() string {
+	return "Command for managing tags"
 }
 
-func (ManageCannedResponses) Aliases() []string {
-	return []string{"managecannedresponse", "managecannedresponses", "editcannedresponse", "editcannedresponses", "ecr"}
+func (ManageTags) Aliases() []string {
+	return []string{"managecannedresponse", "managecannedresponses", "editcannedresponse", "editcannedresponses", "ecr", "managetags", "mcr", "managetag", "mt"}
 }
 
-func (ManageCannedResponses) PermissionLevel() utils.PermissionLevel {
+func (ManageTags) PermissionLevel() utils.PermissionLevel {
 	return utils.Support
 }
 
-func (ManageCannedResponses) Execute(ctx utils.CommandContext) {
+func (ManageTags) Execute(ctx utils.CommandContext) {
 	msg := "Select a subcommand:\n"
 
-	children := ManageCannedResponses{}.Children()
+	children := ManageTags{}.Children()
 	for _, child := range children {
 		msg += fmt.Sprintf("`%smcr %s` - %s\n", config.Conf.Bot.Prefix, child.Name(), child.Description())
 	}
@@ -39,30 +39,30 @@ func (ManageCannedResponses) Execute(ctx utils.CommandContext) {
 	ctx.SendEmbed(utils.Red, "Error", msg)
 }
 
-func (ManageCannedResponses) Parent() interface{} {
-	return ManageCannedResponses{}
+func (ManageTags) Parent() interface{} {
+	return ManageTags{}
 }
 
-func (ManageCannedResponses) Children() []Command {
+func (ManageTags) Children() []Command {
 	return []Command{
-		ManageCannedResponsesAdd{},
-		ManageCannedResponsesDelete{},
+		ManageTagsAdd{},
+		ManageTagsDelete{},
 		ManageCannedResponsesList{},
 	}
 }
 
-func (ManageCannedResponses) PremiumOnly() bool {
+func (ManageTags) PremiumOnly() bool {
 	return false
 }
 
-func (ManageCannedResponses) Category() Category {
-	return CannedResponses
+func (ManageTags) Category() Category {
+	return Tags
 }
 
-func (ManageCannedResponses) AdminOnly() bool {
+func (ManageTags) AdminOnly() bool {
 	return false
 }
 
-func (ManageCannedResponses) HelperOnly() bool {
+func (ManageTags) HelperOnly() bool {
 	return false
 }

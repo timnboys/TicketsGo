@@ -3,8 +3,10 @@ package utils
 import (
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"github.com/rxdn/gdl/objects/channel/message"
 	"github.com/rxdn/gdl/objects/guild"
+	"strconv"
 	"strings"
 )
 
@@ -33,12 +35,12 @@ func (ctx *CommandContext) ToErrorContext() sentry.ErrorContext {
 	}
 }
 
-func (ctx *CommandContext) SendEmbed(colour Colour, title, content string) {
-	SendEmbed(ctx.Shard, ctx.ChannelId, colour, title, content, 30, ctx.IsPremium)
+func (ctx *CommandContext) SendEmbed(colour Colour, title, content string, fields ...embed.EmbedField) {
+	SendEmbed(ctx.Shard, ctx.ChannelId, colour, title, content, fields, 30, ctx.IsPremium)
 }
 
-func (ctx *CommandContext) SendEmbedNoDelete(colour Colour, title, content string) {
-	SendEmbed(ctx.Shard, ctx.ChannelId, colour, title, content, 0, ctx.IsPremium)
+func (ctx *CommandContext) SendEmbedNoDelete(colour Colour, title, content string, fields ...embed.EmbedField) {
+	SendEmbed(ctx.Shard, ctx.ChannelId, colour, title, content, fields, 0, ctx.IsPremium)
 }
 
 func (ctx *CommandContext) SendMessage(content string) {
@@ -72,4 +74,19 @@ func (ctx *CommandContext) ReactWithCross() {
 
 func (ctx *CommandContext) GetPermissionLevel(ch chan PermissionLevel) {
 	GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, ch)
+}
+
+func (ctx *CommandContext) GetChannelFromArgs() uint64 {
+	mentions := ctx.ChannelMentions()
+	if len(mentions) > 0 {
+		return mentions[0]
+	}
+
+	for _, arg := range ctx.Args {
+		if parsed, err := strconv.ParseUint(arg, 10, 64); err == nil {
+			return parsed
+		}
+	}
+
+	return 0
 }
