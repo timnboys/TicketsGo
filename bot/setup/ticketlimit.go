@@ -37,7 +37,7 @@ func (TicketLimitStage) Process(shard *gateway.Shard, msg message.Message) {
 	amount, err := strconv.Atoi(amountRaw)
 	if err != nil {
 		amount = 5
-		utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("Error: `%s`\nDefault to `%d`", err.Error(), amount), 1, true)
+		utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("Error: `%s`\nDefaulting to `%d`", err.Error(), amount), nil, 30, true)
 		utils.ReactWithCross(shard, ref)
 	} else {
 		utils.ReactWithCheck(shard, ref)

@@ -94,7 +94,7 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 				ticketsPluralised += "s"
 			}
 			content := fmt.Sprintf("You are only able to open %d %s at once", limit, ticketsPluralised)
-			utils.SendEmbed(s, targetChannel, utils.Red, "Error", content, 30, isPremium)
+			utils.SendEmbed(s, targetChannel, utils.Red, "Error", content, nil, 30, isPremium)
 		}
 
 		return
@@ -125,7 +125,7 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		}
 
 		if channelCount >= 50 {
-			utils.SendEmbed(s, msg.ChannelId, utils.Red, "Error", "There are too many tickets in the ticket category. Ask an admin to close some, or to move them to another category", 30, isPremium)
+			utils.SendEmbed(s, msg.ChannelId, utils.Red, "Error", "There are too many tickets in the ticket category. Ask an admin to close some, or to move them to another category", nil, 30, isPremium)
 			return
 		}
 	}
@@ -208,12 +208,12 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 
 	// Let the user know the ticket has been opened
 	if panel == nil {
-		utils.SendEmbed(s, msg.ChannelId, utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", channel.Mention()), 30, isPremium)
+		utils.SendEmbed(s, msg.ChannelId, utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", channel.Mention()), nil, 30, isPremium)
 	} else {
 		dmOnOpen := make(chan bool)
 		go database.IsDmOnOpen(msg.GuildId, dmOnOpen)
 		if <-dmOnOpen && dmChannel.Id != 0 {
-			utils.SendEmbed(s, dmChannel.Id, utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", channel.Mention()), 0, isPremium)
+			utils.SendEmbed(s, dmChannel.Id, utils.Green, "Ticket", fmt.Sprintf("Opened a new ticket: %s", channel.Mention()), nil, 0, isPremium)
 		}
 	}
 
@@ -313,7 +313,7 @@ func sendWelcomeMessage(s *gateway.Shard, guildId, channelId, userId uint64, isP
 	}
 
 	// Send welcome message
-	if msg, err := utils.SendEmbedWithResponse(s, channelId, utils.Green, subject, welcomeMessage, 0, isPremium); err == nil {
+	if msg, err := utils.SendEmbedWithResponse(s, channelId, utils.Green, subject, welcomeMessage, nil, 0, isPremium); err == nil {
 		// Add close reaction to the welcome message
 		err := s.CreateReaction(channelId, msg.Id, "🔒")
 		if err != nil {

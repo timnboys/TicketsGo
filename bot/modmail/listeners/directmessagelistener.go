@@ -68,17 +68,17 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 			targetGuild := guilds[targetGuildId - 1]
 			staffChannel, err := modmail.OpenModMailTicket(s, targetGuild, &e.Author)
 			if err == nil {
-				utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), 0, true)
+				utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), nil, 0, true)
 
 				// Send guild's welcome message
 				welcomeMessageChan := make(chan string)
 				go database.GetWelcomeMessage(targetGuild.Id, welcomeMessageChan)
 				welcomeMessage := <-welcomeMessageChan
 
-				utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", welcomeMessage, 0, true)
-				utils.SendEmbed(s, staffChannel, utils.Green, "Modmail", welcomeMessage, 0, true)
+				utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", welcomeMessage, nil, 0, true)
+				utils.SendEmbed(s, staffChannel, utils.Green, "Modmail", welcomeMessage, nil, 0, true)
 			} else {
-				utils.SendEmbed(s, dmChannel.Id, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), 30, true)
+				utils.SendEmbed(s, dmChannel.Id, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), nil, 30, true)
 			}
 		} else { // Forward message to guild or handle command
 			// Determine whether premium guild
@@ -120,7 +120,7 @@ func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 
 	if !success {
 		if _, err := ctx.Shard.CreateMessage(session.StaffChannel, ctx.Message.Content); err != nil {
-			utils.SendEmbed(ctx.Shard, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), 30, ctx.IsPremium)
+			utils.SendEmbed(ctx.Shard, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), nil, 30, ctx.IsPremium)
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
 	}
@@ -140,7 +140,7 @@ func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		}
 
 		if _, err := ctx.Shard.CreateMessage(session.StaffChannel, content); err != nil {
-			utils.SendEmbed(ctx.Shard, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), 30, ctx.IsPremium)
+			utils.SendEmbed(ctx.Shard, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), nil, 30, ctx.IsPremium)
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
 	}

@@ -71,16 +71,16 @@ func OnDirectOpenMessageReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 
 	staffChannel, err := modmail.OpenModMailTicket(s, targetGuild, &user)
 	if err == nil {
-		utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), 0, true)
+		utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), nil, 0, true)
 
 		// Send guild's welcome message
 		welcomeMessageChan := make(chan string)
 		go database.GetWelcomeMessage(targetGuild.Id, welcomeMessageChan)
 		welcomeMessage := <-welcomeMessageChan
 
-		utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", welcomeMessage, 0, true)
-		utils.SendEmbed(s, staffChannel, utils.Green, "Modmail", welcomeMessage, 0, true)
+		utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", welcomeMessage, nil, 0, true)
+		utils.SendEmbed(s, staffChannel, utils.Green, "Modmail", welcomeMessage, nil, 0, true)
 	} else {
-		utils.SendEmbed(s, dmChannel.Id, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), 30, true)
+		utils.SendEmbed(s, dmChannel.Id, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), nil, 30, true)
 	}
 }

@@ -28,7 +28,7 @@ func (PrefixStage) Default() string {
 
 func (PrefixStage) Process(shard *gateway.Shard, msg message.Message) {
 	if len(msg.Content) > 8 {
-		utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("The maxium prefix langeth is 8 characters\nDefaulting to `%s`", PrefixStage{}.Default()), 15, true)
+		utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("The maxium prefix langeth is 8 characters\nDefaulting to `%s`", PrefixStage{}.Default()), nil, 15, true)
 		return
 	}
 

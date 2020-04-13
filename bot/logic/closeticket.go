@@ -27,7 +27,7 @@ func CloseTicket(s *gateway.Shard, guildId, channelId, messageId uint64, member 
 	// Cannot happen if fromReaction
 	if !isTicket {
 		utils.ReactWithCross(s, reference)
-		utils.SendEmbed(s, channelId, utils.Red, "Error", "This is not a ticket channel", 30, isPremium)
+		utils.SendEmbed(s, channelId, utils.Red, "Error", "This is not a ticket channel", nil, 30, isPremium)
 
 		return
 	}
@@ -61,7 +61,7 @@ func CloseTicket(s *gateway.Shard, guildId, channelId, messageId uint64, member 
 	if (permissionLevel == utils.Everyone && ticket.Owner != member.User.Id) || (permissionLevel == utils.Everyone && !usersCanClose) {
 		if !fromReaction {
 			utils.ReactWithCross(s, reference)
-			utils.SendEmbed(s, channelId, utils.Red, "Error", "You are not permitted to close this ticket", 30, isPremium)
+			utils.SendEmbed(s, channelId, utils.Red, "Error", "You are not permitted to close this ticket", nil, 30, isPremium)
 		}
 		return
 	}

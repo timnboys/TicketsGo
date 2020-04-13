@@ -26,7 +26,7 @@ func OnSetupProgress(s *gateway.Shard, e *events.MessageCreate) {
 			stage := state.GetStage()
 			if stage != nil {
 				// Psuedo-premium
-				utils.SendEmbed(s, e.ChannelId, utils.Green, "Setup", (*stage).Prompt(), 120, true)
+				utils.SendEmbed(s, e.ChannelId, utils.Green, "Setup", (*stage).Prompt(), nil, 120, true)
 			}
 		}
 	}

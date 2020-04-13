@@ -53,5 +53,5 @@ func sendOwnerMessage(shard *gateway.Shard, guild *guild.Guild) {
 		"or to provide feedback to use (especially if you choose to switch to a competitor - we'd love to know how we can improve).",
 		guild.Name, guild.Id)
 
-	utils.SendEmbed(shard, channel.Id, utils.Green, "Tickets", message, 0, false)
+	utils.SendEmbed(shard, channel.Id, utils.Green, "Tickets", message, nil, 0, false)
 }

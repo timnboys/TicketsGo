@@ -59,13 +59,13 @@ func (ChannelCategoryStage) Process(shard *gateway.Shard, msg message.Message) {
 
 		category, err := shard.CreateGuildChannel(guild.Id, data); if err != nil {
 			// Likely no permission, default to having no category
-			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid category\nDefaulting to using no category", 15, true)
+			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid category\nDefaulting to using no category", nil, 15, true)
 			return
 		}
 
 		categoryId = category.Id
 
-		utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("I have created the channel category %s for you, you may need to adjust permissions yourself", category.Name), 15, true)
+		utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("I have created the channel category %s for you, you may need to adjust permissions yourself", category.Name), nil, 15, true)
 	}
 
 	go database.SetCategory(msg.GuildId, categoryId)

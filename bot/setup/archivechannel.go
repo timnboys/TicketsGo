@@ -60,7 +60,7 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 		}
 
 		if !exists {
-			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
+			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid channel, disabling archiving", nil, 15, true)
 			utils.ReactWithCross(shard, ref)
 			return
 		}
@@ -71,7 +71,7 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 
 		// Get channels from discord
 		channels, err := shard.GetGuildChannels(msg.GuildId); if err != nil {
-			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("An error occurred: `%s`", err.Error()), 15, true)
+			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("An error occurred: `%s`", err.Error()), nil, 15, true)
 			return
 		}
 
@@ -85,7 +85,7 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 		}
 
 		if !found {
-			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid channel, disabling archiving", 15, true)
+			utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", "Invalid channel, disabling archiving", nil, 15, true)
 			utils.ReactWithCross(shard, ref)
 			return
 		}
