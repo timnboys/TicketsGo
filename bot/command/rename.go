@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"github.com/rxdn/gdl/rest"
 	"strings"
 )
@@ -29,18 +30,24 @@ func (RenameCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (RenameCommand) Execute(ctx utils.CommandContext) {
+	usageEmbed := embed.EmbedField{
+		Name:   "Usage",
+		Value:  "`t!rename [ticket-name]`",
+		Inline: false,
+	}
+
 	ticketChan := make(chan database.Ticket)
 	go database.GetTicketByChannel(ctx.ChannelId, ticketChan)
 	ticket := <-ticketChan
 
 	// Check this is a ticket channel
 	if ticket.Uuid == "" {
-		ctx.SendEmbed(utils.Red, "Rename", "This command can only be ran in ticket channels")
+		ctx.SendEmbed(utils.Red, "Rename", "This command can only be ran in ticket channels", usageEmbed)
 		return
 	}
 
 	if len(ctx.Args) == 0 {
-		ctx.SendEmbed(utils.Red, "Rename", "You need to specify a new name for this ticket")
+		ctx.SendEmbed(utils.Red, "Rename", "You need to specify a new name for this ticket", usageEmbed)
 		return
 	}
 

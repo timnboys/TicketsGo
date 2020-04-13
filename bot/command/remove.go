@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"github.com/rxdn/gdl/permission"
 )
 
@@ -28,8 +29,14 @@ func (RemoveCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (RemoveCommand) Execute(ctx utils.CommandContext) {
+	usageEmbed := embed.EmbedField{
+		Name:   "Usage",
+		Value:  "`t!remove @User`",
+		Inline: false,
+	}
+
 	if len(ctx.Message.Mentions) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention members to remove from the ticket")
+		ctx.SendEmbed(utils.Red, "Error", "You need to mention members to remove from the ticket", usageEmbed)
 		ctx.ReactWithCross()
 		return
 	}

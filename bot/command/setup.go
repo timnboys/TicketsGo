@@ -45,7 +45,7 @@ func (SetupCommand) Execute(ctx utils.CommandContext) {
 		stage := state.GetStage()
 		if stage != nil {
 			// Psuedo-premium
-			utils.SendEmbed(ctx.Shard, ctx.ChannelId, utils.Green, "Setup", (*stage).Prompt(), 120, true)
+			utils.SendEmbed(ctx.Shard, ctx.ChannelId, utils.Green, "Setup", (*stage).Prompt(), nil, 120, true)
 		}
 	}
 }

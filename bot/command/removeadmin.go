@@ -4,6 +4,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"strings"
 )
 
@@ -27,8 +28,14 @@ func (RemoveAdminCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (RemoveAdminCommand) Execute(ctx utils.CommandContext) {
+	usageEmbed := embed.EmbedField{
+		Name:   "Usage",
+		Value:  "`t!removeadmin @User`\n`t!removeadmin @Role`\n`t!removeadmin role name`",
+		Inline: false,
+	}
+
 	if len(ctx.Args) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to revoke admin privileges from")
+		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to revoke admin privileges from", usageEmbed)
 		ctx.ReactWithCross()
 		return
 	}
@@ -73,7 +80,7 @@ func (RemoveAdminCommand) Execute(ctx utils.CommandContext) {
 
 		// Verify a valid role was mentioned
 		if !valid {
-			ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to revoke admin privileges from")
+			ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to revoke admin privileges from", usageEmbed)
 			ctx.ReactWithCross()
 			return
 		}

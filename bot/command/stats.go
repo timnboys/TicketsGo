@@ -29,15 +29,21 @@ func (StatsCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (StatsCommand) Execute(ctx utils.CommandContext) {
+	usageEmbed := embed.EmbedField{
+		Name:   "Usage",
+		Value:  "`t!stats server`\n`t!stats @User`",
+		Inline: false,
+	}
+
 	if len(ctx.Args) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You must specify `server` to view server statistics, or tag a user to view their statistics")
+		ctx.SendEmbed(utils.Red, "Error", "Invalid argument: refer to usage", usageEmbed)
 		ctx.ReactWithCross()
 		return
 	}
 
 	// server is handled as a subcommand, so a user has been pinged
 	if len(ctx.Message.Mentions) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You must specify `server` to view server statistics, or tag a user to view their statistics")
+		ctx.SendEmbed(utils.Red, "Error", "Invalid argument: refer to usage", usageEmbed)
 		ctx.ReactWithCross()
 		return
 	}

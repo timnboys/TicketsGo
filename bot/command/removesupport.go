@@ -4,6 +4,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"strings"
 )
 
@@ -27,8 +28,14 @@ func (RemoveSupportCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (RemoveSupportCommand) Execute(ctx utils.CommandContext) {
+	usageEmbed := embed.EmbedField{
+		Name:   "Usage",
+		Value:  "`t!removesupport @User`\n`t!removesupport @Role`\n`t!removesupport role name`",
+		Inline: false,
+	}
+
 	if len(ctx.Args) == 0 {
-		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to revoke support representative privileges from")
+		ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to revoke support representative privileges from", usageEmbed)
 		ctx.ReactWithCross()
 		return
 	}
@@ -74,7 +81,7 @@ func (RemoveSupportCommand) Execute(ctx utils.CommandContext) {
 
 		// Verify a valid role was mentioned
 		if !valid {
-			ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to revoke support representative privileges from")
+			ctx.SendEmbed(utils.Red, "Error", "You need to mention a user or name a role to revoke support representative privileges from", usageEmbed)
 			ctx.ReactWithCross()
 			return
 		}
