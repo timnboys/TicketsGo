@@ -40,6 +40,15 @@ func Start(ch chan os.Signal) {
 			},
 		},
 		Debug: true,
+		Intents: []gateway.Intent{
+			gateway.IntentGuilds,
+			gateway.IntentGuildMembers,
+			gateway.IntentGuildWebhooks,
+			gateway.IntentDirectMessages,
+			gateway.IntentDirectMessageReactions,
+			gateway.IntentDirectMessages,
+			gateway.IntentDirectMessageReactions,
+		},
 	}
 
 	shardManager := gateway.NewShardManager(config.Conf.Bot.Token, shardOptions)
