@@ -11,13 +11,13 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rxdn/gdl/cache"
 	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/gateway/intents"
 	"github.com/rxdn/gdl/objects/user"
 	"github.com/rxdn/gdl/rest/ratelimit"
 	"os"
 )
 
 func Start(ch chan os.Signal) {
-
 	shardOptions := gateway.ShardOptions{
 		ShardCount: gateway.ShardCount{
 			Total:   config.Conf.Bot.Sharding.Total,
@@ -40,14 +40,14 @@ func Start(ch chan os.Signal) {
 			},
 		},
 		Debug: true,
-		Intents: []gateway.Intent{
-			gateway.IntentGuilds,
-			gateway.IntentGuildMembers,
-			gateway.IntentGuildWebhooks,
-			gateway.IntentDirectMessages,
-			gateway.IntentDirectMessageReactions,
-			gateway.IntentDirectMessages,
-			gateway.IntentDirectMessageReactions,
+		Intents: []intents.Intent{
+			intents.Guilds,
+			intents.GuildMembers,
+			intents.GuildWebhooks,
+			intents.DirectMessages,
+			intents.DirectMessageReactions,
+			intents.DirectMessages,
+			intents.DirectMessageReactions,
 		},
 	}
 
