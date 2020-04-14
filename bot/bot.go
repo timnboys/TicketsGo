@@ -75,8 +75,8 @@ func Start(ch chan os.Signal) {
 
 	shardManager.Connect()
 
-	go messagequeue.ListenPanelCreations(&shardManager)
-	go messagequeue.ListenTicketClose(&shardManager)
+	go messagequeue.ListenPanelCreations(shardManager)
+	go messagequeue.ListenTicketClose(shardManager)
 
 	<-ch
 }
