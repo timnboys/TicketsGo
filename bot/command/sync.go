@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/patrickmn/go-cache"
 	"strconv"
 	"time"
@@ -50,16 +49,6 @@ func (SyncCommand) Execute(ctx utils.CommandContext) {
 	go processDeletedTickets(ctx, updated)
 	ctx.SendMessage(fmt.Sprintf("Completed **%d** ticket state synchronisation", <-updated))
 
-	// Process any deleted cached channels
-	//ctx.SendMessage("Scanning for deleted cached channels...")
-	//processDeletedCachedChannels(ctx)
-	//ctx.SendMessage("Completed synchronisation with cache")
-
-	// Process any new channels that must be cached
-	ctx.SendMessage("Recaching channels...")
-	recacheChannels(ctx)
-	ctx.SendMessage("Completed synchronisation with cache")
-
 	// Check any panels still exist
 	ctx.SendMessage("Scanning for deleted panels...")
 	processDeletedPanels(ctx)
@@ -102,80 +91,6 @@ func processDeletedPanels(ctx utils.CommandContext) {
 			go database.DeletePanel(panel.MessageId)
 		}
 	}
-}
-
-func processDeletedCachedChannels(ctx utils.CommandContext) {
-	// Get all cached channels for the guild
-	cachedChannelsChan := make(chan []database.Channel)
-	go database.GetCachedChannelsByGuild(ctx.GuildId, cachedChannelsChan)
-	cachedChannels := <-cachedChannelsChan
-
-	// Get current guild channels
-	channels, err := ctx.Shard.GetGuildChannels(ctx.GuildId); if err != nil {
-		sentry.LogWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
-	// Make a duplicate slice of cached channels which we will remove IDs from as we go - remaining IDs have been deleted
-	toRemove := make([]database.Channel, 0)
-	// Prevent panic
-	if len(cachedChannels) > 0 {
-		toRemove = append(cachedChannels[:0:0], cachedChannels...)
-	}
-
-	for _, existingChannel := range channels {
-		// Remove from toRemove slice & find cached object
-		var index = -1
-		var cached *database.Channel = nil // Since this a pointer, we must perform operations before removing from slice
-		for i, cachedChannel := range toRemove {
-			if cachedChannel.ChannelId == existingChannel.Id {
-				index = i
-				cached = &cachedChannel
-			}
-		}
-
-		// Check that the
-		if cached != nil {
-			if cached.Name != existingChannel.Name { // Name is the only property that can be updated
-				go database.StoreChannel(cached.ChannelId, cached.GuildId, existingChannel.Name, cached.Type)
-			}
-		}
-
-		// If index = -1, we haven't cached the channel before
-		if index != -1 {
-			go database.StoreChannel(existingChannel.Id, ctx.GuildId, existingChannel.Name, int(existingChannel.Type))
-		} else { // Else, we can remove the channel from the toRemove array
-			toRemove = append(toRemove[:index], toRemove[index+1:]...)
-		}
-	}
-
-	// Now we must remove from the cache any deleted channels
-	for _, channel := range toRemove {
-		go database.DeleteChannel(channel.ChannelId)
-	}
-}
-
-func recacheChannels(ctx utils.CommandContext) {
-	// Delete current cache, sync
-	database.DeleteAllChannelsByGuild(ctx.GuildId)
-
-	// Get refreshed channel objects from Discord
-	raw, err := ctx.Shard.GetGuildChannels(ctx.GuildId); if err != nil {
-		sentry.ErrorWithContext(err, ctx.ToErrorContext())
-		return
-	}
-
-	channels := make([]database.Channel, 0)
-	for _, channel := range raw {
-		channels = append(channels, database.Channel{
-			ChannelId: channel.Id,
-			GuildId:   ctx.GuildId,
-			Name:      channel.Name,
-			Type:      int(channel.Type),
-		})
-	}
-
-	go database.InsertChannels(channels)
 }
 
 func (SyncCommand) Parent() interface{} {

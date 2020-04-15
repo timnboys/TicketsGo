@@ -54,7 +54,6 @@ func Start(ch chan os.Signal) {
 	shardManager := gateway.NewShardManager(config.Conf.Bot.Token, shardOptions)
 
 	shardManager.RegisterListeners(
-		listeners.OnChannelCreate,
 		listeners.OnChannelDelete,
 		listeners.OnCloseReact,
 		listeners.OnCommand,

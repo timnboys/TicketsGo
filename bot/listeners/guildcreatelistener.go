@@ -3,8 +3,6 @@ package listeners
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
-	"github.com/TicketsBot/TicketsGo/cache"
-	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
@@ -13,27 +11,11 @@ import (
 
 // Fires when we receive a guild
 func OnGuildCreate(s *gateway.Shard, e *events.GuildCreate) {
-	go cache.Client.CacheGuildProperties(&e.Guild)
-
 	// Determine whether this is a join or lazy load
-	var isJoin bool
-	_, found := s.Cache.GetGuild(e.Id, false)
-	isJoin = !found
+	_, exists := s.Cache.GetGuild(e.Id, false)
 
-	if isJoin {
+	if !exists {
 		go statsd.IncrementKey(statsd.JOINS)
-
-		channels := make([]database.Channel, 0)
-		for _, channel := range e.Channels {
-			channels = append(channels, database.Channel{
-				ChannelId: channel.Id,
-				GuildId:   e.Guild.Id,
-				Name:      channel.Name,
-				Type:      int(channel.Type),
-			})
-		}
-
-		go database.InsertChannels(channels)
 
 		//sendOwnerMessage(s, &e.Guild)
 	}

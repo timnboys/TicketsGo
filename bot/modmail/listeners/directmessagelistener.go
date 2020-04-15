@@ -8,13 +8,11 @@ import (
 	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	modmailutils "github.com/TicketsBot/TicketsGo/bot/modmail/utils"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
-	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
-	"github.com/rxdn/gdl/objects/guild"
 	"net/http"
 	"strconv"
 	"strings"
@@ -210,20 +208,4 @@ func handleCommand(ctx utils.CommandContext, session *modmaildatabase.ModMailSes
 	ctx.Root = root
 
 	return ctx, true
-}
-
-func createFakeGuild(id uint64, res chan guild.Guild) {
-	name := make(chan string)
-	go cache.Client.GetGuildName(id, name)
-
-	owner := make(chan uint64)
-	go cache.Client.GetGuildOwner(id, owner)
-
-	guild := guild.Guild{
-		Id:      id,
-		Name:    <-name,
-		OwnerId: <-owner,
-	}
-
-	res <-guild
 }

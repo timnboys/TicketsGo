@@ -13,6 +13,4 @@ func OnChannelDelete(s *gateway.Shard, e *events.ChannelDelete) {
 	if <-isTicket {
 		go database.CloseByChannel(e.Channel.Id)
 	}
-
-	go database.DeleteChannel(e.Channel.Id)
 }
