@@ -46,7 +46,6 @@ func Setup() {
 		Blacklist{},
 		CannedResponse{},
 		ChannelCategory{},
-		Channel{},
 		DmOnOpen{},
 		Panel{},
 		PanelSettings{},
