@@ -44,6 +44,7 @@ func Start(ch chan os.Signal) {
 			intents.Guilds,
 			intents.GuildMembers,
 			intents.GuildMessages,
+			intents.GuildMessageReactions,
 			intents.GuildWebhooks,
 			intents.DirectMessages,
 			intents.DirectMessageReactions,
