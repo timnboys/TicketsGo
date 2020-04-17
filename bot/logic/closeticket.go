@@ -138,16 +138,16 @@ func CloseTicket(s *gateway.Shard, guildId, channelId, messageId uint64, member 
 			SetColor(int(utils.Green)).
 			AddField("Ticket ID", strconv.Itoa(ticket.Id), true).
 			AddField("Closed By", member.User.Mention(), true).
-			AddField("Archive", fmt.Sprintf("[Click here](https://panel.ticketsbot.net/manage/%d/logs/view/%d)", guildId, ticket.Id), true).
-			AddField("Reason", reason, false)
+			AddField("Archive", fmt.Sprintf("[Click here](https://panel.ticketsbot.net/manage/%d/logs/view/%d)", guildId, ticket.Id), true)
+
+		if reason == "" {
+			embed.AddField("Reason", "No reason specified", false)
+		} else {
+			embed.AddField("Reason", reason, false)
+		}
 
 		if _, err := s.CreateMessageEmbed(archiveChannelId, embed); err != nil {
 			sentry.Error(err)
-		}
-
-		msg := fmt.Sprintf("Archive of `#ticket-%d` (closed by %s#%s)", ticket.Id, member.User.Username, utils.PadDiscriminator(member.User.Discriminator))
-		if reason != "" {
-			msg += fmt.Sprintf(" with reason `%s`", reason)
 		}
 
 		// Notify user and send logs in DMs
