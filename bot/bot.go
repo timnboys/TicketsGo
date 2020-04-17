@@ -43,12 +43,14 @@ func Start(ch chan os.Signal) {
 		Intents: []intents.Intent{
 			intents.Guilds,
 			intents.GuildMembers,
+			intents.GuildMessages,
 			intents.GuildWebhooks,
 			intents.DirectMessages,
 			intents.DirectMessageReactions,
 			intents.DirectMessages,
 			intents.DirectMessageReactions,
 		},
+		LargeShardingBuckets: 1,
 	}
 
 	shardManager := gateway.NewShardManager(config.Conf.Bot.Token, shardOptions)

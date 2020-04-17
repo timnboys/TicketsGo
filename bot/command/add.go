@@ -1,14 +1,12 @@
 package command
 
 import (
-	"context"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel"
 	"github.com/rxdn/gdl/objects/channel/embed"
 	"github.com/rxdn/gdl/permission"
-	"golang.org/x/sync/errgroup"
 )
 
 type AddCommand struct {
@@ -51,11 +49,6 @@ func (a AddCommand) Execute(ctx utils.CommandContext) {
 		ctx.ReactWithCross()
 		return
 	}
-
-	group, _ := errgroup.WithContext(context.Background())
-	group.Go(func() error {
-		
-	})
 
 	ticketChan := make(chan database.Ticket)
 	go database.GetTicketByChannel(ticketChannel, ticketChan)

@@ -20,6 +20,7 @@ type (
 		PremiumLookupProxyKey string `toml:"premium-lookup-proxy-key"`
 		Sharding              Sharding
 		Game                  string
+		ObjectStore           string
 	}
 
 	Sharding struct {

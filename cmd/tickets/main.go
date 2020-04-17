@@ -2,12 +2,14 @@ package main
 
 import (
 	"github.com/TicketsBot/TicketsGo/bot"
+	"github.com/TicketsBot/TicketsGo/bot/archive"
 	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/TicketsBot/archiverclient"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,6 +17,8 @@ import (
 
 func main() {
 	config.Load()
+
+	archive.ArchiverClient = archiverclient.NewArchiverClient(config.Conf.Bot.ObjectStore)
 
 	sentry.Connect()
 

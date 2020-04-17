@@ -2,13 +2,16 @@ package logic
 
 import (
 	"fmt"
+	"github.com/TicketsBot/TicketsGo/bot/archive"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"github.com/rxdn/gdl/objects/channel/message"
 	"github.com/rxdn/gdl/objects/member"
 	"github.com/rxdn/gdl/rest"
+	"strconv"
 	"strings"
 )
 
@@ -106,18 +109,8 @@ func CloseTicket(s *gateway.Shard, guildId, channelId, messageId uint64, member 
 		msgs[i], msgs[j] = msgs[j], msgs[i]
 	}
 
-	logs := ""
-	for _, msg := range msgs {
-		date := msg.Timestamp.UTC().String()
-
-		content := msg.Content
-
-		// append attachments
-		for _, attachment := range msg.Attachments {
-			content += fmt.Sprintf(" %s", attachment.ProxyUrl)
-		}
-
-		logs += fmt.Sprintf("[%s][%d] %s: %s\n", date, msg.Id, msg.Author.Username, content)
+	if err := archive.ArchiverClient.Store(msgs, guildId, ticket.Id, isPremium); err != nil {
+		sentry.Error(err)
 	}
 
 	// Set ticket state as closed and delete channel
@@ -140,70 +133,32 @@ func CloseTicket(s *gateway.Shard, guildId, channelId, messageId uint64, member 
 	go database.DeleteWebhookByUuid(ticket.Uuid)
 
 	if channelExists {
+		embed := embed.NewEmbed().
+			SetTitle("Ticket Closed").
+			SetColor(int(utils.Green)).
+			AddField("Ticket ID", strconv.Itoa(ticket.Id), true).
+			AddField("Closed By", member.User.Mention(), true).
+			AddField("Archive", fmt.Sprintf("[Click here](https://panel.ticketsbot.net/manage/%d/logs/view/%d)", guildId, ticket.Id), true).
+			AddField("Reason", reason, false)
+
+		if _, err := s.CreateMessageEmbed(archiveChannelId, embed); err != nil {
+			sentry.Error(err)
+		}
+
 		msg := fmt.Sprintf("Archive of `#ticket-%d` (closed by %s#%s)", ticket.Id, member.User.Username, utils.PadDiscriminator(member.User.Discriminator))
 		if reason != "" {
 			msg += fmt.Sprintf(" with reason `%s`", reason)
 		}
 
-		data := rest.CreateMessageData{
-			Content: msg,
-			File: &rest.File{
-				Name:        fmt.Sprintf("ticket-%d.txt", ticket.Id),
-				ContentType: "text/plain",
-				Reader:      strings.NewReader(logs),
-			},
-		}
-
-		// Errors occur when the bot doesn't have permission
-		m, err := s.CreateMessageComplex(archiveChannelId, data)
-		if err == nil {
-			// Add archive to DB
-			uuidChan := make(chan string)
-			go database.GetTicketUuid(channelId, uuidChan)
-			uuid := <-uuidChan
-
-			userNameChan := make(chan string)
-			go database.GetUsername(ticket.Owner, userNameChan)
-			userName := <-userNameChan
-
-			go database.AddArchive(uuid, guildId, ticket.Owner, userName, ticket.Id, m.Attachments[0].Url)
-		} else {
-			sentry.Error(err)
-		}
-
 		// Notify user and send logs in DMs
 		if !silentClose {
-			// get guild object
-			guild, err := s.GetGuild(guildId)
-			if err != nil {
-				sentry.Error(err)
-				return
-			}
+			dmChannel, err := s.CreateDM(ticket.Owner)
 
-			var content string
-			// Create message content
-			if member.User.Id == ticket.Owner {
-				content = fmt.Sprintf("You closed your ticket (`#ticket-%d`) in `%s`", ticket.Id, guild.Name)
-			} else if len(args) == 0 {
-				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s", ticket.Id, guild.Name, member.User.Mention())
-			} else {
-				content = fmt.Sprintf("Your ticket (`#ticket-%d`) in `%s` was closed by %s with reason `%s`", ticket.Id, guild.Name, member.User.Mention(), reason)
-			}
-
-			privateMessage, err := s.CreateDM(ticket.Owner)
 			// Only send the msg if we could create the channel
 			if err == nil {
-				data := rest.CreateMessageData{
-					Content: content,
-					File: &rest.File{
-						Name:        fmt.Sprintf("ticket-%d.txt", ticket.Id),
-						ContentType: "text/plain",
-						Reader:      strings.NewReader(logs),
-					},
+				if _, err := s.CreateMessageEmbed(dmChannel.Id, embed); err != nil {
+					sentry.Error(err)
 				}
-
-				// Errors occur when users have privacy settings high
-				_, _ = s.CreateMessageComplex(privateMessage.Id, data)
 			}
 		}
 	}
