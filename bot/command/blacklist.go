@@ -47,10 +47,10 @@ func (BlacklistCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	permissionLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permissionLevelChan)
+	go utils.GetPermissionLevel(ctx.Shard, user.Member, ctx.GuildId, permissionLevelChan)
 	permissionLevel := <- permissionLevelChan
 
-	if permissionLevel > 0 {
+	if permissionLevel > utils.Everyone {
 		ctx.SendEmbed(utils.Red, "Error", "You cannot blacklist staff")
 		ctx.ReactWithCross()
 		return

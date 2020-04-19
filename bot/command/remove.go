@@ -1,12 +1,15 @@
 package command
 
 import (
+	"context"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel"
 	"github.com/rxdn/gdl/objects/channel/embed"
 	"github.com/rxdn/gdl/permission"
+	"golang.org/x/sync/errgroup"
+	"sync"
 )
 
 type RemoveCommand struct {
@@ -28,7 +31,7 @@ func (RemoveCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Everyone
 }
 
-func (RemoveCommand) Execute(ctx utils.CommandContext) {
+func (r RemoveCommand) Execute(ctx utils.CommandContext) {
 	usageEmbed := embed.EmbedField{
 		Name:   "Usage",
 		Value:  "`t!remove @User`",
@@ -67,7 +70,14 @@ func (RemoveCommand) Execute(ctx utils.CommandContext) {
 	owner := <-ownerChan
 
 	if permLevel == 0 && owner != ctx.Author.Id {
-		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to add people to this ticket")
+		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to remove people from this ticket")
+		ctx.ReactWithCross()
+		return
+	}
+
+	// verify that the user isn't trying to remove staff
+	if r.mentionsStaff(ctx) {
+		ctx.SendEmbed(utils.Red, "Error", "You cannot remove staff from a ticket")
 		ctx.ReactWithCross()
 		return
 	}
@@ -88,6 +98,39 @@ func (RemoveCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	ctx.ReactWithCheck()
+}
+
+func (r RemoveCommand) mentionsStaff(ctx utils.CommandContext) bool {
+	permissionChan := make(chan utils.PermissionLevel)
+
+	group, _ := errgroup.WithContext(context.Background())
+	for _, user := range ctx.Message.Mentions {
+		group.Go(func() error {
+			utils.GetPermissionLevel(ctx.Shard, user.Member, ctx.GuildId, permissionChan)
+			return nil
+		})
+	}
+
+	var lock sync.Mutex
+	var mentionsStaff bool
+
+	group.Go(func() error {
+		for level := range permissionChan {
+			if level > utils.Everyone {
+				lock.Lock()
+				mentionsStaff = true
+				lock.Unlock()
+			}
+		}
+		return nil
+	})
+
+	if err := group.Wait(); err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		return true
+	}
+
+	return mentionsStaff
 }
 
 func (RemoveCommand) Parent() interface{} {
