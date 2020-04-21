@@ -8,6 +8,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
+	"github.com/rxdn/gdl/objects/channel/message"
 	"strings"
 )
 
@@ -86,7 +87,21 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 	}
 
 	premiumChan := make(chan bool)
+	blacklisted := make(chan bool)
+
+	go database.IsBlacklisted(e.GuildId, e.Author.Id, blacklisted)
 	go utils.IsPremiumGuild(s, e.GuildId, premiumChan)
+
+	// Ensure user isn't blacklisted
+	if <-blacklisted {
+		utils.ReactWithCross(s, message.MessageReference{
+			MessageId: e.Id,
+			ChannelId: e.ChannelId,
+			GuildId:   e.GuildId,
+		})
+		return
+	}
+
 	premiumGuild := <-premiumChan
 
 	e.Member.User = e.Author
@@ -99,14 +114,6 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 		IsPremium:   premiumGuild,
 		ShouldReact: true,
 		IsFromPanel: false,
-	}
-
-	// Ensure user isn't blacklisted
-	blacklisted := make(chan bool)
-	go database.IsBlacklisted(ctx.GuildId, ctx.Author.Id, blacklisted)
-	if <-blacklisted {
-		ctx.ReactWithCross()
-		return
 	}
 
 	if c != nil {

@@ -47,21 +47,15 @@ func OnPanelReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 			sentry.LogWithContext(err, errorContext)
 		}
 
+		isPremium := make(chan bool)
 		blacklisted := make(chan bool)
+
 		go database.IsBlacklisted(e.GuildId, e.UserId, blacklisted)
+		go utils.IsPremiumGuild(s, e.GuildId, isPremium)
+
 		if <-blacklisted {
 			return
 		}
-
-		// Get guild obj
-		guild, err := s.GetGuild(e.GuildId)
-		if err != nil {
-			sentry.ErrorWithContext(err, errorContext)
-			return
-		}
-
-		isPremium := make(chan bool)
-		go utils.IsPremiumGuild(s, guild.Id, isPremium)
 
 		// construct fake message
 		messageReference := message.MessageReference{

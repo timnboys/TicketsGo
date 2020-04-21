@@ -150,16 +150,19 @@ func createOverwrites(shard *gateway.Shard, guildId uint64) []*channel.Permissio
 	allowedUsers := make([]uint64, 0)
 	allowedRoles := make([]uint64, 0)
 
-	// Get support reps
+	// Get support reps & roles
 	supportUsers := make(chan []uint64)
+	supportRoles := make(chan []uint64)
+
 	go database.GetSupport(guildId, supportUsers)
+	go database.GetSupportRoles(guildId, supportRoles)
+
+	// check if user is a support rep
 	for _, user := range <-supportUsers {
 		allowedUsers = append(allowedUsers, user)
 	}
 
-	// Get support roles
-	supportRoles := make(chan []uint64)
-	go database.GetSupportRoles(guildId, supportRoles)
+	// check if user has a support role
 	for _, role := range <-supportRoles {
 		allowedRoles = append(allowedRoles, role)
 	}

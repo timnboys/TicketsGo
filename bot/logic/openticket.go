@@ -133,6 +133,8 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 	if panel == nil {
 		utils.ReactWithCheck(s, msg)
 	}
+	// Create channel
+	ticketUuid := uuid.NewV4()
 
 	// ID lock: If we open 2 tickets simultaneously, they will end up having the same ID. Instead we should lock the guild until the ticket has been opened
 	idLocksLock.Lock()
@@ -142,9 +144,6 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		idLocks[msg.GuildId] = lock
 	}
 	idLocksLock.Unlock()
-
-	// Create channel
-	ticketUuid := uuid.NewV4()
 
 	lock.Lock()
 	idChan := make(chan int)
@@ -226,16 +225,13 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 
 func getTicketLimit(guildId, userId uint64) (bool, int) {
 	ticketLimitChan := make(chan int)
+	openedTickets := make(chan []string)
+
 	go database.GetTicketLimit(guildId, ticketLimitChan)
+	go database.GetOpenTicketsOpenedBy(guildId, userId, openedTickets)
+
 	ticketLimit := <-ticketLimitChan
-
-	ticketCount := 0
-	openedTicketsChan := make(chan []string)
-	go database.GetOpenTicketsOpenedBy(guildId, userId, openedTicketsChan)
-	openedTickets := <-openedTicketsChan
-	ticketCount = len(openedTickets)
-
-	return ticketCount >= ticketLimit, ticketLimit
+	return len(<-openedTickets) >= ticketLimit, ticketLimit
 }
 
 func createWebhook(s *gateway.Shard, channelId uint64, uuid string) {
@@ -262,11 +258,12 @@ func createWebhook(s *gateway.Shard, channelId uint64, uuid string) {
 
 func calculateWeeklyResponseTime(guildId uint64, res chan int64) {
 	responseTimesChan := make(chan map[string]int64)
-	go database.GetGuildResponseTimes(guildId, responseTimesChan)
-	responseTimes := <-responseTimesChan
-
 	openTimesChan := make(chan map[string]*int64)
+
 	go database.GetOpenTimes(guildId, openTimesChan)
+	go database.GetGuildResponseTimes(guildId, responseTimesChan)
+
+	responseTimes := <-responseTimesChan
 	openTimes := <-openTimesChan
 
 	current := time.Now().UnixNano() / int64(time.Millisecond)

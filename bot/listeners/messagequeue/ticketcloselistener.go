@@ -53,6 +53,9 @@ func ListenTicketClose(shardManager *gateway.ShardManager) {
 		// Add reason to args
 		reason := strings.Split(payload.Reason, " ")
 
+		if ticket.Channel == nil {
+			return
+		}
 		logic.CloseTicket(s, ticket.Guild, *ticket.Channel, 0, member, reason, false, <-isPremium)
 	}
 }

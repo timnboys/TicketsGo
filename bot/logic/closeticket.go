@@ -3,6 +3,7 @@ package logic
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/archive"
+	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -29,6 +30,13 @@ func CloseTicket(s *gateway.Shard, guildId, channelId, messageId uint64, member 
 
 	// Cannot happen if fromReaction
 	if !isTicket {
+		// check whether this is a modmail channel
+		modmailSession := make(chan *modmaildatabase.ModMailSession)
+		go modmaildatabase.GetModMailSessionByStaffChannel(channelId, modmailSession)
+		if <-modmailSession != nil {
+			return
+		}
+
 		utils.ReactWithCross(s, reference)
 		utils.SendEmbed(s, channelId, utils.Red, "Error", "This is not a ticket channel", nil, 30, isPremium)
 

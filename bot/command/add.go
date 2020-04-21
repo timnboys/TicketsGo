@@ -61,28 +61,26 @@ func (a AddCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	// Get ticketChannel ID
+	// Get ticket ID
 	ticketIdChan := make(chan int)
+	permissionLevel := make(chan utils.PermissionLevel)
+	owner := make(chan uint64)
+
 	go database.GetTicketId(ticketChannel, ticketIdChan)
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permissionLevel)
+
 	ticketId := <- ticketIdChan
+	go database.GetOwner(ticketId, ctx.GuildId, owner)
 
-	// Verify that the user is allowed to modify the ticketChannel
-	permLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permLevelChan)
-	permLevel := <-permLevelChan
-
-	ownerChan := make(chan uint64)
-	go database.GetOwner(ticketId, ctx.GuildId, ownerChan)
-	owner := <-ownerChan
-
-	if permLevel == 0 && owner != ctx.Author.Id {
+	// Verify that the user is allowed to modify the ticket
+	if <-permissionLevel == 0 && <-owner != ctx.Author.Id {
 		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to add people to this ticket")
 		ctx.ReactWithCross()
 		return
 	}
 
 	for _, user := range ctx.Message.Mentions {
-		// Add user to ticketChannel in DB
+		// Add user to ticket in DB
 		go database.AddMember(ticketId, ctx.GuildId, user.Id)
 
 		if err := ctx.Shard.EditChannelPermissions(ticketChannel, channel.PermissionOverwrite{

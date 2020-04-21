@@ -27,6 +27,7 @@ func (PremiumCommand) PermissionLevel() utils.PermissionLevel {
 	return utils.Admin
 }
 
+// TODO: Retire this?
 func (PremiumCommand) Execute(ctx utils.CommandContext) {
 	if len(ctx.Args) == 0 {
 		if ctx.IsPremium {

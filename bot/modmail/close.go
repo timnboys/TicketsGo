@@ -2,6 +2,7 @@ package modmail
 
 import (
 	"fmt"
+	"github.com/TicketsBot/TicketsGo/bot/archive"
 	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
@@ -16,11 +17,12 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 
 	// Check the user is permitted to close the ticket
 	permissionLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permissionLevelChan)
-	permissionLevel := <-permissionLevelChan
-
 	usersCanCloseChan := make(chan bool)
+
+	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permissionLevelChan)
 	go database.IsUserCanClose(session.Guild, usersCanCloseChan)
+
+	permissionLevel := <-permissionLevelChan
 	usersCanClose := <-usersCanCloseChan
 
 	if (permissionLevel == utils.Everyone && session.User != ctx.Author.Id) || (permissionLevel == utils.Everyone && !usersCanClose) {
@@ -81,6 +83,10 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		}
 
 		logs += fmt.Sprintf("[%s][%d] %s: %s\n", date, msg.Id, msg.Author.Username, content)
+	}
+
+	if err := archive.ArchiverClient.Store(msgs, session.Guild, ticket.Id, isPremium); err != nil {
+		sentry.Error(err)
 	}
 
 	// Get channel name
