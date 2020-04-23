@@ -20,89 +20,89 @@ import (
 )
 
 func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
-	go func() {
-		if e.Author.Bot {
+	if e.Author.Bot {
+		return
+	}
+
+	if e.GuildId != 0 { // DMs only
+		return
+	}
+
+	ctx := utils.CommandContext{
+		Shard:       s,
+		Message:     e.Message,
+		ShouldReact: true,
+		IsFromPanel: false,
+	}
+
+	sessionChan := make(chan *modmaildatabase.ModMailSession, 0)
+	go modmaildatabase.GetModMailSession(e.Author.Id, sessionChan)
+	session := <-sessionChan
+
+	// Create DM channel
+	dmChannel, err := s.CreateDM(e.Author.Id)
+	if err != nil {
+		sentry.LogWithContext(err, ctx.ToErrorContext()) // User probably has DMs disabled
+		return
+	}
+
+	// No active session
+	if session == nil {
+		guilds := modmailutils.GetMutualGuilds(ctx.Shard, ctx.Author.Id)
+
+		if len(e.Message.Content) == 0 {
+			modmailutils.SendModMailIntro(ctx, dmChannel.Id)
 			return
 		}
 
-		if e.GuildId != 0 { // DMs only
+		split := strings.Split(e.Message.Content, " ")
+
+		targetGuildId, err := strconv.Atoi(split[0])
+		if err != nil || targetGuildId < 1 || targetGuildId > len(guilds)+1 {
+			modmailutils.SendModMailIntro(ctx, dmChannel.Id)
 			return
 		}
 
-		ctx := utils.CommandContext{
-			Shard:       s,
-			Message:     e.Message,
-			ShouldReact: true,
-			IsFromPanel: false,
+		targetGuild := guilds[targetGuildId-1]
+		staffChannel, err := modmail.OpenModMailTicket(s, targetGuild, &e.Author)
+		if err == nil {
+			utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), nil, 0, true)
+
+			// Send guild's welcome message
+			welcomeMessageChan := make(chan string)
+			go database.GetWelcomeMessage(targetGuild.Id, welcomeMessageChan)
+			welcomeMessage := <-welcomeMessageChan
+
+			utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", welcomeMessage, nil, 0, true)
+			utils.SendEmbed(s, staffChannel, utils.Green, "Modmail", welcomeMessage, nil, 0, true)
+		} else {
+			utils.SendEmbed(s, dmChannel.Id, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), nil, 30, true)
 		}
+	} else { // Forward message to guild or handle command
+		// Determine whether premium guild
+		premiumChan := make(chan bool)
+		go utils.IsPremiumGuild(s, session.Guild, premiumChan)
+		isPremium := <-premiumChan
 
-		sessionChan := make(chan *modmaildatabase.ModMailSession, 0)
-		go modmaildatabase.GetModMailSession(e.Author.Id, sessionChan)
-		session := <-sessionChan
+		// Update context
+		ctx.IsPremium = isPremium
+		ctx.ChannelId = dmChannel.Id
 
-		// Create DM channel
-		dmChannel, err := s.CreateDM(e.Author.Id); if err != nil {
-			sentry.LogWithContext(err, ctx.ToErrorContext()) // User probably has DMs disabled
-			return
+		// Parse DM channel ID
+		ctx.ChannelId = dmChannel.Id
+
+		var isCommand bool
+		ctx, isCommand = handleCommand(ctx, session)
+
+		if isCommand {
+			switch ctx.Root {
+			case "close":
+				modmail.HandleClose(session, ctx)
+			}
+		} else {
+			sendMessage(session, ctx, dmChannel.Id)
 		}
-
-		// No active session
-		if session == nil {
-			guilds := modmailutils.GetMutualGuilds(ctx.Shard, ctx.Author.Id)
-
-			if len(e.Message.Content) == 0 {
-				modmailutils.SendModMailIntro(ctx, dmChannel.Id)
-				return
-			}
-
-			split := strings.Split(e.Message.Content, " ")
-
-			targetGuildId, err := strconv.Atoi(split[0])
-			if err != nil || targetGuildId < 1 || targetGuildId > len(guilds) + 1 {
-				modmailutils.SendModMailIntro(ctx, dmChannel.Id)
-				return
-			}
-
-			targetGuild := guilds[targetGuildId - 1]
-			staffChannel, err := modmail.OpenModMailTicket(s, targetGuild, &e.Author)
-			if err == nil {
-				utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), nil, 0, true)
-
-				// Send guild's welcome message
-				welcomeMessageChan := make(chan string)
-				go database.GetWelcomeMessage(targetGuild.Id, welcomeMessageChan)
-				welcomeMessage := <-welcomeMessageChan
-
-				utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", welcomeMessage, nil, 0, true)
-				utils.SendEmbed(s, staffChannel, utils.Green, "Modmail", welcomeMessage, nil, 0, true)
-			} else {
-				utils.SendEmbed(s, dmChannel.Id, utils.Red, "Error", fmt.Sprintf("An error has occurred: %s", err.Error()), nil, 30, true)
-			}
-		} else { // Forward message to guild or handle command
-			// Determine whether premium guild
-			premiumChan := make(chan bool)
-			go utils.IsPremiumGuild(s, session.Guild, premiumChan)
-			isPremium := <-premiumChan
-
-			// Update context
-			ctx.IsPremium = isPremium
-			ctx.ChannelId = dmChannel.Id
-
-			// Parse DM channel ID
-			ctx.ChannelId = dmChannel.Id
-
-			var isCommand bool
-			ctx, isCommand = handleCommand(ctx, session)
-
-			if isCommand {
-				switch ctx.Root {
-				case "close": modmail.HandleClose(session, ctx)
-				}
-			} else {
-				sendMessage(session, ctx, dmChannel.Id)
-			}
-		}
-	}()
+	}
 }
 
 func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandContext, dmChannel uint64) {
@@ -150,10 +150,12 @@ func executeWebhook(uuid, webhook, content, username, avatarUrl string) bool {
 		"username":   username,
 		"avatar_url": avatarUrl,
 	}
-	encoded, err := json.Marshal(&body); if err != nil {
+	encoded, err := json.Marshal(&body)
+	if err != nil {
 		return false
 	}
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://canary.discordapp.com/api/webhooks/%s", webhook), bytes.NewBuffer(encoded)); if err != nil {
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://canary.discordapp.com/api/webhooks/%s", webhook), bytes.NewBuffer(encoded))
+	if err != nil {
 		return false
 	}
 
@@ -162,7 +164,8 @@ func executeWebhook(uuid, webhook, content, username, avatarUrl string) bool {
 	client := &http.Client{}
 	client.Timeout = 3 * time.Second
 
-	res, err := client.Do(req); if err != nil {
+	res, err := client.Do(req)
+	if err != nil {
 		return false
 	}
 

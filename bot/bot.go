@@ -48,8 +48,6 @@ func Start(ch chan os.Signal) {
 			intents.GuildWebhooks,
 			intents.DirectMessages,
 			intents.DirectMessageReactions,
-			intents.DirectMessages,
-			intents.DirectMessageReactions,
 		},
 		LargeShardingBuckets: 1,
 	}
