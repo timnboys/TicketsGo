@@ -85,9 +85,15 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		logs += fmt.Sprintf("[%s][%d] %s: %s\n", date, msg.Id, msg.Author.Username, content)
 	}
 
-	if err := archive.ArchiverClient.Store(msgs, session.Guild, ticket.Id, isPremium); err != nil {
-		sentry.Error(err)
-	}
+	// we don't use this yet so chuck it in a goroutine
+	go func() {
+		isPremium := make(chan bool)
+		go utils.IsPremiumGuild(ctx.Shard, ctx.GuildId, isPremium)
+
+		if err := archive.ArchiverClient.StoreModmail(msgs, session.Guild, session.Uuid, <-isPremium); err != nil {
+			sentry.Error(err)
+		}
+	}()
 
 	// Get channel name
 	var channelName string
