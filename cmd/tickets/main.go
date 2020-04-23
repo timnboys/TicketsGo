@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot"
 	"github.com/TicketsBot/TicketsGo/bot/archive"
 	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
@@ -10,12 +11,18 @@ import (
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/TicketsBot/archiverclient"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
 func main() {
+	go func() {
+		fmt.Println(http.ListenAndServe("localhost:6080", nil))
+	}()
+
 	config.Load()
 
 	archive.ArchiverClient = archiverclient.NewArchiverClient(config.Conf.Bot.ObjectStore)
