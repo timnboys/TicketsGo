@@ -12,7 +12,7 @@ type Database struct {
 	*gorm.DB
 }
 
-var(
+var (
 	Db Database
 )
 
@@ -25,7 +25,8 @@ func Connect() {
 		config.Conf.Database.Database,
 	)
 
-	db, err := gorm.Open("mysql", uri); if err != nil {
+	db, err := gorm.Open("mysql", uri)
+	if err != nil {
 		panic(err)
 	}
 
@@ -37,7 +38,7 @@ func Connect() {
 	db.Set("gorm:table_options", "charset=utf8mb4")
 	db.BlockGlobalUpdate(true)
 
-	Db = Database {db}
+	Db = Database{db}
 }
 
 func Setup() {
@@ -62,12 +63,10 @@ func Setup() {
 		TicketNamingScheme{},
 		TicketWebhook{},
 		UserCanClose{},
-		UserData{},
 		WelcomeMessage{},
-		)
+	)
 }
 
 func IsConnected(ch chan bool) {
 	ch <- Db.DB.DB().Ping() == nil
 }
-

@@ -53,10 +53,10 @@ func OnModMailChannelMessage(s *gateway.Shard, e *events.MessageCreate) {
 	}
 
 	// Make sure we don't mirror the user's message back to them
-	// Get username
-	usernameChan := make(chan string)
-	go database.GetUsername(session.User, usernameChan)
-	username := <-usernameChan
+	var username string
+	if user, found := s.Cache.GetUser(session.User); found {
+		username = user.Username
+	}
 
 	// TODO: Make this less hacky
 	if e.Author.Username == username && e.WebhookId != 0 {

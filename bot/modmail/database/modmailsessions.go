@@ -3,22 +3,24 @@ package database
 import "github.com/TicketsBot/TicketsGo/database"
 
 type ModMailSession struct {
-	Uuid         string `gorm:"column:UUID;type:varchar(36);unique;primary_key"`
-	Guild        uint64  `gorm:"column:GUILDID"`
-	User         uint64  `gorm:"column:USERID"`
-	StaffChannel uint64  `gorm:"column:CHANNELID;UN"`
+	Uuid           string `gorm:"column:UUID;type:varchar(36);unique;primary_key"`
+	Guild          uint64 `gorm:"column:GUILDID"`
+	User           uint64 `gorm:"column:USERID"`
+	StaffChannel   uint64 `gorm:"column:CHANNELID;UNIQUE"`
+	WelcomeMessage uint64 `gorm:"column:WELCOME_MESSAGE;UNIQUE"`
 }
 
 func (ModMailSession) TableName() string {
 	return "modmailsessions"
 }
 
-func CreateModMailSession(uuid string, guild, user, channel uint64) {
+func CreateModMailSession(uuid string, guild, user, channel, welcomeMessage uint64) {
 	node := ModMailSession{
-		Uuid:  uuid,
-		Guild: guild,
-		User:  user,
-		StaffChannel: channel,
+		Uuid:           uuid,
+		Guild:          guild,
+		User:           user,
+		StaffChannel:   channel,
+		WelcomeMessage: welcomeMessage,
 	}
 
 	database.Db.Create(&node)

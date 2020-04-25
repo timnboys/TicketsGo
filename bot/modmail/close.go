@@ -7,9 +7,11 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"github.com/rxdn/gdl/objects/channel/message"
 	"github.com/rxdn/gdl/rest"
 	"strings"
+	"time"
 )
 
 func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandContext) {
@@ -62,7 +64,13 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		if count > 0 {
 			lastId = array[len(array)-1].Id
 
-			msgs = append(msgs, array...)
+			for _, msg := range array {
+				msgs = append(msgs, msg)
+				if msg.Id == session.WelcomeMessage {
+					count = 0
+					break
+				}
+			}
 		}
 	}
 
@@ -95,15 +103,6 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		}
 	}()
 
-	// Get channel name
-	var channelName string
-	channel, err := ctx.Shard.GetChannel(session.StaffChannel)
-	if err == nil {
-		channelName = channel.Name
-	} else {
-		channelName = "invalid-channel"
-	}
-
 	// Set ticket state as closed and delete channel
 	go modmaildatabase.CloseModMailSessions(session.User)
 	if _, err := ctx.Shard.DeleteChannel(session.StaffChannel); err != nil {
@@ -124,41 +123,33 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 	go database.DeleteWebhookByUuid(session.Uuid)
 
 	if channelExists {
-		msg := fmt.Sprintf("Archive of `#%s` (closed by %s#%s)", channelName, ctx.Author.Username, utils.PadDiscriminator(ctx.Author.Discriminator))
-		if reason != "" {
-			msg += fmt.Sprintf(" with reason `%s`", reason)
-		}
+		embed := embed.NewEmbed().
+			SetTitle("Ticket Closed").
+			SetColor(int(utils.Green)).
+			AddField("Closed By", ctx.Author.Mention(), true).
+			AddField("Archive", fmt.Sprintf("[Click here](https://panel.ticketsbot.net/manage/%d/logs/view/%d)", session.Guild, session.Uuid), true)
 
-		data := rest.CreateMessageData{
-			Content: msg,
-			File: &rest.File{
-				Name:        fmt.Sprintf("%s.txt", channelName),
-				ContentType: "text/plain",
-				Reader:      strings.NewReader(logs),
-			},
-		}
-
-		// Errors occur when the bot doesn't have permission
-		m, err := ctx.Shard.CreateMessageComplex(archiveChannelId, data)
-		if err == nil {
-			userNameChan := make(chan string)
-			go database.GetUsername(session.User, userNameChan)
-			userName := <-userNameChan
-
-			archive := modmaildatabase.ModMailArchive{
-				Uuid:     session.Uuid,
-				Guild:    session.Guild,
-				User:     session.User,
-				Username: userName,
-				CdnUrl:   m.Attachments[0].Url,
-			}
-			go archive.Store()
+		if reason == "" {
+			embed.AddField("Reason", "No reason specified", false)
 		} else {
-			sentry.LogWithContext(err, ctx.ToErrorContext())
+			embed.AddField("Reason", reason, false)
+		}
+
+		if _, err := ctx.Shard.CreateMessageEmbed(archiveChannelId, embed); err != nil {
+			sentry.Error(err)
 		}
 	}
 
-	guild, err := ctx.Shard.GetGuild(session.Guild); if err != nil {
+	archive := modmaildatabase.ModMailArchive{
+		Uuid:      session.Uuid,
+		Guild:     session.Guild,
+		User:      session.User,
+		CloseTime: time.Now(),
+	}
+	go archive.Store()
+
+	guild, err := ctx.Shard.GetGuild(session.Guild)
+	if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}

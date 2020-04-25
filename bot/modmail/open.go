@@ -15,7 +15,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-func OpenModMailTicket(shard *gateway.Shard, guild guild.Guild, user *user.User) (uint64, error) {
+func OpenModMailTicket(shard *gateway.Shard, guild guild.Guild, user user.User, welcomeMessageId uint64) (uint64, error) {
 	ticketId := uuid.NewV4()
 
 	// If we're using a panel, then we need to create the ticket in the specified category
@@ -101,7 +101,7 @@ func OpenModMailTicket(shard *gateway.Shard, guild guild.Guild, user *user.User)
 	// Create webhook
 	go createWebhook(shard, guild.Id, channel.Id, ticketId.String())
 
-	go modmaildatabase.CreateModMailSession(ticketId.String(), guild.Id, user.Id, channel.Id)
+	go modmaildatabase.CreateModMailSession(ticketId.String(), guild.Id, user.Id, channel.Id, welcomeMessageId)
 	return channel.Id, nil
 }
 
