@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/TicketsBot/archiverclient v0.0.0-20200420165610-ac580b919f9b
+	github.com/TicketsBot/archiverclient v0.0.0-20200425114440-7969eecbbe95
 	github.com/certifi/gocertifi v0.0.0-20200211180108-c7c1fbc02894 // indirect
 	github.com/elliotchance/orderedmap v1.2.1
 	github.com/getsentry/raven-go v0.2.0
