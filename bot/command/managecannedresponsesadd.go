@@ -42,7 +42,17 @@ func (ManageTagsAdd) Execute(ctx utils.CommandContext) {
 	id := ctx.Args[0]
 	content := ctx.Args[1:] // content cannot be bigger than the Discord limit, obviously
 
+	// Length check
 	if len(id) > 16 {
+		ctx.ReactWithCross()
+		ctx.SendEmbed(utils.Red, "Error", "Tag IDs cannot be longer than 16 characters", usageEmbed)
+		return
+	}
+
+	// Verify a tag with the ID doesn't already exist
+	tagExists := make(chan bool)
+	go database.CannedResponseExists(ctx.GuildId, id, tagExists)
+	if <-tagExists {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "A tag with the ID `$id` already exists. You can delete the response using `t!managetags delete [ID]`", usageEmbed)
 		return

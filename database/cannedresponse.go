@@ -15,6 +15,12 @@ func (CannedResponse) TableName() string {
 	return "cannedresponses"
 }
 
+func CannedResponseExists(guild uint64, id string, ch chan bool) {
+	var count int
+	Db.Where(CannedResponse{Id: id, Guild: guild}).Count(&count)
+	ch <- count > 0
+}
+
 func GetCannedResponse(guild uint64, id string, ch chan string) {
 	var node CannedResponse
 	Db.Where(CannedResponse{Id: id, Guild: guild}).Take(&node)
