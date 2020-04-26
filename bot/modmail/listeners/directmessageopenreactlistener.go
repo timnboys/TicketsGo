@@ -46,6 +46,13 @@ func OnDirectOpenMessageReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 	// Remove reaction
 	_ = s.DeleteUserReaction(e.ChannelId, e.MessageId, e.UserId, e.Emoji.Name)
 
+	// Create DM channel
+	dmChannel, err := s.CreateDM(e.UserId)
+	if err != nil {
+		// TODO: Error logging
+		return
+	}
+
 	// Determine which guild we should open the channel in
 	guilds := modmailutils.GetMutualGuilds(s, e.UserId)
 
@@ -55,10 +62,11 @@ func OnDirectOpenMessageReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 
 	targetGuild := guilds[reaction-1]
 
-	// Create DM channel
-	dmChannel, err := s.CreateDM(e.UserId)
-	if err != nil {
-		// TODO: Error logging
+	// Check blacklist
+	blacklistCh := make(chan bool)
+	go database.IsBlacklisted(targetGuild.Id, e.UserId, blacklistCh)
+	if <-blacklistCh {
+		utils.SendEmbed(s, dmChannel.Id, utils.Red, "Error", "You are blacklisted in this server!", nil, 30, true)
 		return
 	}
 

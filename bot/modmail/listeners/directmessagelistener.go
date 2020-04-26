@@ -57,13 +57,22 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 
 		split := strings.Split(e.Message.Content, " ")
 
-		targetGuildId, err := strconv.Atoi(split[0])
-		if err != nil || targetGuildId < 1 || targetGuildId > len(guilds)+1 {
+		targetGuildNumber, err := strconv.Atoi(split[0])
+		if err != nil || targetGuildNumber < 1 || targetGuildNumber > len(guilds)+1 {
 			modmailutils.SendModMailIntro(ctx, dmChannel.Id)
 			return
 		}
 
-		targetGuild := guilds[targetGuildId-1]
+		targetGuild := guilds[targetGuildNumber-1]
+
+		// Check blacklist
+		blacklistCh := make(chan bool)
+		go database.IsBlacklisted(targetGuild.Id, ctx.Author.Id, blacklistCh)
+		if <-blacklistCh {
+			utils.SendEmbed(s, dmChannel.Id, utils.Red, "Error", "You are blacklisted in this server!", nil, 30, true)
+			return
+		}
+
 		utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), nil, 0, true)
 
 		// Send guild's welcome message
