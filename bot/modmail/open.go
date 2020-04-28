@@ -112,28 +112,29 @@ func createWebhook(shard *gateway.Shard, guildId, channelId uint64, uuid string)
 		return
 	}
 
-	if permission.HasPermissionsChannel(shard, guildId, channelId, self.Id, permission.ManageWebhooks) { // Do we actually need this?
-		webhook, err := shard.CreateWebhook(channelId, rest.WebhookData{
-			Username: self.Username,
-			Avatar:   self.Avatar,
+	/*if permission.HasPermissionsChannel(shard, guildId, channelId, self.Id, permission.ManageWebhooks) { // Do we actually need this?
+	}*/
+
+	webhook, err := shard.CreateWebhook(channelId, rest.WebhookData{
+		Username: self.Username,
+		Avatar:   self.Avatar,
+	})
+	if err != nil {
+		sentry.ErrorWithContext(err, sentry.ErrorContext{
+			Guild:   guildId,
+			Shard:   shard.ShardId,
+			Command: "open",
 		})
-		if err != nil {
-			sentry.ErrorWithContext(err, sentry.ErrorContext{
-				Guild:   guildId,
-				Shard:   shard.ShardId,
-				Command: "open",
-			})
-			return
-		}
-
-		formatted := fmt.Sprintf("%s/%s", webhook.Id, webhook.Token)
-
-		ticketWebhook := database.TicketWebhook{
-			Uuid:       uuid,
-			WebhookUrl: formatted,
-		}
-		ticketWebhook.AddWebhook()
+		return
 	}
+
+	formatted := fmt.Sprintf("%d/%s", webhook.Id, webhook.Token)
+
+	ticketWebhook := database.TicketWebhook{
+		Uuid:       uuid,
+		WebhookUrl: formatted,
+	}
+	ticketWebhook.AddWebhook()
 }
 
 func createOverwrites(shard *gateway.Shard, guildId uint64) []*channel.PermissionOverwrite {
