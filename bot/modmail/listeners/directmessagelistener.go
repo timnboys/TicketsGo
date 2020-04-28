@@ -58,7 +58,7 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 		split := strings.Split(e.Message.Content, " ")
 
 		targetGuildNumber, err := strconv.Atoi(split[0])
-		if err != nil || targetGuildNumber < 1 || targetGuildNumber > len(guilds)+1 {
+		if err != nil || targetGuildNumber < 1 || targetGuildNumber > len(guilds) {
 			modmailutils.SendModMailIntro(ctx, dmChannel.Id)
 			return
 		}
