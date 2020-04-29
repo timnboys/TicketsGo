@@ -75,6 +75,7 @@ func IsPremiumGuild(s *gateway.Shard, guildId uint64, ch chan bool) {
 	if <-keyLookup {
 		go cache.Client.SetPremium(guildId, true)
 		ch <- true
+		return
 	}
 
 	// Lookup votes
