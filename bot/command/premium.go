@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
+	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/database"
 	uuid "github.com/satori/go.uuid"
 	"time"
@@ -66,7 +67,7 @@ func (PremiumCommand) Execute(ctx utils.CommandContext) {
 		length := <-lengthChan
 
 		go database.AddPremium(key.String(), ctx.GuildId, ctx.Author.Id, length, ctx.Author.Id)
-		utils.CacheGuildAsPremium(ctx.GuildId)
+		go cache.Client.SetPremium(ctx.GuildId, true)
 		ctx.ReactWithCheck()
 	}
 }

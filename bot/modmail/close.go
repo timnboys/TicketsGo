@@ -9,6 +9,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel/embed"
 	"github.com/rxdn/gdl/objects/channel/message"
+	"github.com/rxdn/gdl/permission"
 	"github.com/rxdn/gdl/rest"
 	"strings"
 	"time"
@@ -39,6 +40,7 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		ctx.SendEmbed(utils.Red, "Error", "I do not have permission to delete this channel")
 		return
 	}*/
+	permission.HasPermissions()
 
 	if ctx.ShouldReact {
 		ctx.ReactWithCheck()
