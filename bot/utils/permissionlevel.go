@@ -7,3 +7,7 @@ const(
 	Support
 	Admin
 )
+
+func (l PermissionLevel) Int() int {
+	return int(l)
+}

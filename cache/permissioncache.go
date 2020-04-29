@@ -2,12 +2,11 @@ package cache
 
 import (
 	"fmt"
-	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"strconv"
 	"time"
 )
 
-func (c *RedisClient) GetPermissionLevel(guildId, userId uint64) (utils.PermissionLevel, error) {
+func (c *RedisClient) GetPermissionLevel(guildId, userId uint64) (int, error) {
 	key := fmt.Sprintf("permissions:%d:%d", guildId, userId)
 
 	res, err := c.Get(key).Result()
@@ -20,10 +19,10 @@ func (c *RedisClient) GetPermissionLevel(guildId, userId uint64) (utils.Permissi
 		return 0, err
 	}
 
-	return utils.PermissionLevel(levelId), nil
+	return levelId, nil
 }
 
-func (c *RedisClient) SetPermissionLevel(guildId, userId uint64, level utils.PermissionLevel) {
+func (c *RedisClient) SetPermissionLevel(guildId, userId uint64, level int) {
 	key := fmt.Sprintf("permissions:%d:%d", guildId, userId)
 	c.Set(key, level, time.Minute * 10)
 }
