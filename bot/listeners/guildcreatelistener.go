@@ -12,7 +12,18 @@ import (
 // Fires when we receive a guild
 func OnGuildCreate(s *gateway.Shard, e *events.GuildCreate) {
 	// Determine whether this is a join or lazy load
-	_, exists := s.Cache.GetGuild(e.Id, false)
+	var exists bool
+
+	ExistingGuildsLock.RLock()
+
+	for _, guildId := range ExistingGuilds {
+		if e.Id == guildId {
+			exists = true
+			break
+		}
+	}
+
+	ExistingGuildsLock.RUnlock()
 
 	if !exists {
 		go statsd.IncrementKey(statsd.JOINS)
