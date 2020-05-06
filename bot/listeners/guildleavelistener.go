@@ -13,6 +13,17 @@ import (
  */
 func OnGuildLeave(s *gateway.Shard, e *events.GuildDelete) {
 	if e.Unavailable == nil {
+		ExistingGuildsLock.Lock()
+
+		for index, guildId := range ExistingGuilds {
+			if guildId == e.Id {
+				ExistingGuilds = append(ExistingGuilds[:index], ExistingGuilds[index+1:]...)
+				break
+			}
+		}
+
+		ExistingGuildsLock.Unlock()
+
 		go statsd.IncrementKey(statsd.LEAVES)
 	}
 }
