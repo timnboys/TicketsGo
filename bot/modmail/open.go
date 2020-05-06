@@ -117,7 +117,7 @@ func createWebhook(shard *gateway.Shard, guildId, channelId uint64, uuid string)
 
 	webhook, err := shard.CreateWebhook(channelId, rest.WebhookData{
 		Username: self.Username,
-		Avatar:   self.Avatar,
+		Avatar:   self.AvatarUrl(256),
 	})
 	if err != nil {
 		sentry.ErrorWithContext(err, sentry.ErrorContext{

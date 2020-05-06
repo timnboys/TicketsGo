@@ -27,13 +27,7 @@ func (AdminSeedCommand) PermissionLevel() utils.PermissionLevel {
 
 func (AdminSeedCommand) Execute(ctx utils.CommandContext) {
 	var guilds []uint64
-	if len(ctx.Args) > 0 && ctx.Args[0] == "all" {
-		for _, shard := range ctx.Shard.ShardManager.Shards {
-			guilds = append(guilds, shard.GetShardGuildIds()...)
-		}
-	} else {
-		guilds = []uint64{ctx.GuildId}
-	}
+	guilds = []uint64{ctx.GuildId}
 
 	ctx.SendEmbed(utils.Green, "Admin", fmt.Sprintf("Seeding %d guild(s)", len(guilds)))
 

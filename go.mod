@@ -14,8 +14,10 @@ require (
 	github.com/jackc/pgx/v4 v4.6.0
 	github.com/jinzhu/gorm v1.9.12
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/rxdn/gdl v0.0.0-20200421193445-f200b9f466d7
+	github.com/rxdn/gdl v0.0.0-20200506135733-35cc0e0482bf
 	github.com/satori/go.uuid v1.2.0
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0
 )
+
+replace github.com/rxdn/gdl => ../../rxdn/gdl

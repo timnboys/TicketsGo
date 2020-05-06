@@ -169,7 +169,7 @@ func executeWebhook(uuid, webhook, content, username, avatarUrl string) bool {
 	if err != nil {
 		return false
 	}
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://canary.discordapp.com/api/webhooks/%s", webhook), bytes.NewBuffer(encoded))
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://canary.discord.com/api/webhooks/%s", webhook), bytes.NewBuffer(encoded))
 	if err != nil {
 		return false
 	}

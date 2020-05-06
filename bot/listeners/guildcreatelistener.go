@@ -14,6 +14,8 @@ func OnGuildCreate(s *gateway.Shard, e *events.GuildCreate) {
 	// Determine whether this is a join or lazy load
 	_, exists := s.Cache.GetGuild(e.Id, false)
 
+	fmt.Println(exists)
+
 	if !exists {
 		go statsd.IncrementKey(statsd.JOINS)
 
