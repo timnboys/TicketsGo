@@ -64,6 +64,7 @@ func Start(ch chan os.Signal) {
 		listeners.OnMemberLeave,
 		listeners.OnMessage,
 		listeners.OnPanelReact,
+		listeners.OnReady,
 		listeners.OnSetupProgress,
 
 		modmaillisteners.OnDirectMessage,
