@@ -2,8 +2,8 @@ package cache
 
 import (
 	"encoding/json"
-	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/TicketsBot/database"
 )
 
 func (c *RedisClient) ListenPanelCreate(message chan database.Panel) {

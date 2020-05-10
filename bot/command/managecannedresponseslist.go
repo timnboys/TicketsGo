@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"strings"
 )
 
@@ -28,16 +29,20 @@ func (ManageCannedResponsesList) PermissionLevel() utils.PermissionLevel {
 }
 
 func (ManageCannedResponsesList) Execute(ctx utils.CommandContext) {
-	idsChan := make(chan []string)
-	go database.GetCannedResponses(ctx.GuildId, idsChan)
-	
+	ids, err := database.Client.Tag.GetTagIds(ctx.GuildId)
+	if err != nil {
+		ctx.ReactWithCross()
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		return
+	}
+
 	var joined string
-	for _, id := range <-idsChan {
-		joined += fmt.Sprintf("- `%s`\n", id)
+	for _, id := range ids {
+		joined += fmt.Sprintf("• `%s`\n", id)
 	}
 	joined = strings.TrimSuffix(joined, "\n")
 
-	ctx.SendEmbed(utils.Green, "Canned Responses", fmt.Sprintf("IDs for all canned responses:\n%s\nTo view the contents of a canned response, run `%sc <ID>`", joined, config.Conf.Bot.Prefix))
+	ctx.SendEmbed(utils.Green, "Canned Responses", fmt.Sprintf("IDs for all tags:\n%s\nTo view the contents of a tag, run `%stag <ID>`", joined, config.Conf.Bot.Prefix))
 }
 
 func (ManageCannedResponsesList) Parent() interface{} {

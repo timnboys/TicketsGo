@@ -1,6 +1,7 @@
 package listeners
 
 import (
+	"context"
 	"github.com/TicketsBot/TicketsGo/bot/logic"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
@@ -8,6 +9,7 @@ import (
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
 	"github.com/rxdn/gdl/objects/channel/message"
+	"golang.org/x/sync/errgroup"
 )
 
 func OnPanelReact(s *gateway.Shard, e *events.MessageReactionAdd) {
@@ -28,12 +30,14 @@ func OnPanelReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 	}
 
 	// Get panel from DB
-	panelChan := make(chan database.Panel)
-	go database.GetPanelByMessageId(e.MessageId, panelChan)
-	panel := <-panelChan
-	blank := database.Panel{}
+	panel, err := database.Client.Panel.Get(e.MessageId)
+	if err != nil {
+		sentry.ErrorWithContext(err, errorContext)
+		return
+	}
 
-	if panel != blank {
+	// Verify this is a panel
+	if panel.MessageId != 0 {
 		emoji := e.Emoji.Name // This is the actual unicode emoji (https://discordapp.com/developers/docs/resources/emoji#emoji-object-gateway-reaction-standard-emoji-example)
 
 		// Check the right emoji ahs been used
@@ -47,13 +51,30 @@ func OnPanelReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 			sentry.LogWithContext(err, errorContext)
 		}
 
-		isPremium := make(chan bool)
-		blacklisted := make(chan bool)
+		var blacklisted, premium bool
 
-		go database.IsBlacklisted(e.GuildId, e.UserId, blacklisted)
-		go utils.IsPremiumGuild(s, e.GuildId, isPremium)
+		group, _ := errgroup.WithContext(context.Background())
 
-		if <-blacklisted {
+		// get blacklisted
+		group.Go(func() (err error) {
+			blacklisted, err = database.Client.Blacklist.IsBlacklisted(e.GuildId, e.UserId)
+			return
+		})
+
+		// get premium
+		group.Go(func() error {
+			ch := make(chan bool)
+			go utils.IsPremiumGuild(s, e.GuildId, ch)
+			premium = <-ch
+			return nil
+		})
+
+		if err := group.Wait(); err != nil {
+			sentry.ErrorWithContext(err, errorContext)
+			return
+		}
+
+		if blacklisted {
 			return
 		}
 
@@ -69,6 +90,6 @@ func OnPanelReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 			return
 		}
 
-		logic.OpenTicket(s, user, messageReference, <-isPremium, nil, &panel)
+		go logic.OpenTicket(s, user, messageReference, premium, nil, &panel)
 	}
 }

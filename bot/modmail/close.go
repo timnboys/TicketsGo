@@ -3,10 +3,10 @@ package modmail
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/archive"
-	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
-	"github.com/TicketsBot/TicketsGo/database"
+	dbclient "github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/TicketsBot/database"
 	"github.com/rxdn/gdl/objects/channel/embed"
 	"github.com/rxdn/gdl/objects/channel/message"
 	"github.com/rxdn/gdl/rest"
@@ -14,20 +14,20 @@ import (
 	"time"
 )
 
-func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandContext) {
+func HandleClose(session database.ModmailSession, ctx utils.CommandContext) {
 	reason := strings.Join(ctx.Args, " ")
 
 	// Check the user is permitted to close the ticket
 	permissionLevelChan := make(chan utils.PermissionLevel)
-	usersCanCloseChan := make(chan bool)
 
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permissionLevelChan)
-	go database.IsUserCanClose(session.Guild, usersCanCloseChan)
+	go ctx.GetPermissionLevel(permissionLevelChan)
+	usersCanClose, err :=  dbclient.Client.UsersCanClose.Get(session.GuildId); if err != nil {
+		sentry.Error(err)
+	}
 
 	permissionLevel := <-permissionLevelChan
-	usersCanClose := <-usersCanCloseChan
 
-	if (permissionLevel == utils.Everyone && session.User != ctx.Author.Id) || (permissionLevel == utils.Everyone && !usersCanClose) {
+	if (permissionLevel == utils.Everyone && session.UserId != ctx.Author.Id) || (permissionLevel == utils.Everyone && !usersCanClose) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "You are not permitted to close this ticket")
 		return
@@ -66,7 +66,7 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 
 			for _, msg := range array {
 				msgs = append(msgs, msg)
-				if msg.Id == session.WelcomeMessage {
+				if msg.Id == session.WelcomeMessageId {
 					count = 0
 					break
 				}
@@ -98,36 +98,38 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		isPremium := make(chan bool)
 		go utils.IsPremiumGuild(ctx.Shard, ctx.GuildId, isPremium)
 
-		if err := archive.ArchiverClient.StoreModmail(msgs, session.Guild, session.Uuid, <-isPremium); err != nil {
+		if err := archive.ArchiverClient.StoreModmail(msgs, session.GuildId, session.Uuid.String(), <-isPremium); err != nil {
 			sentry.Error(err)
 		}
 	}()
 
+	// Delete the webhook
+	go dbclient.Client.ModmailWebhook.Delete(session.Uuid)
+
 	// Set ticket state as closed and delete channel
-	go modmaildatabase.CloseModMailSessions(session.User)
-	if _, err := ctx.Shard.DeleteChannel(session.StaffChannel); err != nil {
+	go dbclient.Client.ModmailSession.DeleteByUser(session.UserId)
+	if _, err := ctx.Shard.DeleteChannel(session.StaffChannelId); err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 	}
 
 	// Send logs to archive channel
-	archiveChannelChan := make(chan uint64)
-	go database.GetArchiveChannel(session.Guild, archiveChannelChan)
-	archiveChannelId := <-archiveChannelChan
-
-	channelExists := true
-	if _, err := ctx.Shard.GetChannel(archiveChannelId); err != nil {
-		channelExists = false
+	archiveChannelId, err := dbclient.Client.ArchiveChannel.Get(session.GuildId); if err != nil {
+		sentry.Error(err)
 	}
 
-	// Save space - delete the webhook
-	go database.DeleteWebhookByUuid(session.Uuid)
+	var channelExists bool
+	if archiveChannelId != 0 {
+		if _, err := ctx.Shard.GetChannel(archiveChannelId); err == nil {
+			channelExists = true
+		}
+	}
 
 	if channelExists {
 		embed := embed.NewEmbed().
 			SetTitle("Ticket Closed").
 			SetColor(int(utils.Green)).
 			AddField("Closed By", ctx.Author.Mention(), true).
-			AddField("Archive", fmt.Sprintf("[Click here](https://panel.ticketsbot.net/manage/%d/logs/view/%d)", session.Guild, session.Uuid), true)
+			AddField("Archive", fmt.Sprintf("[Click here](https://panel.ticketsbot.net/manage/%d/logs/modmail/view/%s)", session.GuildId, session.Uuid), true)
 
 		if reason == "" {
 			embed.AddField("Reason", "No reason specified", false)
@@ -140,26 +142,25 @@ func HandleClose(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 		}
 	}
 
-	archive := modmaildatabase.ModMailArchive{
+	go dbclient.Client.ModmailArchive.Set(database.ModmailArchive{
 		Uuid:      session.Uuid,
-		Guild:     session.Guild,
-		User:      session.User,
+		GuildId:   session.GuildId,
+		UserId:    session.UserId,
 		CloseTime: time.Now(),
-	}
-	go archive.Store()
+	})
 
-	guild, err := ctx.Shard.GetGuild(session.Guild)
+	guild, err := ctx.Shard.GetGuild(session.GuildId)
 	if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return
 	}
 
 	// Notify user and send logs in DMs
-	privateMessage, err := ctx.Shard.CreateDM(session.User)
+	privateMessage, err := ctx.Shard.CreateDM(session.UserId)
 	if err == nil {
 		var content string
 		// Create message content
-		if ctx.Author.Id == session.User {
+		if ctx.Author.Id == session.UserId {
 			content = fmt.Sprintf("You closed your modmail ticket in `%s`", guild.Name)
 		} else if len(ctx.Args) == 0 {
 			content = fmt.Sprintf("Your modmail ticket in `%s` was closed by %s", guild.Name, ctx.Author.Mention())

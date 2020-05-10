@@ -45,7 +45,7 @@ func (HelpCommand) Execute(ctx utils.CommandContext) {
 		}
 
 		permissionLevel := make(chan utils.PermissionLevel)
-		go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permissionLevel)
+		go ctx.GetPermissionLevel(permissionLevel)
 		if <-permissionLevel >= command.PermissionLevel() { // only send commands the user has permissions for
 			var current []Command
 			if commands, ok := commandCategories.Get(command.Category()); ok {
@@ -58,9 +58,7 @@ func (HelpCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	// get prefix
-	prefixChan := make(chan string)
-	go getPrefix(ctx.GuildId, prefixChan)
-	prefix := <-prefixChan
+	prefix := getPrefix(ctx.GuildId)
 
 	embed := embed.NewEmbed().
 		SetColor(int(utils.Green)).
@@ -105,16 +103,18 @@ func formatHelp(c Command, prefix string) string {
 	return fmt.Sprintf("**%s%s**: %s", prefix, c.Name(), c.Description())
 }
 
-func getPrefix(guildId uint64, res chan string) {
-	ch := make(chan string)
-	go database.GetPrefix(guildId, ch)
-	customPrefix := <-ch
-
-	if customPrefix != "" {
-		res <- customPrefix
-	} else { // return default prefix
-		res <- config.Conf.Bot.Prefix
+func getPrefix(guildId uint64) (prefix string) {
+	var err error
+	prefix, err = database.Client.Prefix.Get(guildId)
+	if err != nil {
+		sentry.Error(err)
 	}
+
+	if prefix == "" {
+		prefix = config.Conf.Bot.Prefix
+	}
+
+	return
 }
 
 func (HelpCommand) Parent() interface{} {

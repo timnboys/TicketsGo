@@ -1,14 +1,17 @@
 package listeners
 
 import (
+	"context"
 	"github.com/TicketsBot/TicketsGo/bot/command"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
 	"github.com/rxdn/gdl/objects/channel/message"
+	"golang.org/x/sync/errgroup"
 	"strings"
 )
 
@@ -22,16 +25,17 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 		return
 	}
 
-	ch := make(chan string)
-	go database.GetPrefix(e.GuildId, ch)
+	customPrefix, err := database.Client.Prefix.Get(e.GuildId)
+	if err != nil {
+		sentry.Error(err)
+	}
 
-	customPrefix := <-ch
 	defaultPrefix := config.Conf.Bot.Prefix
 	var usedPrefix string
 
 	if strings.HasPrefix(e.Content, defaultPrefix) {
 		usedPrefix = defaultPrefix
-	} else if strings.HasPrefix(e.Content, customPrefix) {
+	} else if strings.HasPrefix(e.Content, customPrefix) && customPrefix != "" {
 		usedPrefix = customPrefix
 	} else { // Not a command
 		return
@@ -86,14 +90,31 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 		}
 	}
 
-	premiumChan := make(chan bool)
-	blacklisted := make(chan bool)
+	var blacklisted, premium bool
 
-	go database.IsBlacklisted(e.GuildId, e.Author.Id, blacklisted)
-	go utils.IsPremiumGuild(s, e.GuildId, premiumChan)
+	group, _ := errgroup.WithContext(context.Background())
+
+	// get blacklisted
+	group.Go(func() (err error) {
+		blacklisted, err = database.Client.Blacklist.IsBlacklisted(e.GuildId, e.Author.Id)
+		return
+	})
+
+	// get premium
+	group.Go(func() error {
+		ch := make(chan bool)
+		go utils.IsPremiumGuild(s, e.GuildId, ch) // TODO: How long will this block for?
+		premium = <-ch
+		return nil
+	})
+
+	if err := group.Wait(); err != nil {
+		sentry.Error(err)
+		return
+	}
 
 	// Ensure user isn't blacklisted
-	if <-blacklisted {
+	if blacklisted {
 		utils.ReactWithCross(s, message.MessageReference{
 			MessageId: e.Id,
 			ChannelId: e.ChannelId,
@@ -102,8 +123,6 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 		return
 	}
 
-	premiumGuild := <-premiumChan
-
 	e.Member.User = e.Author
 
 	ctx := utils.CommandContext{
@@ -111,7 +130,7 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 		Message:     e.Message,
 		Root:        root,
 		Args:        args,
-		IsPremium:   premiumGuild,
+		IsPremium:   premium,
 		ShouldReact: true,
 		IsFromPanel: false,
 	}
@@ -137,12 +156,10 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 			return
 		}
 
-		if c.PremiumOnly() {
-			if !premiumGuild {
-				ctx.ReactWithCross()
-				ctx.SendEmbed(utils.Red, "Premium Only Command", utils.PREMIUM_MESSAGE)
-				return
-			}
+		if c.PremiumOnly() && !premium {
+			ctx.ReactWithCross()
+			ctx.SendEmbed(utils.Red, "Premium Only Command", utils.PREMIUM_MESSAGE)
+			return
 		}
 
 		go c.Execute(ctx)

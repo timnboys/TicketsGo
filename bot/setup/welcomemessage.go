@@ -3,6 +3,7 @@ package setup
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/channel/message"
 )
@@ -19,14 +20,20 @@ func (WelcomeMessageStage) Prompt() string {
 }
 
 func (WelcomeMessageStage) Default() string {
-	return "No message specified"
+	return "Thank you for contacting support.\nPlease describe your issue (and provide an invite to your server if applicable) and wait for a response."
 }
 
 func (WelcomeMessageStage) Process(shard *gateway.Shard, msg message.Message) {
-	go database.SetWelcomeMessage(msg.GuildId, msg.Content)
-	utils.ReactWithCheck(shard, message.MessageReference{
+	ref := message.MessageReference{
 		MessageId: msg.Id,
 		ChannelId: msg.ChannelId,
 		GuildId:   msg.GuildId,
-	})
+	}
+
+	if err := database.Client.WelcomeMessages.Set(msg.GuildId, msg.Content); err == nil {
+		utils.ReactWithCheck(shard, ref)
+	} else {
+		utils.ReactWithCross(shard, ref)
+		sentry.Error(err)
+	}
 }

@@ -44,32 +44,27 @@ func (r RemoveCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	// Verify that the current channel is a real ticket
-	isTicketChan := make(chan bool)
-	go database.IsTicketChannel(ctx.ChannelId, isTicketChan)
-	isTicket := <-isTicketChan
+	// Get ticket struct
+	ticket, err := database.Client.Tickets.GetByChannel(ctx.ChannelId)
+	if err != nil {
+		ctx.ReactWithCross()
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		return
+	}
 
-	if !isTicket {
+	// Verify that the current channel is a real ticket
+	if ticket.UserId == 0 {
 		ctx.SendEmbed(utils.Red, "Error", "The current channel is not a ticket")
 		ctx.ReactWithCross()
 		return
 	}
 
-	// Get ticket ID
-	ticketIdChan := make(chan int)
-	go database.GetTicketId(ctx.ChannelId, ticketIdChan)
-	ticketId := <-ticketIdChan
-
 	// Verify that the user is allowed to modify the ticket
 	permLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permLevelChan)
+	go ctx.GetPermissionLevel(permLevelChan)
 	permLevel := <-permLevelChan
 
-	ownerChan := make(chan uint64)
-	go database.GetOwner(ticketId, ctx.GuildId, ownerChan)
-	owner := <-ownerChan
-
-	if permLevel == 0 && owner != ctx.Author.Id {
+	if permLevel == 0 && ticket.UserId != ctx.Author.Id {
 		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to remove people from this ticket")
 		ctx.ReactWithCross()
 		return
@@ -84,7 +79,11 @@ func (r RemoveCommand) Execute(ctx utils.CommandContext) {
 
 	for _, user := range ctx.Message.Mentions {
 		// Remove user from ticket in DB
-		go database.RemoveMember(ticketId, ctx.GuildId, user.Id)
+		if err := database.Client.TicketMembers.Delete(ctx.GuildId, ticket.Id, user.Id); err != nil {
+			ctx.ReactWithCross()
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			return
+		}
 
 		// Remove user from ticket
 		if err := ctx.Shard.EditChannelPermissions(ctx.ChannelId, channel.PermissionOverwrite{
@@ -93,7 +92,9 @@ func (r RemoveCommand) Execute(ctx utils.CommandContext) {
 			Allow: 0,
 			Deny:  permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),
 		}); err != nil {
+			ctx.ReactWithCross()
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			return
 		}
 	}
 
@@ -101,29 +102,27 @@ func (r RemoveCommand) Execute(ctx utils.CommandContext) {
 }
 
 func (r RemoveCommand) mentionsStaff(ctx utils.CommandContext) bool {
-	permissionChan := make(chan utils.PermissionLevel)
-
-	group, _ := errgroup.WithContext(context.Background())
-	for _, user := range ctx.Message.Mentions {
-		group.Go(func() error {
-			utils.GetPermissionLevel(ctx.Shard, user.Member, ctx.GuildId, permissionChan)
-			return nil
-		})
-	}
 
 	var lock sync.Mutex
 	var mentionsStaff bool
 
-	group.Go(func() error {
-		for level := range permissionChan {
-			if level > utils.Everyone {
+	group, _ := errgroup.WithContext(context.Background())
+
+	for _, user := range ctx.Message.Mentions {
+		user.Member.User = user.User
+
+		group.Go(func() error {
+			level := make(chan utils.PermissionLevel)
+			go utils.GetPermissionLevel(ctx.Shard, user.Member, ctx.GuildId, level)
+			if <-level > utils.Everyone {
 				lock.Lock()
 				mentionsStaff = true
 				lock.Unlock()
 			}
-		}
-		return nil
-	})
+
+			return nil
+		})
+	}
 
 	if err := group.Wait(); err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())

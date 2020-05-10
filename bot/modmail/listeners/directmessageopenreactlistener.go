@@ -3,7 +3,6 @@ package listeners
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/modmail"
-	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	modmailutils "github.com/TicketsBot/TicketsGo/bot/modmail/utils"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
@@ -21,11 +20,13 @@ func OnDirectOpenMessageReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 		return
 	}
 
-	sessionChan := make(chan *modmaildatabase.ModMailSession, 0)
-	go modmaildatabase.GetModMailSession(e.UserId, sessionChan)
-	session := <-sessionChan
+	session, err := database.Client.ModmailSession.GetByUser(e.UserId)
+	if err != nil {
+		sentry.Error(err)
+		return
+	}
 
-	if session != nil {
+	if session.UserId != 0 {
 		return
 	}
 
@@ -63,9 +64,12 @@ func OnDirectOpenMessageReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 	targetGuild := guilds[reaction-1]
 
 	// Check blacklist
-	blacklistCh := make(chan bool)
-	go database.IsBlacklisted(targetGuild.Id, e.UserId, blacklistCh)
-	if <-blacklistCh {
+	isBlacklisted, err := database.Client.Blacklist.IsBlacklisted(targetGuild.Id, e.UserId)
+	if err != nil {
+		sentry.Error(err)
+	}
+
+	if isBlacklisted {
 		utils.SendEmbed(s, dmChannel.Id, utils.Red, "Error", "You are blacklisted in this server!", nil, 30, true)
 		return
 	}
@@ -80,9 +84,10 @@ func OnDirectOpenMessageReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 	utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), nil, 0, true)
 
 	// Send guild's welcome message
-	welcomeMessageChan := make(chan string)
-	go database.GetWelcomeMessage(targetGuild.Id, welcomeMessageChan)
-	welcomeMessage := <-welcomeMessageChan
+	welcomeMessage, err := database.Client.WelcomeMessages.Get(targetGuild.Id); if err != nil {
+		sentry.Error(err)
+		welcomeMessage = "Thank you for contacting support.\nPlease describe your issue (and provide an invite to your server if applicable) and wait for a response."
+	}
 
 	welcomeMessageId, err := utils.SendEmbedWithResponse(s, dmChannel.Id, utils.Green, "Modmail", welcomeMessage, nil, 0, true)
 	if err != nil {

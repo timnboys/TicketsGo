@@ -5,8 +5,8 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/database"
-	uuid "github.com/satori/go.uuid"
-	"time"
+	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/gofrs/uuid"
 )
 
 type PremiumCommand struct {
@@ -32,41 +32,51 @@ func (PremiumCommand) PermissionLevel() utils.PermissionLevel {
 func (PremiumCommand) Execute(ctx utils.CommandContext) {
 	if len(ctx.Args) == 0 {
 		if ctx.IsPremium {
-			expiryChan := make(chan int64)
-			go database.GetExpiry(ctx.GuildId, expiryChan)
-			expiry := <-expiryChan // millis
+			expiry, err := database.Client.PremiumGuilds.GetExpiry(ctx.GuildId)
+			if err != nil {
+				ctx.ReactWithCross()
+				sentry.ErrorWithContext(err, ctx.ToErrorContext())
+				return
+			}
 
-			parsed := time.Unix(0, expiry * int64(time.Millisecond))
-			formatted := parsed.UTC().String()
-
-			ctx.SendEmbed(utils.Red, "Premium", fmt.Sprintf("This guild already has premium. It expires on %s", formatted))
+			ctx.SendEmbed(utils.Red, "Premium", fmt.Sprintf("This guild already has premium. It expires on %s", expiry.UTC().String()))
 		} else {
 			ctx.SendEmbed(utils.Red, "Premium", utils.PREMIUM_MESSAGE)
 		}
 	} else {
-		key := uuid.FromStringOrNil(ctx.Args[0])
+		key, err := uuid.FromString(ctx.Args[0])
 
-		if key == uuid.Nil {
+		if err != nil {
 			ctx.SendEmbed(utils.Red, "Premium", "Invalid key. Ensure that you have copied it correctly.")
 			ctx.ReactWithCross()
 			return
 		}
 
-		keyExistsChan := make(chan bool)
-		go database.KeyExists(key, keyExistsChan)
-		exists := <-keyExistsChan
+		length, err := database.Client.PremiumKeys.Delete(key)
+		if err != nil {
+			ctx.ReactWithCross()
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			return
+		}
 
-		if !exists {
+		if length == 0 {
 			ctx.SendEmbed(utils.Red, "Premium", "Invalid key. Ensure that you have copied it correctly.")
 			ctx.ReactWithCross()
 			return
 		}
 
-		lengthChan := make(chan int64)
-		go database.PopKey(key, lengthChan)
-		length := <-lengthChan
+		if err := database.Client.UsedKeys.Set(key, ctx.GuildId, ctx.Author.Id); err != nil {
+			ctx.ReactWithCross()
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			return
+		}
 
-		go database.AddPremium(key.String(), ctx.GuildId, ctx.Author.Id, length, ctx.Author.Id)
+		if err := database.Client.PremiumGuilds.Add(ctx.GuildId, length); err != nil {
+			ctx.ReactWithCross()
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			return
+		}
+
 		go cache.Client.SetPremium(ctx.GuildId, true)
 		ctx.ReactWithCheck()
 	}

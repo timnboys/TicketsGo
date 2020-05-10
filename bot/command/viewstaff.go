@@ -36,9 +36,12 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	var fieldContent string // temp var
 
 	// Add field for admin users
-	adminUsers := make(chan []uint64)
-	go database.GetAdmins(ctx.GuildId, adminUsers)
-	for _, adminUserId := range <-adminUsers {
+	adminUsers, err := database.Client.Permissions.GetAdmins(ctx.GuildId)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
+
+	for _, adminUserId := range adminUsers {
 		fieldContent += fmt.Sprintf("• <@%d> (`%d`)\n", adminUserId, adminUserId)
 	}
 	fieldContent = strings.TrimSuffix(fieldContent, "\n")
@@ -54,9 +57,12 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	// Add field for admin roles
-	adminRoles := make(chan []uint64)
-	go database.GetAdminRoles(ctx.GuildId, adminRoles)
-	for _, adminRoleId := range <-adminRoles {
+	adminRoles, err := database.Client.RolePermissions.GetAdminRoles(ctx.GuildId)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
+
+	for _, adminRoleId := range adminRoles {
 		for _, guildRole := range allRoles {
 			if guildRole.Id == adminRoleId {
 				fieldContent += fmt.Sprintf("• %s (`%d`)\n", guildRole.Name, adminRoleId)
@@ -73,9 +79,13 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	embed.AddBlankField(false) // Add spacer between admin & support reps
 
 	// Add field for support representatives
-	supportUsers := make(chan []uint64)
-	go database.GetSupport(ctx.GuildId, supportUsers)
-	for _, supportUserId := range <-supportUsers {
+	supportUsers, err := database.Client.Permissions.GetSupport(ctx.GuildId)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
+
+	// TODO: Exclude admins
+	for _, supportUserId := range supportUsers {
 		fieldContent += fmt.Sprintf("• <@%d> (`%d`)\n", supportUserId, supportUserId)
 	}
 	fieldContent = strings.TrimSuffix(fieldContent, "\n")
@@ -86,9 +96,13 @@ func (ViewStaffCommand) Execute(ctx utils.CommandContext) {
 	fieldContent = ""
 
 	// Add field for admin roles
-	supportRoles := make(chan []uint64)
-	go database.GetSupportRoles(ctx.GuildId, supportRoles)
-	for _, supportRoleId := range <-supportRoles {
+	supportRoles, err := database.Client.RolePermissions.GetSupportRoles(ctx.GuildId)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
+
+	// TODO: Exclude admin roles
+	for _, supportRoleId := range supportRoles {
 		for _, guildRole := range allRoles {
 			if guildRole.Id == supportRoleId {
 				fieldContent += fmt.Sprintf("• %s (`%d`)\n", guildRole.Name, supportRoleId)

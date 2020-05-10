@@ -36,12 +36,15 @@ func (RenameCommand) Execute(ctx utils.CommandContext) {
 		Inline: false,
 	}
 
-	ticketChan := make(chan database.Ticket)
-	go database.GetTicketByChannel(ctx.ChannelId, ticketChan)
-	ticket := <-ticketChan
+	ticket, err := database.Client.Tickets.GetByChannel(ctx.ChannelId)
+	if err != nil {
+		ctx.ReactWithCross()
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		return
+	}
 
 	// Check this is a ticket channel
-	if ticket.Uuid == "" {
+	if ticket.UserId == 0 {
 		ctx.SendEmbed(utils.Red, "Rename", "This command can only be ran in ticket channels", usageEmbed)
 		return
 	}

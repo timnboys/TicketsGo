@@ -30,18 +30,7 @@ type (
 	}
 
 	Database struct {
-		Host     string
-		Port     int
-		Username string
-		Password string
-		Database string
-		Pool     Pool
-		Lifetime int
-	}
-
-	Pool struct {
-		MaxConnections int
-		MaxIdle        int
+		Uri string
 	}
 
 	Metrics struct {

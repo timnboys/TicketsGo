@@ -1,10 +1,13 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel/embed"
+	"golang.org/x/sync/errgroup"
 	"strconv"
 	"time"
 )
@@ -52,20 +55,49 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 
 	// Get user permission level
 	permLevelChan := make(chan utils.PermissionLevel)
-	go utils.GetPermissionLevel(ctx.Shard, ctx.Member, ctx.GuildId, permLevelChan)
+	go ctx.GetPermissionLevel(permLevelChan)
 	permLevel := <-permLevelChan
 
 	// User stats
 	if permLevel == 0 {
-		blacklisted := make(chan bool)
-		totalTickets := make(chan map[uint64]int)
-		openTickets := make(chan []string)
-		ticketLimit := make(chan int)
+		var isBlacklisted bool
+		var totalTickets int
+		var openTickets int
+		var ticketLimit uint8
 
-		go database.IsBlacklisted(ctx.GuildId, user.Id, blacklisted)
-		go database.GetTicketsOpenedBy(ctx.GuildId, user.Id, totalTickets)
-		go database.GetOpenTicketsOpenedBy(ctx.GuildId, user.Id, openTickets)
-		go database.GetTicketLimit(ctx.GuildId, ticketLimit)
+		group, _ := errgroup.WithContext(context.Background())
+
+		// load isBlacklisted
+		group.Go(func() (err error) {
+			isBlacklisted, err = database.Client.Blacklist.IsBlacklisted(ctx.GuildId, user.Id)
+			return
+		})
+
+		// load totalTickets
+		group.Go(func() error {
+			tickets, err := database.Client.Tickets.GetAllByUser(ctx.GuildId, user.Id)
+			totalTickets = len(tickets)
+			return err
+		})
+
+		// load openTickets
+		group.Go(func() error {
+			tickets, err := database.Client.Tickets.GetOpenByUser(ctx.GuildId, user.Id)
+			openTickets = len(tickets)
+			return err
+		})
+
+		// load ticketLimit
+		group.Go(func() (err error) {
+			ticketLimit, err = database.Client.TicketLimit.Get(ctx.GuildId)
+			return
+		})
+
+		if err := group.Wait(); err != nil {
+			ctx.ReactWithCross()
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			return
+		}
 
 		embed := embed.NewEmbed().
 			SetTitle("Statistics").
@@ -73,69 +105,61 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 
 			AddField("Is Admin", "false", true).
 			AddField("Is Support", "false", true).
-			AddField("Is Blacklisted", strconv.FormatBool(<-blacklisted), true).
+			AddField("Is Blacklisted", strconv.FormatBool(isBlacklisted), true).
 
-			AddField("Total Tickets", strconv.Itoa(len(<-totalTickets)), true).
-			AddField("Open Tickets", fmt.Sprintf("%d / %d", len(<-openTickets), <-ticketLimit), true)
+			AddField("Total Tickets", strconv.Itoa(totalTickets), true).
+			AddField("Open Tickets", fmt.Sprintf("%d / %d", openTickets, ticketLimit), true)
 
 		if m, err := ctx.Shard.CreateMessageEmbed(ctx.ChannelId, embed); err == nil {
 			utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: &m}, 60)
 		}
 	} else { // Support rep stats
-		responseTimesChan := make(chan map[string]int64)
-		openTimesChan := make(chan map[string]*int64)
+		var weekly, monthly, total *time.Duration
 
-		go database.GetUserResponseTimes(ctx.GuildId, user.Id, responseTimesChan)
-		go database.GetOpenTimes(ctx.GuildId, openTimesChan)
+		group, _ := errgroup.WithContext(context.Background())
 
-		responseTimes := <-responseTimesChan
-		openTimes := <-openTimesChan
+		// total
+		group.Go(func() (err error) {
+			total, err = database.Client.FirstResponseTime.GetAverageAllTimeUser(ctx.GuildId, user.Id)
+			return
+		})
 
-		// total average response
-		var averageResponse int64
-		for _, t := range responseTimes {
-			averageResponse += t
-		}
-		if len(responseTimes) > 0 { // Note: If responseTimes is empty, averageResponse must = 0
-			averageResponse = averageResponse / int64(len(responseTimes))
-		}
+		// monthly
+		group.Go(func() (err error) {
+			monthly, err = database.Client.FirstResponseTime.GetAverageUser(ctx.GuildId, user.Id, time.Hour * 24 * 28)
+			return
+		})
 
-		current := time.Now().UnixNano() / int64(time.Millisecond)
+		// weekly
+		group.Go(func() (err error) {
+			weekly, err = database.Client.FirstResponseTime.GetAverageUser(ctx.GuildId, user.Id, time.Hour * 24 * 7)
+			return
+		})
 
-		// monthly average response
-		var monthly int64
-		var monthlyCounter int
-		for uuid, t := range responseTimes {
-			openTime := openTimes[uuid]
-			if openTime == nil {
-				continue
-			}
-
-			if current - *openTime < 60 * 60 * 24 * 7 * 4 * 1000 {
-				monthly += t
-				monthlyCounter++
-			}
-		}
-		if monthlyCounter > 0 {
-			monthly = monthly / int64(monthlyCounter)
+		if err := group.Wait(); err != nil {
+			ctx.ReactWithCross()
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			return
 		}
 
-		// weekly average response
-		var weekly int64
-		var weeklyCounter int
-		for uuid, t := range responseTimes {
-			openTime := openTimes[uuid]
-			if openTime == nil {
-				continue
-			}
+		var totalFormatted, monthlyFormatted, weeklyFormatted string
 
-			if current - *openTime < 60 * 60 * 24 * 7 * 1000 {
-				weekly += t
-				weeklyCounter++
-			}
+		if total == nil {
+			totalFormatted = "No data"
+		} else {
+			totalFormatted = utils.FormatTime(*total)
 		}
-		if weeklyCounter > 0 {
-			weekly = weekly / int64(weeklyCounter)
+
+		if monthly == nil {
+			monthlyFormatted = "No data"
+		} else {
+			monthlyFormatted = utils.FormatTime(*monthly)
+		}
+
+		if weekly == nil {
+			weeklyFormatted = "No data"
+		} else {
+			weeklyFormatted = utils.FormatTime(*weekly)
 		}
 
 		embed := embed.NewEmbed().
@@ -147,9 +171,9 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 
 			AddBlankField(false).
 
-			AddField("Average First Response Time (Total)", utils.FormatTime(averageResponse), true).
-			AddField("Average First Response Time (Weekly)", utils.FormatTime(weekly), true).
-			AddField("Average First Response Time (Monthly)", utils.FormatTime(monthly), true)
+			AddField("Average First Response Time (Total)", totalFormatted, true).
+			AddField("Average First Response Time (Monthly)", monthlyFormatted, true).
+			AddField("Average First Response Time (Weekly)", weeklyFormatted, true)
 
 		if m, err := ctx.Shard.CreateMessageEmbed(ctx.ChannelId, embed); err == nil {
 			utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: &m}, 60)

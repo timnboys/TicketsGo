@@ -6,7 +6,6 @@ import (
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel/embed"
-	"strconv"
 	"strings"
 )
 
@@ -42,11 +41,14 @@ func (TagCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	id := strings.ToLower(ctx.Args[0])
+	tagId := strings.ToLower(ctx.Args[0])
 
-	contentChan := make(chan string)
-	go database.GetCannedResponse(ctx.GuildId, id, contentChan)
-	content := <-contentChan
+	content, err := database.Client.Tag.Get(ctx.GuildId, tagId)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		ctx.ReactWithCross()
+		return
+	}
 
 	if content == "" {
 		ctx.SendEmbed(utils.Red, "Error", "Invalid tag. For more help with tags, visit <https://ticketsbot.net/cannedresponses>.", usageEmbed)
@@ -54,12 +56,13 @@ func (TagCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	isTicket := make(chan bool)
-	go database.IsTicketChannel(ctx.ChannelId, isTicket)
-	if <-isTicket {
-		ticketOwnerChan := make(chan uint64)
-		go database.GetOwnerByChannel(ctx.ChannelId, ticketOwnerChan)
-		mention := fmt.Sprintf("<@%s>", strconv.FormatUint(<-ticketOwnerChan, 10))
+	ticket, err := database.Client.Tickets.GetByChannel(ctx.ChannelId)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
+
+	if ticket.UserId != 0 {
+		mention := fmt.Sprintf("<@%d>", ticket.UserId)
 		content = strings.Replace(content, "%user%", mention, -1)
 	}
 

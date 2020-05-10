@@ -59,7 +59,12 @@ func (RemoveAdminCommand) Execute(ctx utils.CommandContext) {
 				continue
 			}
 
-			go database.RemoveAdmin(ctx.GuildId, mention.Id)
+			go func() {
+				if err := database.Client.Permissions.RemoveAdmin(ctx.GuildId, mention.Id); err != nil {
+					sentry.ErrorWithContext(err, ctx.ToErrorContext())
+					ctx.ReactWithCross()
+				}
+			}()
 		}
 	} else if len(ctx.Message.MentionRoles) > 0 {
 		for _, mention := range ctx.Message.MentionRoles {
@@ -88,7 +93,12 @@ func (RemoveAdminCommand) Execute(ctx utils.CommandContext) {
 
 	// Remove roles from DB
 	for _, role := range roles {
-		go database.RemoveAdminRole(ctx.GuildId, role)
+		go func() {
+			if err := database.Client.RolePermissions.RemoveAdmin(ctx.GuildId, role); err != nil {
+				sentry.ErrorWithContext(err, ctx.ToErrorContext())
+				ctx.ReactWithCross()
+			}
+		}()
 	}
 
 	ctx.ReactWithCheck()

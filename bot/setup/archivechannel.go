@@ -91,6 +91,10 @@ func (ArchiveChannelStage) Process(shard *gateway.Shard, msg message.Message) {
 		}
 	}
 
-	go database.SetArchiveChannel(msg.GuildId, archiveChannelId)
-	utils.ReactWithCheck(shard, ref)
+	if err := database.Client.ArchiveChannel.Set(msg.GuildId, archiveChannelId); err == nil {
+		utils.ReactWithCheck(shard, ref)
+	} else {
+		utils.ReactWithCross(shard, ref)
+		sentry.Error(err)
+	}
 }

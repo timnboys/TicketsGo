@@ -1,9 +1,9 @@
 package sentry
 
 import (
+	"fmt"
 	"github.com/getsentry/raven-go"
-	"github.com/go-errors/errors"
-	"strconv"
+	"runtime/debug"
 )
 
 type ErrorContext struct {
@@ -16,12 +16,16 @@ type ErrorContext struct {
 }
 
 func Error(e error) {
-	wrapped := errors.New(e)
-	raven.Capture(ConstructErrorPacket(wrapped), nil)
+	fmt.Println(e.Error())
+	debug.PrintStack()
+	/*wrapped := errors.New(e)
+	raven.Capture(ConstructErrorPacket(wrapped), nil)*/
 }
 
 func LogWithContext(e error, ctx ErrorContext) {
-	wrapped := errors.New(e)
+	fmt.Println(e.Error())
+	debug.PrintStack()
+	/*wrapped := errors.New(e)
 	raven.Capture(ConstructPacket(wrapped, raven.INFO), map[string]string{
 		"guild":       strconv.FormatUint(ctx.Guild, 10),
 		"user":        strconv.FormatUint(ctx.User, 10),
@@ -29,7 +33,7 @@ func LogWithContext(e error, ctx ErrorContext) {
 		"shard":       strconv.Itoa(ctx.Shard),
 		"command":     ctx.Command,
 		"premium":     strconv.FormatBool(ctx.Premium),
-	})
+	})*/
 }
 
 func LogRestRequest(url string) {
@@ -37,7 +41,9 @@ func LogRestRequest(url string) {
 }
 
 func ErrorWithContext(e error, ctx ErrorContext) {
-	wrapped := errors.New(e)
+	fmt.Println(e.Error())
+	debug.PrintStack()
+	/*wrapped := errors.New(e)
 	raven.Capture(ConstructErrorPacket(wrapped), map[string]string{
 		"guild":       strconv.FormatUint(ctx.Guild, 10),
 		"user":        strconv.FormatUint(ctx.User, 10),
@@ -45,5 +51,5 @@ func ErrorWithContext(e error, ctx ErrorContext) {
 		"shard":       strconv.Itoa(ctx.Shard),
 		"command":     ctx.Command,
 		"premium":     strconv.FormatBool(ctx.Premium),
-	})
+	})*/
 }

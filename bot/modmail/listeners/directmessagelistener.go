@@ -1,22 +1,20 @@
 package listeners
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/modmail"
-	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	modmailutils "github.com/TicketsBot/TicketsGo/bot/modmail/utils"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
-	"github.com/TicketsBot/TicketsGo/database"
+	dbclient "github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/TicketsBot/database"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
-	"net/http"
+	"github.com/rxdn/gdl/rest"
+	"github.com/rxdn/gdl/rest/request"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
@@ -35,9 +33,11 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 		IsFromPanel: false,
 	}
 
-	sessionChan := make(chan *modmaildatabase.ModMailSession, 0)
-	go modmaildatabase.GetModMailSession(e.Author.Id, sessionChan)
-	session := <-sessionChan
+	session, err := dbclient.Client.ModmailSession.GetByUser(e.Author.Id)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		return
+	}
 
 	// Create DM channel
 	dmChannel, err := s.CreateDM(e.Author.Id)
@@ -47,7 +47,7 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 	}
 
 	// No active session
-	if session == nil {
+	if session.UserId == 0 {
 		guilds := modmailutils.GetMutualGuilds(ctx.Shard, ctx.Author.Id)
 
 		if len(e.Message.Content) == 0 {
@@ -66,9 +66,12 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 		targetGuild := guilds[targetGuildNumber-1]
 
 		// Check blacklist
-		blacklistCh := make(chan bool)
-		go database.IsBlacklisted(targetGuild.Id, ctx.Author.Id, blacklistCh)
-		if <-blacklistCh {
+		isBlacklisted, err := dbclient.Client.Blacklist.IsBlacklisted(targetGuild.Id, ctx.Author.Id)
+		if err != nil {
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		}
+
+		if isBlacklisted {
 			utils.SendEmbed(s, dmChannel.Id, utils.Red, "Error", "You are blacklisted in this server!", nil, 30, true)
 			return
 		}
@@ -76,9 +79,11 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 		utils.SendEmbed(s, dmChannel.Id, utils.Green, "Modmail", fmt.Sprintf("Your modmail ticket in %s has been opened! Use `t!close` to close the session.", targetGuild.Name), nil, 0, true)
 
 		// Send guild's welcome message
-		welcomeMessageChan := make(chan string)
-		go database.GetWelcomeMessage(targetGuild.Id, welcomeMessageChan)
-		welcomeMessage := <-welcomeMessageChan
+		welcomeMessage, err := dbclient.Client.WelcomeMessages.Get(targetGuild.Id)
+		if err != nil {
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			welcomeMessage = "Thank you for contacting support.\nPlease describe your issue (and provide an invite to your server if applicable) and wait for a response."
+		}
 
 		welcomeMessageId, err := utils.SendEmbedWithResponse(s, dmChannel.Id, utils.Green, "Modmail", welcomeMessage, nil, 0, true)
 		if err != nil {
@@ -96,7 +101,7 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 	} else { // Forward message to guild or handle command
 		// Determine whether premium guild
 		premiumChan := make(chan bool)
-		go utils.IsPremiumGuild(s, session.Guild, premiumChan)
+		go utils.IsPremiumGuild(s, session.GuildId, premiumChan)
 		isPremium := <-premiumChan
 
 		// Update context
@@ -120,19 +125,24 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 	}
 }
 
-func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandContext, dmChannel uint64) {
+func sendMessage(session database.ModmailSession, ctx utils.CommandContext, dmChannel uint64) {
 	// Preferably send via a webhook
-	webhookChan := make(chan *string)
-	go database.GetWebhookByUuid(session.Uuid, webhookChan)
-	webhook := <-webhookChan
+	webhook, err := dbclient.Client.ModmailWebhook.Get(session.Uuid)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
 
 	success := false
-	if webhook != nil {
-		success = executeWebhook(session.Uuid, *webhook, ctx.Message.Content, ctx.Author.Username, ctx.Author.AvatarUrl(256))
+	if webhook.WebhookId != 0 {
+		success = executeWebhook(ctx.Shard, webhook, rest.WebhookBody{
+			Content:         ctx.Message.Content,
+			Username:        ctx.Message.Author.Username,
+			AvatarUrl:       ctx.Author.AvatarUrl(256),
+		})
 	}
 
 	if !success {
-		if _, err := ctx.Shard.CreateMessage(session.StaffChannel, ctx.Message.Content); err != nil {
+		if _, err := ctx.Shard.CreateMessage(session.StaffChannelId, ctx.Message.Content); err != nil {
 			utils.SendEmbed(ctx.Shard, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), nil, 30, ctx.IsPremium)
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
@@ -152,59 +162,36 @@ func sendMessage(session *modmaildatabase.ModMailSession, ctx utils.CommandConte
 			content += fmt.Sprintf("\n▶️ %s", attachment.ProxyUrl)
 		}
 
-		if _, err := ctx.Shard.CreateMessage(session.StaffChannel, content); err != nil {
+		if _, err := ctx.Shard.CreateMessage(session.StaffChannelId, content); err != nil {
 			utils.SendEmbed(ctx.Shard, dmChannel, utils.Red, "Error", fmt.Sprintf("An error has occurred: `%s`", err.Error()), nil, 30, ctx.IsPremium)
 			sentry.LogWithContext(err, ctx.ToErrorContext())
 		}
 	}
 }
 
-func executeWebhook(uuid, webhook, content, username, avatarUrl string) bool {
-	body := map[string]interface{}{
-		"content":    content,
-		"username":   username,
-		"avatar_url": avatarUrl,
-	}
-	encoded, err := json.Marshal(&body)
-	if err != nil {
+func executeWebhook(shard *gateway.Shard, webhook database.ModmailWebhook, data rest.WebhookBody) bool {
+	_, err := shard.ExecuteWebhook(webhook.WebhookId, webhook.WebhookToken, true, data)
+
+	if err == request.ErrForbidden || err == request.ErrNotFound {
+		go dbclient.Client.ModmailWebhook.Delete(webhook.Uuid)
 		return false
-	}
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://canary.discord.com/api/webhooks/%s", webhook), bytes.NewBuffer(encoded))
-	if err != nil {
-		return false
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	client.Timeout = 3 * time.Second
-
-	res, err := client.Do(req)
-	if err != nil {
-		return false
-	}
-
-	if res.StatusCode == 404 || res.StatusCode == 403 {
-		go database.DeleteWebhookByUuid(uuid)
 	} else {
 		return true
 	}
-
-	return false
 }
 
 // TODO: Make this less hacky
-func handleCommand(ctx utils.CommandContext, session *modmaildatabase.ModMailSession) (utils.CommandContext, bool) {
-	prefixChannel := make(chan string)
-	go database.GetPrefix(session.Guild, prefixChannel)
-	customPrefix := <-prefixChannel
+func handleCommand(ctx utils.CommandContext, session database.ModmailSession) (utils.CommandContext, bool) {
+	customPrefix, err := dbclient.Client.Prefix.Get(session.GuildId); if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
 
 	defaultPrefix := config.Conf.Bot.Prefix
 	var usedPrefix string
 
 	if strings.HasPrefix(ctx.Message.Content, defaultPrefix) {
 		usedPrefix = defaultPrefix
-	} else if strings.HasPrefix(ctx.Message.Content, customPrefix) {
+	} else if customPrefix != "" && strings.HasPrefix(ctx.Message.Content, customPrefix) {
 		usedPrefix = customPrefix
 	} else { // Not a command
 		return ctx, false

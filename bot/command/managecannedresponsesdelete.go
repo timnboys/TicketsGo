@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel/embed"
 )
 
@@ -41,16 +42,16 @@ func (ManageTagsDelete) Execute(ctx utils.CommandContext) {
 
 	id := ctx.Args[0]
 
-	idsChan := make(chan []string)
-	go database.GetCannedResponses(ctx.GuildId, idsChan)
-	ids := <-idsChan
-
-	found := false
-	for _, i := range ids {
-		if i == id {
-			found = true
-			break
+	var found bool
+	{
+		tag, err := database.Client.Tag.Get(ctx.GuildId, id)
+		if err != nil {
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			ctx.ReactWithCross()
+			return
 		}
+
+		found = tag != ""
 	}
 
 	if !found {
@@ -59,8 +60,12 @@ func (ManageTagsDelete) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	go database.DeleteCannedResponse(ctx.GuildId, id)
-	ctx.ReactWithCheck()
+	if err := database.Client.Tag.Delete(ctx.GuildId, id); err == nil {
+		ctx.ReactWithCheck()
+	} else {
+		ctx.ReactWithCross()
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
 }
 
 func (ManageTagsDelete) Parent() interface{} {

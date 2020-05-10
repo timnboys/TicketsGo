@@ -3,8 +3,9 @@ package messagequeue
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/cache"
-	"github.com/TicketsBot/TicketsGo/database"
+	dbclient "github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/TicketsBot/database"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/channel/embed"
 )
@@ -39,7 +40,7 @@ func ListenPanelCreations(shardManager *gateway.ShardManager) {
 
 		embed.SetTitle(panel.Title)
 		embed.SetDescription(panel.Content)
-		embed.SetColor(panel.Colour)
+		embed.SetColor(int(panel.Colour))
 
 		msg, err := shard.CreateMessageEmbed(panel.ChannelId, embed); if err != nil {
 			sentry.LogWithContext(err, errorContext)
@@ -51,6 +52,16 @@ func ListenPanelCreations(shardManager *gateway.ShardManager) {
 			sentry.LogWithContext(err, sentry.ErrorContext{})
 		}
 
-		go database.AddPanel(msg.Id, panel.ChannelId, panel.GuildId, panel.Title, panel.Content, panel.Colour, panel.TargetCategory, panel.ReactionEmote)
+		//go dbclient.Client.Panel.Create(msg.Id, panel.ChannelId, panel.GuildId, panel.Title, panel.Content, panel.Colour, panel.TargetCategory, panel.ReactionEmote)
+		go dbclient.Client.Panel.Create(database.Panel{
+			MessageId:      msg.Id,
+			ChannelId:      panel.ChannelId,
+			GuildId:        panel.GuildId,
+			Title:         	panel.Title,
+			Content:        panel.Content,
+			Colour:         panel.Colour,
+			TargetCategory: panel.TargetCategory,
+			ReactionEmote:  panel.ReactionEmote,
+		})
 	}
 }

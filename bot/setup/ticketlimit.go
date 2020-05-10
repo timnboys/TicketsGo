@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/channel/message"
 	"strconv"
@@ -18,7 +19,7 @@ func (TicketLimitStage) State() State {
 }
 
 func (TicketLimitStage) Prompt() string {
-	return "Specify the maximum amount of tickets that a user should be able to have open at once"
+	return "Specify the maximum amount of tickets that a **single user** should be able to have open at once"
 }
 
 // This is not used
@@ -43,5 +44,10 @@ func (TicketLimitStage) Process(shard *gateway.Shard, msg message.Message) {
 		utils.ReactWithCheck(shard, ref)
 	}
 
-	go database.SetTicketLimit(msg.GuildId, amount)
+	if err := database.Client.TicketLimit.Set(msg.GuildId, uint8(amount)); err == nil {
+		utils.ReactWithCheck(shard, ref)
+	} else {
+		utils.ReactWithCross(shard, ref)
+		sentry.Error(err)
+	}
 }

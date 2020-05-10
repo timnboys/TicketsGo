@@ -68,10 +68,16 @@ func (ChannelCategoryStage) Process(shard *gateway.Shard, msg message.Message) {
 		utils.SendEmbed(shard, msg.ChannelId, utils.Red, "Error", fmt.Sprintf("I have created the channel category %s for you, you may need to adjust permissions yourself", category.Name), nil, 15, true)
 	}
 
-	go database.SetCategory(msg.GuildId, categoryId)
-	utils.ReactWithCheck(shard, message.MessageReference{
+	ref := message.MessageReference{
 		MessageId: msg.Id,
 		ChannelId: msg.ChannelId,
 		GuildId:   msg.GuildId,
-	})
+	}
+
+	if err := database.Client.ChannelCategory.Set(msg.GuildId, categoryId); err == nil {
+		utils.ReactWithCheck(shard, ref)
+	} else {
+		utils.ReactWithCross(shard, ref)
+		sentry.Error(err)
+	}
 }

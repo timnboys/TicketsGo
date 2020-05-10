@@ -49,7 +49,11 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 	if len(ctx.Message.Mentions) > 0 {
 		user = true
 		for _, mention := range ctx.Message.Mentions {
-			go database.AddAdmin(ctx.GuildId, mention.Id)
+			go func() {
+				if err := database.Client.Permissions.AddAdmin(ctx.GuildId, mention.Id); err != nil {
+					sentry.ErrorWithContext(err, ctx.ToErrorContext())
+				}
+			}()
 		}
 	} else if len(ctx.Message.MentionRoles) > 0 {
 		for _, mention := range ctx.Message.MentionRoles {
@@ -83,22 +87,25 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 
 	// Add roles to DB
 	for _, role := range roles {
-		go database.AddAdminRole(ctx.GuildId, role)
+		go func() {
+			if err := database.Client.RolePermissions.AddAdmin(ctx.GuildId, role); err != nil {
+				sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			}
+		}()
 	}
 
-	openTicketsChan := make(chan []*uint64)
-	go database.GetOpenTicketChannelIds(ctx.GuildId, openTicketsChan)
+	openTickets, err := database.Client.Tickets.GetGuildOpenTickets(ctx.GuildId)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
 
 	// Update permissions for existing tickets
-	for _, channelId := range <-openTicketsChan {
-		// Mitigation for a very rare panic that occurs when this command is run whilst a ticket is being opened, but
-		// the channel ID hasn't been set in the database yet, or if Discord is dead and won't let the channel
-		// be created.
-		if channelId == nil {
+	for _, ticket := range openTickets {
+		if ticket.ChannelId == nil {
 			continue
 		}
 
-		ch, err := ctx.Shard.GetChannel(*channelId); if err != nil {
+		ch, err := ctx.Shard.GetChannel(*ticket.ChannelId); if err != nil {
 			continue
 		}
 
@@ -131,7 +138,7 @@ func (AddAdminCommand) Execute(ctx utils.CommandContext) {
 			Position: ch.Position,
 		}
 
-		if _, err = ctx.Shard.ModifyChannel(*channelId, data); err != nil {
+		if _, err = ctx.Shard.ModifyChannel(*ticket.ChannelId, data); err != nil {
 			sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		}
 	}

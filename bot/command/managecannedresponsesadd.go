@@ -3,6 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel/embed"
 	"strings"
 )
@@ -50,16 +51,30 @@ func (ManageTagsAdd) Execute(ctx utils.CommandContext) {
 	}
 
 	// Verify a tag with the ID doesn't already exist
-	tagExists := make(chan bool)
-	go database.CannedResponseExists(ctx.GuildId, id, tagExists)
-	if <-tagExists {
+	var tagExists bool
+	{
+		tag, err := database.Client.Tag.Get(ctx.GuildId, id)
+		if err != nil {
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			ctx.ReactWithCross()
+			return
+		}
+
+		tagExists = tag != ""
+	}
+
+	if tagExists {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "A tag with the ID `$id` already exists. You can delete the response using `t!managetags delete [ID]`", usageEmbed)
 		return
 	}
 
-	go database.AddCannedResponse(ctx.GuildId, id, strings.Join(content, " "))
-	ctx.ReactWithCheck()
+	if err := database.Client.Tag.Set(ctx.GuildId, id, strings.Join(content, " ")); err == nil {
+		ctx.ReactWithCheck()
+	} else {
+		ctx.ReactWithCross()
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
 }
 
 func (ManageTagsAdd) Parent() interface{} {

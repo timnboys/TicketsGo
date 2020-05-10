@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/channel/message"
 )
@@ -32,10 +33,16 @@ func (PrefixStage) Process(shard *gateway.Shard, msg message.Message) {
 		return
 	}
 
-	go database.SetPrefix(msg.GuildId, msg.Content)
-	utils.ReactWithCheck(shard, message.MessageReference{
+	ref := message.MessageReference{
 		MessageId: msg.Id,
 		ChannelId: msg.ChannelId,
 		GuildId:   msg.GuildId,
-	})
+	}
+
+	if err := database.Client.Prefix.Set(msg.GuildId, msg.Content); err == nil {
+		utils.ReactWithCheck(shard, ref)
+	} else {
+		utils.ReactWithCross(shard, ref)
+		sentry.Error(err)
+	}
 }

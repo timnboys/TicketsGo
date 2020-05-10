@@ -3,6 +3,7 @@ package command
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel/embed"
 )
 
@@ -39,6 +40,7 @@ func (BlacklistCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	user := ctx.Message.Mentions[0]
+	user.Member.User = user.User
 
 	if ctx.Author.Id == user.Id {
 		ctx.SendEmbed(utils.Red, "Error", "You cannot blacklist yourself")
@@ -56,14 +58,25 @@ func (BlacklistCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	isBlacklistedChan := make(chan bool)
-	go database.IsBlacklisted(ctx.GuildId, user.Id, isBlacklistedChan)
-	isBlacklisted := <- isBlacklistedChan
+	isBlacklisted, err := database.Client.Blacklist.IsBlacklisted(ctx.GuildId, user.Id)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		ctx.ReactWithCross()
+		return
+	}
 
 	if isBlacklisted {
-		go database.RemoveBlacklist(ctx.GuildId, user.Id)
+		if err := database.Client.Blacklist.Remove(ctx.GuildId, user.Id); err != nil {
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			ctx.ReactWithCross()
+			return
+		}
 	} else {
-		go database.AddBlacklist(ctx.GuildId, user.Id)
+		if err := database.Client.Blacklist.Add(ctx.GuildId, user.Id); err != nil {
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			ctx.ReactWithCross()
+			return
+		}
 	}
 
 	ctx.ReactWithCheck()
