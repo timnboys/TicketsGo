@@ -6,7 +6,7 @@ import (
 )
 
 type TicketCloseMessage struct {
-	Guild    uint64
+	GuildId  uint64
 	TicketId int
 	User     uint64
 	Reason   string

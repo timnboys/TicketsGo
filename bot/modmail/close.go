@@ -104,7 +104,13 @@ func HandleClose(session database.ModmailSession, ctx utils.CommandContext) {
 	}()
 
 	// Delete the webhook
-	go dbclient.Client.ModmailWebhook.Delete(session.Uuid)
+	// We need to block for this
+	if err := dbclient.Client.ModmailWebhook.Delete(session.Uuid); err != nil {
+		ctx.ReactWithCross()
+		ctx.SendEmbed(utils.Red, "Error", fmt.Sprintf("An error occurred: `%s`", err.Error()))
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		return
+	}
 
 	// Set ticket state as closed and delete channel
 	go dbclient.Client.ModmailSession.DeleteByUser(session.UserId)
