@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/patrickmn/go-cache"
+	"github.com/rxdn/gdl/rest/request"
 	"strconv"
 	"time"
 )
@@ -45,52 +47,69 @@ func (SyncCommand) Execute(ctx utils.CommandContext) {
 
 	// Process deleted tickets
 	ctx.SendMessage("Scanning for deleted ticket channels...")
-	updated := make(chan int)
-	go processDeletedTickets(ctx, updated)
-	ctx.SendMessage(fmt.Sprintf("Completed **%d** ticket state synchronisation", <-updated))
+	ctx.SendMessage(fmt.Sprintf("Completed **%d** ticket state synchronisation(s)", processDeletedTickets(ctx)))
 
 	// Check any panels still exist
 	ctx.SendMessage("Scanning for deleted panels...")
-	processDeletedPanels(ctx)
-	ctx.SendMessage("Completed panel state synchronisation")
+	ctx.SendMessage(fmt.Sprintf("Completed **%d** panel state synchronisation(s)", processDeletedPanels(ctx)))
+
+	ctx.SendMessage("Sync complete!")
 }
 
-func processDeletedTickets(ctx utils.CommandContext, res chan int) {
-	updated := 0
+func processDeletedTickets(ctx utils.CommandContext) (updated int) {
+	tickets, err := database.Client.Tickets.GetGuildOpenTickets(ctx.GuildId)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		return
+	}
 
-	tickets := make(chan []*uint64)
-	go database.GetOpenTicketChannelIds(ctx.GuildId, tickets)
-	for _, channel := range <-tickets {
-		if channel == nil {
+	for _, ticket := range tickets {
+		if ticket.ChannelId == nil {
 			continue
 		}
 
-		_, err := ctx.Shard.GetChannel(*channel)
-		if err != nil { // An admin has deleted the channel manually
+		_, err := ctx.Shard.GetChannel(*ticket.ChannelId)
+		if err != nil && err == request.ErrNotFound { // An admin has deleted the channel manually
 			updated++
-			go database.CloseByChannel(*channel)
+
+			go func() {
+				if err := database.Client.Tickets.Close(ticket.Id, ticket.GuildId); err != nil {
+					sentry.ErrorWithContext(err, ctx.ToErrorContext())
+				}
+			}()
 		}
 	}
 
-	res <-updated
+	return
 }
 
-func processDeletedPanels(ctx utils.CommandContext) {
-	panels := make(chan []database.Panel)
-	go database.GetPanelsByGuild(ctx.GuildId, panels)
+func processDeletedPanels(ctx utils.CommandContext) (removed int) {
+	panels, err := database.Client.Panel.GetByGuild(ctx.GuildId)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		return
+	}
 
-	for _, panel := range <-panels {
+	for _, panel := range panels {
 		// Pre-channel ID logging panel - we'll just leave it for now.
 		if panel.ChannelId == 0 {
 			continue
 		}
 
 		// Check cache first to prevent extra requests to discord
-		if _, err := ctx.Shard.GetChannelMessage(panel.ChannelId, panel.MessageId); err != nil {
+		if _, err := ctx.Shard.GetChannelMessage(panel.ChannelId, panel.MessageId); err != nil && err == request.ErrNotFound {
+			removed++
+
 			// Message no longer exists
-			go database.DeletePanel(panel.MessageId)
+			go func() {
+				if err := database.Client.Panel.Delete(panel.MessageId); err != nil {
+					sentry.ErrorWithContext(err, ctx.ToErrorContext())
+				}
+			}()
 		}
 	}
+
+	return
 }
 
 func (SyncCommand) Parent() interface{} {

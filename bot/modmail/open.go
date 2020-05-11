@@ -1,27 +1,27 @@
 package modmail
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
-	"github.com/TicketsBot/TicketsGo/database"
+	dbclient "github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/TicketsBot/database"
+	"github.com/gofrs/uuid"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/channel"
 	"github.com/rxdn/gdl/objects/guild"
 	"github.com/rxdn/gdl/objects/user"
 	"github.com/rxdn/gdl/permission"
 	"github.com/rxdn/gdl/rest"
-	uuid "github.com/satori/go.uuid"
+	"golang.org/x/sync/errgroup"
 )
 
 func OpenModMailTicket(shard *gateway.Shard, guild guild.Guild, user user.User, welcomeMessageId uint64) (uint64, error) {
-	ticketId := uuid.NewV4()
-
-	// If we're using a panel, then we need to create the ticket in the specified category
-	categoryChan := make(chan uint64)
-	go database.GetCategory(guild.Id, categoryChan)
-	category := <-categoryChan
+	category, err := dbclient.Client.ChannelCategory.Get(guild.Id)
+	if err != nil {
+		sentry.Error(err)
+	}
 
 	// Make sure the category exists
 	if category != 0 {
@@ -46,17 +46,12 @@ func OpenModMailTicket(shard *gateway.Shard, guild guild.Guild, user user.User, 
 	useCategory := category != 0
 	if useCategory {
 		// Check if the category still exists
-		ch, err := shard.GetChannel(category)
+		// TODO: Decide whether to remove this check
+		_, err := shard.GetChannel(category)
 		if err != nil {
 			useCategory = false
-			go database.DeleteCategory(guild.Id)
+			go dbclient.Client.ChannelCategory.Delete(guild.Id)
 			return 0, errors.New("Ticket category has been deleted")
-		}
-
-		if ch.Type != channel.ChannelTypeGuildCategory {
-			useCategory = false
-			go database.DeleteCategory(guild.Id)
-			return 0, errors.New("Ticket category is not a ticket category")
 		}
 
 		if !permission.HasPermissionsChannel(shard, guild.Id, shard.SelfId(), category, requiredPerms...) {
@@ -98,14 +93,24 @@ func OpenModMailTicket(shard *gateway.Shard, guild guild.Guild, user user.User, 
 		return 0, err
 	}
 
-	// Create webhook
-	go createWebhook(shard, guild.Id, channel.Id, ticketId.String())
+	uuid, err := dbclient.Client.ModmailSession.Create(database.ModmailSession{
+		GuildId:          guild.Id,
+		UserId:           user.Id,
+		StaffChannelId:   channel.Id,
+		WelcomeMessageId: welcomeMessageId,
+	})
+	if err != nil {
+		sentry.Error(err)
+		return 0, err
+	}
 
-	go modmaildatabase.CreateModMailSession(ticketId.String(), guild.Id, user.Id, channel.Id, welcomeMessageId)
+	// Create webhook
+	go createWebhook(shard, guild.Id, channel.Id, uuid)
+
 	return channel.Id, nil
 }
 
-func createWebhook(shard *gateway.Shard, guildId, channelId uint64, uuid string) {
+func createWebhook(shard *gateway.Shard, guildId, channelId uint64, uuid uuid.UUID) {
 	self, found := shard.Cache.GetSelf()
 	if !found {
 		sentry.Error(errors.New("self is not cached"))
@@ -128,13 +133,15 @@ func createWebhook(shard *gateway.Shard, guildId, channelId uint64, uuid string)
 		return
 	}
 
-	formatted := fmt.Sprintf("%d/%s", webhook.Id, webhook.Token)
-
-	ticketWebhook := database.TicketWebhook{
-		Uuid:       uuid,
-		WebhookUrl: formatted,
+	dbWebhook := database.ModmailWebhook{
+		Uuid:         uuid,
+		WebhookId:    webhook.Id,
+		WebhookToken: webhook.Token,
 	}
-	ticketWebhook.AddWebhook()
+
+	if err := dbclient.Client.ModmailWebhook.Create(dbWebhook); err != nil {
+		sentry.Error(err)
+	}
 }
 
 func createOverwrites(shard *gateway.Shard, guildId uint64) []*channel.PermissionOverwrite {
@@ -147,26 +154,29 @@ func createOverwrites(shard *gateway.Shard, guildId uint64) []*channel.Permissio
 		Deny:  permission.BuildPermissions(permission.ViewChannel),
 	})
 
-	// Create list of members & roles who should be added to the ticket
-	allowedUsers := make([]uint64, 0)
-	allowedRoles := make([]uint64, 0)
-
 	// Get support reps & roles
-	supportUsers := make(chan []uint64)
-	supportRoles := make(chan []uint64)
+	var supportUsers []uint64
+	var supportRoles []uint64
 
-	go database.GetSupport(guildId, supportUsers)
-	go database.GetSupportRoles(guildId, supportRoles)
+	group, _ := errgroup.WithContext(context.Background())
 
-	// check if user is a support rep
-	for _, user := range <-supportUsers {
-		allowedUsers = append(allowedUsers, user)
+	group.Go(func() (err error) {
+		supportUsers, err = dbclient.Client.Permissions.GetSupport(guildId)
+		return
+	})
+
+	group.Go(func() (err error) {
+		supportRoles, err = dbclient.Client.RolePermissions.GetSupportRoles(guildId)
+		return
+	})
+
+	if err := group.Wait(); err != nil {
+		sentry.Error(err)
 	}
 
-	// check if user has a support role
-	for _, role := range <-supportRoles {
-		allowedRoles = append(allowedRoles, role)
-	}
+	// Create list of members & roles who should be added to the ticket
+	allowedUsers := supportUsers
+	allowedRoles := supportRoles
 
 	// Add ourselves
 	allowedUsers = append(allowedUsers, shard.SelfId())

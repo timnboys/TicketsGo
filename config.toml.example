@@ -18,15 +18,7 @@ helpers=[]
   max=0
 
 [database]
-host="127.0.0.1"
-port=3306
-username="root"
-password="root"
-database="tickets"
-lifetime=120
-  [database.pool]
-  maxConnections=5
-  maxIdle=5
+uri="postgres://user:pwd@localhost:5432/database?pool_max_conns=10"
 
 [serverCounter]
 enabled=false

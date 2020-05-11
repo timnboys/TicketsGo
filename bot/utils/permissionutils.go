@@ -44,18 +44,21 @@ func GetPermissionLevel(shard *gateway.Shard, member member.Member, guildId uint
 	}
 
 	// Check user perms for admin
-	adminUser := make(chan bool)
-	go database.IsAdmin(guildId, member.User.Id, adminUser)
-	if <-adminUser {
+	adminUser, err := database.Client.Permissions.IsAdmin(guildId, member.User.Id); if err != nil {
+		sentry.Error(err)
+	}
+
+	if adminUser {
 		go cache.Client.SetPermissionLevel(guildId, member.User.Id, Admin.Int())
 		ch <- Admin
 		return
 	}
 
 	// Check roles from DB
-	adminRolesChan := make(chan []uint64)
-	go database.GetAdminRoles(guildId, adminRolesChan)
-	adminRoles := <-adminRolesChan
+	adminRoles, err := database.Client.RolePermissions.GetAdminRoles(guildId); if err != nil {
+		sentry.Error(err)
+	}
+
 	for _, adminRoleId := range adminRoles {
 		if member.HasRole(adminRoleId) {
 			go cache.Client.SetPermissionLevel(guildId, member.User.Id, Admin.Int())
@@ -73,18 +76,21 @@ func GetPermissionLevel(shard *gateway.Shard, member member.Member, guildId uint
 	}
 
 	// Check user perms for support
-	supportUser := make(chan bool)
-	go database.IsSupport(guildId, member.User.Id, supportUser)
-	if <-supportUser {
+	isSupport, err := database.Client.Permissions.IsSupport(guildId, member.User.Id); if err != nil {
+		sentry.Error(err)
+	}
+
+	if isSupport {
 		go cache.Client.SetPermissionLevel(guildId, member.User.Id, Support.Int())
 		ch <- Support
 		return
 	}
 
 	// Check DB for support roles
-	supportRolesChan := make(chan []uint64)
-	go database.GetSupportRoles(guildId, supportRolesChan)
-	supportRoles := <-supportRolesChan
+	supportRoles, err :=  database.Client.RolePermissions.GetSupportRoles(guildId); if err != nil {
+		sentry.Error(err)
+	}
+
 	for _, supportRoleId := range supportRoles {
 		if member.HasRole(supportRoleId) {
 			go cache.Client.SetPermissionLevel(guildId, member.User.Id, Support.Int())

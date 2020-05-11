@@ -3,7 +3,6 @@ package listeners
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/modmail"
-	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/config"
 	"github.com/TicketsBot/TicketsGo/database"
@@ -29,11 +28,13 @@ func OnModMailChannelMessage(s *gateway.Shard, e *events.MessageCreate) {
 		User:    e.Author.Id,
 	}
 
-	sessionChan := make(chan *modmaildatabase.ModMailSession, 0)
-	go modmaildatabase.GetModMailSessionByStaffChannel(e.ChannelId, sessionChan)
-	session := <-sessionChan
+	session, err := database.Client.ModmailSession.GetByChannel(e.ChannelId)
+	if err != nil {
+		sentry.ErrorWithContext(err, errorContext)
+		return
+	}
 
-	if session == nil {
+	if session.UserId == 0 {
 		return
 	}
 
@@ -54,7 +55,7 @@ func OnModMailChannelMessage(s *gateway.Shard, e *events.MessageCreate) {
 
 	// Make sure we don't mirror the user's message back to them
 	var username string
-	if user, found := s.Cache.GetUser(session.User); found {
+	if user, found := s.Cache.GetUser(session.UserId); found {
 		username = user.Username
 	}
 
@@ -64,7 +65,7 @@ func OnModMailChannelMessage(s *gateway.Shard, e *events.MessageCreate) {
 	}
 
 	// Create DM channel
-	privateMessageChannel, err := s.CreateDM(session.User)
+	privateMessageChannel, err := s.CreateDM(session.UserId)
 	if err != nil { // User probably has DMs disabled
 		sentry.LogWithContext(err, errorContext)
 		return
@@ -99,16 +100,16 @@ func OnModMailChannelMessage(s *gateway.Shard, e *events.MessageCreate) {
 
 // isClose, args
 func isClose(e *events.MessageCreate) (bool, []string) {
-	ch := make(chan string)
-	go database.GetPrefix(e.GuildId, ch)
+	customPrefix, err := database.Client.Prefix.Get(e.GuildId); if err != nil {
+		sentry.Error(err)
+	}
 
-	customPrefix := <-ch
 	defaultPrefix := config.Conf.Bot.Prefix
 	var usedPrefix string
 
 	if strings.HasPrefix(e.Content, defaultPrefix) {
 		usedPrefix = defaultPrefix
-	} else if strings.HasPrefix(e.Content, customPrefix) {
+	} else if customPrefix != "" && strings.HasPrefix(e.Content, customPrefix) {
 		usedPrefix = customPrefix
 	} else { // Not a command
 		return false, nil

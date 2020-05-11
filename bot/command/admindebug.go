@@ -31,32 +31,30 @@ func (AdminDebugCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
-	// Get if SQL is connected
-	sqlConnected := make(chan bool)
-	go database.IsConnected(sqlConnected)
-
 	// Get if Redis is connected
 	redisConnected := make(chan bool)
 	go cache.Client.IsConnected(redisConnected)
 
 	// Get ticket category
-	ticketCategoryChan := make(chan uint64)
-	go database.GetCategory(ctx.GuildId, ticketCategoryChan)
-	ticketCategoryId := <- ticketCategoryChan
-	var ticketCategory string
+	categoryId, err := database.Client.ChannelCategory.Get(ctx.GuildId)
+	if err != nil {
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	}
 
 	// get guild channels
 	channels, err := ctx.Shard.GetGuildChannels(ctx.GuildId); if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 	}
 
+	var categoryName string
 	for _, channel := range channels {
-		if channel.Id == ticketCategoryId { // Don't need to compare channel types
-			ticketCategory = channel.Name
+		if channel.Id == categoryId { // Don't need to compare channel types
+			categoryName = channel.Name
 		}
 	}
-	if ticketCategory == "" {
-		ticketCategory = "None"
+
+	if categoryName == "" {
+		categoryName = "None"
 	}
 
 	// get guild object
@@ -86,10 +84,10 @@ func (AdminDebugCommand) Execute(ctx utils.CommandContext) {
 		SetColor(int(utils.Green)).
 
 		AddField("Shard", strconv.Itoa(ctx.Shard.ShardId), true).
-		AddField("SQL Is Connected", strconv.FormatBool(<-sqlConnected), true).
 		AddField("Redis Is Connected", strconv.FormatBool(<-redisConnected), true).
+		AddBlankField(false).
 
-		AddField("Ticket Category", ticketCategory, true).
+		AddField("Ticket Category", categoryName, true).
 		AddField("Owner", ownerFormatted, true)
 
 	msg, err := ctx.Shard.CreateMessageEmbed(ctx.ChannelId, embed); if err != nil {

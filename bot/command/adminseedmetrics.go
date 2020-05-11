@@ -2,7 +2,6 @@ package command
 
 import (
 	"github.com/TicketsBot/TicketsGo/bot/utils"
-	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 )
 
@@ -31,11 +30,11 @@ func (AdminSeedMetrics) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	globalTicketsChan := make(chan int)
+	/*globalTicketsChan := make(chan int)
 	go database.GetGlobalTicketCount(globalTicketsChan)
 	globalTickets := <-globalTicketsChan
 
-	go statsd.Client.Gauge(statsd.TICKETS.String(), globalTickets)
+	go statsd.Client.Gauge(statsd.TICKETS.String(), globalTickets)*/
 
 	ctx.SendEmbed(utils.Green, "Admin", "Seeded successfully")
 }

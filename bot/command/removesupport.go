@@ -60,7 +60,12 @@ func (RemoveSupportCommand) Execute(ctx utils.CommandContext) {
 				continue
 			}
 
-			go database.RemoveSupport(ctx.GuildId, mention.Id)
+			go func() {
+				if err := database.Client.Permissions.RemoveSupport(ctx.GuildId, mention.Id); err != nil {
+					sentry.ErrorWithContext(err, ctx.ToErrorContext())
+					ctx.ReactWithCross()
+				}
+			}()
 		}
 	} else if len(ctx.Message.MentionRoles) > 0 {
 		for _, mention := range ctx.Message.MentionRoles {
@@ -89,7 +94,12 @@ func (RemoveSupportCommand) Execute(ctx utils.CommandContext) {
 
 	// Remove roles from DB
 	for _, role := range roles {
-		go database.RemoveSupportRole(ctx.GuildId, role)
+		go func() {
+			if err := database.Client.RolePermissions.RemoveSupport(ctx.GuildId, role); err != nil {
+				sentry.ErrorWithContext(err, ctx.ToErrorContext())
+				ctx.ReactWithCross()
+			}
+		}()
 	}
 
 	ctx.ReactWithCheck()

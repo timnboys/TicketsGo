@@ -3,7 +3,6 @@ package logic
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/archive"
-	modmaildatabase "github.com/TicketsBot/TicketsGo/bot/modmail/database"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/sentry"
@@ -23,17 +22,30 @@ func CloseTicket(s *gateway.Shard, guildId, channelId, messageId uint64, member 
 		GuildId:   guildId,
 	}
 
-	// Verify this is a ticket or modmail channel
-	isTicketChan := make(chan bool)
-	go database.IsTicketChannel(channelId, isTicketChan)
-	isTicket := <-isTicketChan
+	// Get ticket struct
+	ticket, err := database.Client.Tickets.GetByChannel(channelId)
+	if err != nil {
+		sentry.Error(err)
+		return
+	}
 
+	isTicket := ticket.GuildId != 0
+
+	// Verify this is a ticket or modmail channel
 	// Cannot happen if fromReaction
 	if !isTicket {
 		// check whether this is a modmail channel
-		modmailSession := make(chan *modmaildatabase.ModMailSession)
-		go modmaildatabase.GetModMailSessionByStaffChannel(channelId, modmailSession)
-		if <-modmailSession != nil {
+		var isModmail bool
+		{
+			modmailSession, err := database.Client.ModmailSession.GetByChannel(channelId)
+			if err != nil {
+				sentry.Error(err)
+				return
+			}
+
+			isModmail = modmailSession.GuildId != 0
+		}
+		if isModmail {
 			return
 		}
 
@@ -60,16 +72,11 @@ func CloseTicket(s *gateway.Shard, guildId, channelId, messageId uint64, member 
 	go utils.GetPermissionLevel(s, member, guildId, permissionLevelChan)
 	permissionLevel := <-permissionLevelChan
 
-	// Get ticket struct
-	ticketChan := make(chan database.Ticket)
-	go database.GetTicketByChannel(channelId, ticketChan)
-	ticket := <-ticketChan
+	usersCanClose, err := database.Client.UsersCanClose.Get(guildId); if err != nil {
+		sentry.Error(err)
+	}
 
-	usersCanCloseChan := make(chan bool)
-	go database.IsUserCanClose(guildId, usersCanCloseChan)
-	usersCanClose := <-usersCanCloseChan
-
-	if (permissionLevel == utils.Everyone && ticket.Owner != member.User.Id) || (permissionLevel == utils.Everyone && !usersCanClose) {
+	if (permissionLevel == utils.Everyone && ticket.UserId != member.User.Id) || (permissionLevel == utils.Everyone && !usersCanClose) {
 		if !fromReaction {
 			utils.ReactWithCross(s, reference)
 			utils.SendEmbed(s, channelId, utils.Red, "Error", "You are not permitted to close this ticket", nil, 30, isPremium)
@@ -122,23 +129,28 @@ func CloseTicket(s *gateway.Shard, guildId, channelId, messageId uint64, member 
 	}
 
 	// Set ticket state as closed and delete channel
-	go database.Close(guildId, ticket.Id)
+	if err :=  database.Client.Tickets.Close(ticket.Id, guildId); err != nil {
+		sentry.Error(err)
+	}
+
 	if _, err := s.DeleteChannel(channelId); err != nil {
 		sentry.Error(err)
 	}
 
 	// Send logs to archive channel
-	archiveChannelChan := make(chan uint64)
-	go database.GetArchiveChannel(guildId, archiveChannelChan)
-	archiveChannelId := <-archiveChannelChan
+	archiveChannelId, err := database.Client.ArchiveChannel.Get(guildId); if err != nil {
+		sentry.Error(err)
+	}
 
-	channelExists := true
-	if _, err := s.GetChannel(archiveChannelId); err != nil {
-		channelExists = false
+	var channelExists bool
+	if archiveChannelId != 0 {
+		if _, err := s.GetChannel(archiveChannelId); err == nil {
+			channelExists = true
+		}
 	}
 
 	// Save space - delete the webhook
-	go database.DeleteWebhookByUuid(ticket.Uuid)
+	go database.Client.Webhooks.Delete(guildId, ticket.Id)
 
 	if channelExists {
 		embed := embed.NewEmbed().
@@ -160,7 +172,7 @@ func CloseTicket(s *gateway.Shard, guildId, channelId, messageId uint64, member 
 
 		// Notify user and send logs in DMs
 		if !silentClose {
-			dmChannel, err := s.CreateDM(ticket.Owner)
+			dmChannel, err := s.CreateDM(ticket.UserId)
 
 			// Only send the msg if we could create the channel
 			if err == nil {

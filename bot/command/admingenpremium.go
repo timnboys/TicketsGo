@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
-	uuid "github.com/satori/go.uuid"
+	"github.com/TicketsBot/TicketsGo/sentry"
+	"github.com/gofrs/uuid"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type AdminGeneratePremium struct {
@@ -39,7 +41,6 @@ func (AdminGeneratePremium) Execute(ctx utils.CommandContext) {
 		ctx.ReactWithCross()
 		return
 	}
-	millis := int64(days) * 24 * 60 * 60 * 1000
 
 	amount := 1
 	if len(ctx.Args) == 2 {
@@ -50,9 +51,18 @@ func (AdminGeneratePremium) Execute(ctx utils.CommandContext) {
 
 	keys := make([]string, 0)
 	for i := 0; i < amount; i++ {
-		key := make(chan uuid.UUID)
-		go database.AddKey(millis, key)
-		keys = append(keys, (<-key).String())
+		key, err := uuid.NewV4()
+		if err != nil {
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+			continue
+		}
+
+		err = database.Client.PremiumKeys.Create(key, time.Hour * 24 * time.Duration(days))
+		if err != nil {
+			sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		} else {
+			keys = append(keys, key.String())
+		}
 	}
 
 	dmChannel, err := ctx.Shard.CreateDM(ctx.Author.Id); if err != nil {

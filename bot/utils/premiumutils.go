@@ -70,18 +70,25 @@ func IsPremiumGuild(s *gateway.Shard, guildId uint64, ch chan bool) {
 	}
 
 	// Lookup key
-	keyLookup := make(chan bool)
-	go database.IsPremium(guildId, keyLookup)
-	if <-keyLookup {
+	premiumKey, err := database.Client.PremiumGuilds.IsPremium(guildId)
+	if err != nil {
+		sentry.Error(err)
+	}
+
+	if premiumKey {
 		go cache.Client.SetPremium(guildId, true)
 		ch <- true
 		return
 	}
 
 	// Lookup votes
-	hasVoted := make(chan bool)
-	go database.HasVoted(guild.OwnerId, hasVoted)
-	if <-hasVoted {
+	voteTime, err := database.Client.Votes.Get(guild.OwnerId)
+	if err != nil {
+		sentry.Error(err)
+	}
+
+	hasVoted := voteTime.After(time.Now().AddDate(0, 0, -1))
+	if hasVoted {
 		go cache.Client.SetPremium(guildId, true)
 		ch <- true
 		return

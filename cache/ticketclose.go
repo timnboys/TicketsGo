@@ -6,9 +6,10 @@ import (
 )
 
 type TicketCloseMessage struct {
-	Uuid   string
-	User   uint64
-	Reason string
+	GuildId  uint64
+	TicketId int
+	User     uint64
+	Reason   string
 }
 
 func (c *RedisClient) ListenTicketClose(message chan TicketCloseMessage) {

@@ -5,6 +5,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/cache"
 	"github.com/TicketsBot/TicketsGo/database"
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
 )
@@ -22,15 +23,17 @@ func OnMessage(s *gateway.Shard, e *events.MessageCreate) {
 	go utils.IsPremiumGuild(s, e.GuildId, premiumChan)
 
 	if <-premiumChan {
-		isTicket := make(chan bool)
-		go database.IsTicketChannel(e.ChannelId, isTicket)
-		if <-isTicket {
-			ticket := make(chan int)
-			go database.GetTicketId(e.ChannelId, ticket)
+		ticket, err := database.Client.Tickets.GetByChannel(e.ChannelId)
+		if err != nil {
+			sentry.Error(err)
+			return
+		}
 
+		// Verify that this is a ticket
+		if ticket.UserId != 0 {
 			go cache.Client.PublishMessage(cache.TicketMessage{
 				GuildId:  e.GuildId,
-				TicketId: <-ticket,
+				TicketId: ticket.Id,
 				Username: e.Author.Username,
 				Content:  e.Content,
 			})

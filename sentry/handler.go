@@ -36,8 +36,7 @@ func LogRestRequest(url string) {
 	raven.CaptureMessage(url, nil, nil)
 }
 
-func ErrorWithContext(e error, ctx ErrorContext) {
-	wrapped := errors.New(e)
+func ErrorWithContext(e error, ctx ErrorContext) {wrapped := errors.New(e)
 	raven.Capture(ConstructErrorPacket(wrapped), map[string]string{
 		"guild":       strconv.FormatUint(ctx.Guild, 10),
 		"user":        strconv.FormatUint(ctx.User, 10),

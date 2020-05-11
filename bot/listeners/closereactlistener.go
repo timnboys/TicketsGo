@@ -41,12 +41,13 @@ func OnCloseReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 	}
 
 	// Get the ticket properties
-	ticketChan := make(chan database.Ticket)
-	go database.GetTicketByChannel(e.ChannelId, ticketChan)
-	ticket := <-ticketChan
+	ticket, err := database.Client.Tickets.GetByChannel(e.ChannelId); if err != nil {
+		sentry.ErrorWithContext(err, errorContext)
+		return
+	}
 
 	// Check that this channel is a ticket channel
-	if ticket.Uuid == "" {
+	if ticket.GuildId == 0 {
 		return
 	}
 

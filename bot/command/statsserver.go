@@ -1,9 +1,12 @@
 package command
 
 import (
+	"context"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
+	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/objects/channel/embed"
+	"golang.org/x/sync/errgroup"
 	"strconv"
 	"time"
 )
@@ -28,78 +31,82 @@ func (StatsServerCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (StatsServerCommand) Execute(ctx utils.CommandContext) {
-	totalTickets := make(chan int)
-	openTickets := make(chan []string)
-	responseTimesChan := make(chan map[string]int64)
-	openTimesChan := make(chan map[string]*int64)
+	var totalTickets, openTickets int
 
-	go database.GetTotalTicketCount(ctx.GuildId, totalTickets)
-	go database.GetOpenTickets(ctx.GuildId, openTickets)
-	go database.GetGuildResponseTimes(ctx.GuildId, responseTimesChan)
-	go database.GetOpenTimes(ctx.GuildId, openTimesChan)
+	group, _ := errgroup.WithContext(context.Background())
 
-	responseTimes := <-responseTimesChan
-	openTimes := <-openTimesChan
+	// totalTickets
+	group.Go(func() (err error) {
+		totalTickets, err = database.Client.Tickets.GetTotalTicketCount(ctx.GuildId)
+		return
+	})
 
-	// total average response
-	var averageResponse int64
-	for _, t := range responseTimes {
-		averageResponse += t
+	// openTickets
+	group.Go(func() error {
+		tickets, err := database.Client.Tickets.GetGuildOpenTickets(ctx.GuildId)
+		openTickets = len(tickets)
+		return err
+	})
+
+	// first response times
+	var weekly, monthly, total *time.Duration
+
+	// total
+	group.Go(func() (err error) {
+		total, err = database.Client.FirstResponseTime.GetAverageAllTime(ctx.GuildId)
+		return
+	})
+
+	// monthly
+	group.Go(func() (err error) {
+		monthly, err = database.Client.FirstResponseTime.GetAverage(ctx.GuildId, time.Hour * 24 * 28)
+		return
+	})
+
+	// weekly
+	group.Go(func() (err error) {
+		weekly, err = database.Client.FirstResponseTime.GetAverage(ctx.GuildId, time.Hour * 24 * 7)
+		return
+	})
+
+	if err := group.Wait(); err != nil {
+		ctx.ReactWithCross()
+		sentry.ErrorWithContext(err, ctx.ToErrorContext())
+		return
 	}
-	if len(responseTimes) > 0 { // Note: If responseTimes is empty, averageResponse must = 0
-		averageResponse = averageResponse / int64(len(responseTimes))
+
+	var totalFormatted, monthlyFormatted, weeklyFormatted string
+
+	if total == nil {
+		totalFormatted = "No data"
+	} else {
+		totalFormatted = utils.FormatTime(*total)
 	}
 
-	current := time.Now().UnixNano() / int64(time.Millisecond)
-
-	// monthly average response
-	var monthly int64
-	var monthlyCounter int
-	for uuid, t := range responseTimes {
-		openTime := openTimes[uuid]
-		if openTime == nil {
-			continue
-		}
-
-		if current - *openTime < 60 * 60 * 24 * 7 * 4 * 1000 {
-			monthly += t
-			monthlyCounter++
-		}
-	}
-	if monthlyCounter > 0 {
-		monthly = monthly / int64(monthlyCounter)
+	if monthly == nil {
+		monthlyFormatted = "No data"
+	} else {
+		monthlyFormatted = utils.FormatTime(*monthly)
 	}
 
-	// weekly average response
-	var weekly int64
-	var weeklyCounter int
-	for uuid, t := range responseTimes {
-		openTime := openTimes[uuid]
-		if openTime == nil {
-			continue
-		}
-
-		if current - *openTime < 60 * 60 * 24 * 7 * 1000 {
-			weekly += t
-			weeklyCounter++
-		}
-	}
-	if weeklyCounter > 0 {
-		weekly = weekly / int64(weeklyCounter)
+	if weekly == nil {
+		weeklyFormatted = "No data"
+	} else {
+		weeklyFormatted = utils.FormatTime(*weekly)
 	}
 
 	embed := embed.NewEmbed().
 		SetTitle("Statistics").
 		SetColor(int(utils.Green)).
 
-		AddField("Total Tickets", strconv.Itoa(<-totalTickets), true).
-		AddField("Open Tickets", strconv.Itoa(len(<-openTickets)), true).
+		AddField("Total Tickets", strconv.Itoa(totalTickets), true).
+		AddField("Open Tickets", strconv.Itoa(openTickets), true).
 
 		AddBlankField(false).
 
-		AddField("Average First Response Time (Total)", utils.FormatTime(averageResponse), true).
-		AddField("Average First Response Time (Weekly)", utils.FormatTime(weekly), true).
-		AddField("Average First Response Time (Monthly)", utils.FormatTime(monthly), true)
+		AddField("Average First Response Time (Total)", totalFormatted, true).
+		AddField("Average First Response Time (Monthly)", monthlyFormatted, true).
+		AddField("Average First Response Time (Weekly)", weeklyFormatted, true)
 
 	if m, err := ctx.Shard.CreateMessageEmbed(ctx.ChannelId, embed); err == nil {
 		utils.DeleteAfter(utils.SentMessage{Shard: ctx.Shard, Message: &m}, 60)

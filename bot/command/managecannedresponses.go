@@ -31,7 +31,7 @@ func (ManageTags) Execute(ctx utils.CommandContext) {
 
 	children := ManageTags{}.Children()
 	for _, child := range children {
-		msg += fmt.Sprintf("`%smcr %s` - %s\n", config.Conf.Bot.Prefix, child.Name(), child.Description())
+		msg += fmt.Sprintf("`%smt %s` - %s\n", config.Conf.Bot.Prefix, child.Name(), child.Description())
 	}
 
 	msg = strings.TrimSuffix(msg, "\n")
