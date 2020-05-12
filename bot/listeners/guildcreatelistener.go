@@ -3,7 +3,6 @@ package listeners
 import (
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
-	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
 	"github.com/rxdn/gdl/objects/guild"
@@ -14,7 +13,7 @@ func OnGuildCreate(s *gateway.Shard, e *events.GuildCreate) {
 	// Determine whether this is a join or lazy load
 	var exists bool
 
-	ExistingGuildsLock.RLock()
+	/*ExistingGuildsLock.RLock()
 
 	for _, guildId := range ExistingGuilds {
 		if e.Id == guildId {
@@ -23,10 +22,10 @@ func OnGuildCreate(s *gateway.Shard, e *events.GuildCreate) {
 		}
 	}
 
-	ExistingGuildsLock.RUnlock()
+	ExistingGuildsLock.RUnlock()*/
 
 	if !exists {
-		go statsd.IncrementKey(statsd.JOINS)
+		//go statsd.IncrementKey(statsd.JOINS)
 
 		//sendOwnerMessage(s, &e.Guild)
 	}
