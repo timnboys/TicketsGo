@@ -42,7 +42,7 @@ func sendOwnerMessage(shard *gateway.Shard, guild *guild.Guild) {
 
 	msg := embed.NewEmbed().
 		SetTitle("Tickets").
-		SetDescription("Thank you for inviting Tickets to your server! Below is a quick guide on setting the bot up,but please don't hesitate to contact us in our [support server](https://discord.gg/VtV3rSk) if you need any assistance!").
+		SetDescription("Thank you for inviting Tickets to your server! Below is a quick guide on setting the bot up, please don't hesitate to contact us in our [support server](https://discord.gg/VtV3rSk) if you need any assistance!").
 		SetColor(int(utils.Green)).
 		AddField("Setup", "You can setup the bot using `t!setup`, or you can use the [dashboard](https://panel.ticketsbot.net) which has additional options", false).
 		AddField("Reaction Panels", fmt.Sprintf("Reaction panels are a commonly used feature of the bot. You can read about them [here](https://ticketsbot.net/panels), or create one on [the dashboard](https://panel.ticketsbot.net/manage/%d/panels)", guild.Id), false).
