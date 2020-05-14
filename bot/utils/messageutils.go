@@ -70,7 +70,7 @@ func DeleteAfter(msg SentMessage, secs int) {
 		time.Sleep(time.Duration(secs) * time.Second)
 
 		// Fix a panic
-		if msg.Message != nil && msg.Shard != nil {
+		if msg.Message != nil && msg.Shard != nil && msg.Shard.ShardManager != nil {
 			// Explicitly ignore error, pretty much always a 404
 			_ = msg.Shard.DeleteMessage(msg.Message.ChannelId, msg.Message.Id)
 		}
