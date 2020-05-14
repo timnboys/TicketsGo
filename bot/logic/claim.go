@@ -33,7 +33,7 @@ func ClaimTicket(s *gateway.Shard, ticket database.Ticket, userId uint64) (err e
 	}
 
 	// Get support roles
-	supportRoles, err := dbclient.Client.RolePermissions.GetSupportRoles(ticket.GuildId)
+	supportRoles, err := dbclient.Client.RolePermissions.GetSupportRolesOnly(ticket.GuildId)
 	if err != nil {
 		return
 	}
