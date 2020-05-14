@@ -166,8 +166,14 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 	}
 
 	channel, err := s.CreateGuildChannel(msg.GuildId, data)
-	if err != nil {
+	if err != nil { // Bot likely doesn't have permission
 		sentry.Error(err)
+
+		// To prevent tickets getting in a glitched state, we should mark it as closed (or delete it completely?)
+		if err := dbclient.Client.Tickets.Close(id, msg.GuildId); err != nil {
+			sentry.Error(err)
+		}
+
 		return
 	}
 
