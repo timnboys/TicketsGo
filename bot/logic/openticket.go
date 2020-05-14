@@ -137,7 +137,7 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		return
 	}
 
-	overwrites := createOverwrites(msg.GuildId, user.Id, s.SelfId())
+	overwrites := CreateOverwrites(msg.GuildId, user.Id, s.SelfId())
 
 	// Create ticket name
 	var name string
@@ -310,10 +310,9 @@ func sendWelcomeMessage(s *gateway.Shard, guildId, channelId, userId uint64, isP
 	return 0
 }
 
-func createOverwrites(guildId, userId, selfId uint64) []*channel.PermissionOverwrite {
+func CreateOverwrites(guildId, userId, selfId uint64) (overwrites []channel.PermissionOverwrite) {
 	// Apply permission overwrites
-	overwrites := make([]*channel.PermissionOverwrite, 0)
-	overwrites = append(overwrites, &channel.PermissionOverwrite{ // @everyone
+	overwrites = append(overwrites, channel.PermissionOverwrite{ // @everyone
 		Id:    guildId,
 		Type:  channel.PermissionTypeRole,
 		Allow: 0,
@@ -353,7 +352,7 @@ func createOverwrites(guildId, userId, selfId uint64) []*channel.PermissionOverw
 			allow = append(allow, permission.ManageWebhooks)
 		}
 
-		overwrites = append(overwrites, &channel.PermissionOverwrite{
+		overwrites = append(overwrites, channel.PermissionOverwrite{
 			Id:    member,
 			Type:  channel.PermissionTypeMember,
 			Allow: permission.BuildPermissions(allow...),
@@ -362,7 +361,7 @@ func createOverwrites(guildId, userId, selfId uint64) []*channel.PermissionOverw
 	}
 
 	for _, role := range allowedRoles {
-		overwrites = append(overwrites, &channel.PermissionOverwrite{
+		overwrites = append(overwrites, channel.PermissionOverwrite{
 			Id:    role,
 			Type:  channel.PermissionTypeRole,
 			Allow: permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),

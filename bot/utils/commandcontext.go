@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/objects/channel/embed"
@@ -89,4 +90,9 @@ func (ctx *CommandContext) GetChannelFromArgs() uint64 {
 	}
 
 	return 0
+}
+
+func (ctx *CommandContext) HandleError(err error) {
+	sentry.ErrorWithContext(err, ctx.ToErrorContext())
+	ctx.SendEmbed(Red, "Error", fmt.Sprintf("An error occurred: `%s`", err.Error()))
 }

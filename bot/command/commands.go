@@ -8,7 +8,7 @@ var Commands = []Command{
 	AdminCommand{},
 	BlacklistCommand{},
 	CancelCommand{},
-	TagCommand{},
+	ClaimCommand{},
 	CloseCommand{},
 	HelpCommand{},
 	ManageTags{},
@@ -22,6 +22,8 @@ var Commands = []Command{
 	SetupCommand{},
 	StatsCommand{},
 	SyncCommand{},
+	TagCommand{},
+	UnclaimCommand{},
 	ViewStaffCommand{},
 	VoteCommand{},
 }
