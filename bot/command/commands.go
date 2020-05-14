@@ -23,6 +23,7 @@ var Commands = []Command{
 	StatsCommand{},
 	SyncCommand{},
 	TagCommand{},
+	TransferCommand{},
 	UnclaimCommand{},
 	ViewStaffCommand{},
 	VoteCommand{},

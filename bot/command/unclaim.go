@@ -1,7 +1,6 @@
 package command
 
 import (
-	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/logic"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
 	"github.com/TicketsBot/TicketsGo/database"
@@ -83,7 +82,7 @@ func (c UnclaimCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	ctx.SendEmbed(utils.Green, "Ticket Claimed", fmt.Sprintf("Your ticket will be handled by %s", ctx.Author.Mention()))
+	ctx.SendEmbed(utils.Green, "Ticket Unclaimed", "All support representatives can now respond to the ticket")
 	ctx.ReactWithCheck()
 }
 
