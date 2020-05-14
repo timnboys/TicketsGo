@@ -144,10 +144,9 @@ func createWebhook(shard *gateway.Shard, guildId, channelId uint64, uuid uuid.UU
 	}
 }
 
-func createOverwrites(shard *gateway.Shard, guildId uint64) []*channel.PermissionOverwrite {
+func createOverwrites(shard *gateway.Shard, guildId uint64) (overwrites []channel.PermissionOverwrite) {
 	// Apply permission overwrites
-	overwrites := make([]*channel.PermissionOverwrite, 0)
-	overwrites = append(overwrites, &channel.PermissionOverwrite{ // @everyone
+	overwrites = append(overwrites, channel.PermissionOverwrite{ // @everyone
 		Id:    guildId,
 		Type:  channel.PermissionTypeRole,
 		Allow: 0,
@@ -189,7 +188,7 @@ func createOverwrites(shard *gateway.Shard, guildId uint64) []*channel.Permissio
 			allow = append(allow, permission.ManageWebhooks)
 		}
 
-		overwrites = append(overwrites, &channel.PermissionOverwrite{
+		overwrites = append(overwrites, channel.PermissionOverwrite{
 			Id:    member,
 			Type:  channel.PermissionTypeMember,
 			Allow: permission.BuildPermissions(allow...),
@@ -198,7 +197,7 @@ func createOverwrites(shard *gateway.Shard, guildId uint64) []*channel.Permissio
 	}
 
 	for _, role := range allowedRoles {
-		overwrites = append(overwrites, &channel.PermissionOverwrite{
+		overwrites = append(overwrites, channel.PermissionOverwrite{
 			Id:    role,
 			Type:  channel.PermissionTypeRole,
 			Allow: permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),
