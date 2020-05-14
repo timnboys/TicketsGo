@@ -6,6 +6,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/metrics/statsd"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
+	"github.com/rxdn/gdl/objects/channel/embed"
 	"github.com/rxdn/gdl/objects/guild"
 )
 
@@ -28,7 +29,7 @@ func OnGuildCreate(s *gateway.Shard, e *events.GuildCreate) {
 	if !exists {
 		go statsd.IncrementKey(statsd.JOINS)
 
-		//sendOwnerMessage(s, &e.Guild)
+		sendOwnerMessage(s, &e.Guild)
 	}
 }
 
@@ -39,12 +40,16 @@ func sendOwnerMessage(shard *gateway.Shard, guild *guild.Guild) {
 		return
 	}
 
-	message := fmt.Sprintf("Thanks for inviting Tickets to %s!\n"+
-		"To get set up, start off by running `t!setup` to configure the bot. You may then wish to visit the [web UI](https://panel.ticketsbot.net/manage/%d/settings) to access further configurations, "+
-		"as well as to create a [panel](https://ticketsbot.net/panels) (reactable embed that automatically opens a ticket).\n"+
-		"If you require further assistance, you may wish to read the information section on our [website](https://ticketsbot.net), or if you prefer, feel free to join our [support server](https://discord.gg/VtV3rSk) to ask any questions you may have, "+
-		"or to provide feedback to use (especially if you choose to switch to a competitor - we'd love to know how we can improve).",
-		guild.Name, guild.Id)
+	msg := embed.NewEmbed().
+		SetTitle("Tickets").
+		SetDescription("Thank you for inviting Tickets to your server! Below is a quick guide on setting the bot up,but please don't hesitate to contact us in our [support server](https://discord.gg/VtV3rSk) if you need any assistance!").
+		SetColor(int(utils.Green)).
+		AddField("Setup", "You can setup the bot using `t!setup`, or you can use the [dashboard](https://panel.ticketsbot.net) which has additional options", false).
+		AddField("Reaction Panels", fmt.Sprintf("Reaction panels are a commonly used feature of the bot. You can read about them [here](https://ticketsbot.net/panels), or create one on [the dashboard](https://panel.ticketsbot.net/manage/%d/panels)", guild.Id), false).
+		AddField("Adding Staff", "To make staff able to answer tickets, you must let the bot know about them first. You can do this through\n`t!addsupport [@User / @Role]` and `t!addadmin [@User / @Role]`. Administrators can change the settings of the bot and access the dashboard.", false).
+		AddField("Tags", "Tags are predefined tickets of text which you can access through a simple command. You can learn more about them [here](https://ticketsbot.net/tags).", false).
+		AddField("Claiming", "Tickets can be claimed by your staff such that other staff members cannot also reply to the ticket. You can learn more about claiming [here](https://ticketsbot.net/claiming).", false).
+		AddField("Additional Support", "If you are still confused, we welcome you to our [support server](https://discord.gg/VtV3rSk). Cheers.", false)
 
-	utils.SendEmbed(shard, channel.Id, utils.Green, "Tickets", message, nil, 0, false)
+	_, _ = shard.CreateMessageEmbed(channel.Id, msg)
 }
