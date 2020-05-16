@@ -64,13 +64,10 @@ func (a AddCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	// Get ticket ID
-	permissionLevel := make(chan utils.PermissionLevel)
 	owner := make(chan uint64)
 
-	go ctx.GetPermissionLevel(permissionLevel)
-
 	// Verify that the user is allowed to modify the ticket
-	if <-permissionLevel == 0 && <-owner != ctx.Author.Id {
+	if ctx.UserPermissionLevel == 0 && <-owner != ctx.Author.Id {
 		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to add people to this ticket")
 		ctx.ReactWithCross()
 		return

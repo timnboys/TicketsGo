@@ -60,11 +60,7 @@ func (r RemoveCommand) Execute(ctx utils.CommandContext) {
 	}
 
 	// Verify that the user is allowed to modify the ticket
-	permLevelChan := make(chan utils.PermissionLevel)
-	go ctx.GetPermissionLevel(permLevelChan)
-	permLevel := <-permLevelChan
-
-	if permLevel == 0 && ticket.UserId != ctx.Author.Id {
+	if ctx.UserPermissionLevel == 0 && ticket.UserId != ctx.Author.Id {
 		ctx.SendEmbed(utils.Red, "Error", "You don't have permission to remove people from this ticket")
 		ctx.ReactWithCross()
 		return

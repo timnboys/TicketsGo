@@ -14,11 +14,12 @@ import (
 type CommandContext struct {
 	Shard *gateway.Shard
 	message.Message
-	Root        string
-	Args        []string
-	IsPremium   bool
-	ShouldReact bool
-	IsFromPanel bool
+	Root                string
+	Args                []string
+	IsPremium           bool
+	ShouldReact         bool
+	IsFromPanel         bool
+	UserPermissionLevel PermissionLevel
 }
 
 func (ctx *CommandContext) Guild() (guild.Guild, error) {

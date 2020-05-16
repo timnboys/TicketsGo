@@ -18,16 +18,12 @@ func HandleClose(session database.ModmailSession, ctx utils.CommandContext) {
 	reason := strings.Join(ctx.Args, " ")
 
 	// Check the user is permitted to close the ticket
-	permissionLevelChan := make(chan utils.PermissionLevel)
-
-	go ctx.GetPermissionLevel(permissionLevelChan)
-	usersCanClose, err :=  dbclient.Client.UsersCanClose.Get(session.GuildId); if err != nil {
+	usersCanClose, err :=  dbclient.Client.UsersCanClose.Get(session.GuildId)
+	if err != nil {
 		sentry.Error(err)
 	}
 
-	permissionLevel := <-permissionLevelChan
-
-	if (permissionLevel == utils.Everyone && session.UserId != ctx.Author.Id) || (permissionLevel == utils.Everyone && !usersCanClose) {
+	if (ctx.UserPermissionLevel == utils.Everyone && session.UserId != ctx.Author.Id) || (ctx.UserPermissionLevel == utils.Everyone && !usersCanClose) {
 		ctx.ReactWithCross()
 		ctx.SendEmbed(utils.Red, "Error", "You are not permitted to close this ticket")
 		return

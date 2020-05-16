@@ -53,13 +53,8 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 
 	user := ctx.Message.Mentions[0]
 
-	// Get user permission level
-	permLevelChan := make(chan utils.PermissionLevel)
-	go ctx.GetPermissionLevel(permLevelChan)
-	permLevel := <-permLevelChan
-
 	// User stats
-	if permLevel == 0 {
+	if ctx.UserPermissionLevel == 0 {
 		var isBlacklisted bool
 		var totalTickets int
 		var openTickets int

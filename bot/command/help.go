@@ -44,9 +44,7 @@ func (HelpCommand) Execute(ctx utils.CommandContext) {
 			continue
 		}
 
-		permissionLevel := make(chan utils.PermissionLevel)
-		go ctx.GetPermissionLevel(permissionLevel)
-		if <-permissionLevel >= command.PermissionLevel() { // only send commands the user has permissions for
+		if ctx.UserPermissionLevel >= command.PermissionLevel() { // only send commands the user has permissions for
 			var current []Command
 			if commands, ok := commandCategories.Get(command.Category()); ok {
 				current = commands.([]Command)

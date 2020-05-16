@@ -54,14 +54,7 @@ func (c UnclaimCommand) Execute(ctx utils.CommandContext) {
 		return
 	}
 
-	var permissionLevel utils.PermissionLevel
-	{
-		ch := make(chan utils.PermissionLevel)
-		go ctx.GetPermissionLevel(ch)
-		permissionLevel = <-ch
-	}
-
-	if permissionLevel < utils.Admin && ctx.Author.Id != whoClaimed {
+	if ctx.UserPermissionLevel < utils.Admin && ctx.Author.Id != whoClaimed {
 		ctx.SendEmbed(utils.Red, "Error", "Only admins and the user who claimed the ticket can unclaim the ticket")
 		ctx.ReactWithCross()
 		return

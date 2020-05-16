@@ -136,9 +136,15 @@ func OnCommand(s *gateway.Shard, e *events.MessageCreate) {
 	}
 
 	if c != nil {
-		permLevel := make(chan utils.PermissionLevel)
-		go ctx.GetPermissionLevel(permLevel)
-		if int(c.PermissionLevel()) > int(<-permLevel) {
+		var permLevel utils.PermissionLevel
+		{
+			ch := make(chan utils.PermissionLevel)
+			go ctx.GetPermissionLevel(ch)
+			permLevel = <-ch
+		}
+		ctx.UserPermissionLevel = permLevel
+
+		if c.PermissionLevel() > permLevel {
 			ctx.ReactWithCross()
 			ctx.SendEmbed(utils.Red, "Error", utils.NO_PERMISSION)
 			return
