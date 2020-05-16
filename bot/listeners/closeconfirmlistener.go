@@ -23,7 +23,9 @@ func OnCloseConfirm(s *gateway.Shard, e *events.MessageReactionAdd) {
 
 	confirmLock.Lock()
 	closer, ok := pendingConfirmations[e.MessageId]
-	delete(pendingConfirmations, e.MessageId)
+	if ok {
+		delete(pendingConfirmations, e.MessageId)
+	}
 	confirmLock.Unlock()
 
 	if !ok {
