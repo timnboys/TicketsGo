@@ -161,8 +161,8 @@ func (StatsCommand) Execute(ctx utils.CommandContext) {
 			SetTitle("Statistics").
 			SetColor(int(utils.Green)).
 
-			AddField("Is Admin", strconv.FormatBool(permLevel == utils.Admin), true).
-			AddField("Is Support", strconv.FormatBool(permLevel >= utils.Support), true).
+			AddField("Is Admin", strconv.FormatBool(ctx.UserPermissionLevel == utils.Admin), true).
+			AddField("Is Support", strconv.FormatBool(ctx.UserPermissionLevel >= utils.Support), true).
 
 			AddBlankField(false).
 
