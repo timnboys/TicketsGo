@@ -56,6 +56,7 @@ func Start(ch chan os.Signal) {
 
 	shardManager.RegisterListeners(
 		listeners.OnChannelDelete,
+		listeners.OnCloseConfirm,
 		listeners.OnCloseReact,
 		listeners.OnCommand,
 		listeners.OnFirstResponse,

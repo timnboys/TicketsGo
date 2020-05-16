@@ -7,6 +7,7 @@ import (
 	"github.com/TicketsBot/TicketsGo/sentry"
 	"github.com/rxdn/gdl/gateway"
 	"github.com/rxdn/gdl/gateway/payloads/events"
+	"time"
 )
 
 func OnCloseReact(s *gateway.Shard, e *events.MessageReactionAdd) {
@@ -61,19 +62,52 @@ func OnCloseReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 		return
 	}
 
-	// No need to remove the reaction since we're deleting the channel anyway
-
-	// Get whether the guild is premium
-	// TODO: Check whether we actually need this
-	isPremium := make(chan bool)
-	go utils.IsPremiumGuild(s, e.GuildId, isPremium)
-
-	// Get the member object
-	member, err := s.GetGuildMember(e.GuildId, e.UserId)
-	if err != nil {
+	closeConfirmation, err := database.Client.CloseConfirmation.Get(e.GuildId); if err != nil {
 		sentry.LogWithContext(err, errorContext)
 		return
 	}
 
-	logic.CloseTicket(s, e.GuildId, e.ChannelId, 0, member, nil, true, <-isPremium)
+	// Get whether the guild is premium
+	isPremium := make(chan bool)
+	go utils.IsPremiumGuild(s, e.GuildId, isPremium)
+
+	if closeConfirmation {
+		// Remove reaction
+		_ = s.DeleteUserReaction(e.ChannelId, e.MessageId, e.UserId, e.Emoji.Name) // Error is probably a 403, we can ignore
+
+		// Send confirmation message
+		msg, err := utils.SendEmbedWithResponse(s, e.ChannelId, utils.Green, "Close Confirmation", "React with ✅ to confirm you want to close the ticket", nil, 10, <-isPremium)
+		if err != nil {
+			sentry.LogWithContext(err, errorContext)
+			return
+		}
+
+		confirmLock.Lock()
+		pendingConfirmations[msg.Id] = e.UserId
+		confirmLock.Unlock()
+
+		// Add reaction
+		// Error is likely a 403, we can ignore - user can add their own reaction
+		_ = s.CreateReaction(e.ChannelId, msg.Id, "✅")
+
+		// timeout later
+		go func() {
+			time.Sleep(time.Second * 10)
+
+			confirmLock.Lock()
+			delete(pendingConfirmations, msg.Id)
+			confirmLock.Unlock()
+		}()
+	} else {
+		// No need to remove the reaction since we're deleting the channel anyway
+
+		// Get the member object
+		member, err := s.GetGuildMember(e.GuildId, e.UserId)
+		if err != nil {
+			sentry.LogWithContext(err, errorContext)
+			return
+		}
+
+		logic.CloseTicket(s, e.GuildId, e.ChannelId, 0, member, nil, true, <-isPremium)
+	}
 }
