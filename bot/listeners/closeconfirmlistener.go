@@ -16,8 +16,8 @@ var (
 )
 
 func OnCloseConfirm(s *gateway.Shard, e *events.MessageReactionAdd) {
-	// Check reaction is a ✅ and not from a bot
-	if e.Member.User.Bot || e.Emoji.Name != "✅" {
+	// Check reaction is a ✅
+	if e.UserId == s.SelfId() || e.Emoji.Name != "✅" {
 		return
 	}
 
