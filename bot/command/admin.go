@@ -47,11 +47,10 @@ func (AdminCommand) Children() []Command {
 	return []Command{
 		AdminCheckPermsCommand{},
 		AdminDebugCommand{},
+		AdminGCCommand{},
 		AdminGeneratePremium{},
 		AdminPingCommand{},
-		AdminResetCommand{},
 		AdminSeedCommand{},
-		AdminSeedMetrics{},
 		AdminShardRestartCommand{},
 		AdminStatsCommand{},
 		AdminUsersCommand{},

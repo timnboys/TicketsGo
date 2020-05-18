@@ -1,8 +1,10 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"github.com/TicketsBot/TicketsGo/bot/utils"
+	"github.com/rxdn/gdl/cache"
 )
 
 // Reset
@@ -26,10 +28,14 @@ func (AdminUsersCommand) PermissionLevel() utils.PermissionLevel {
 }
 
 func (AdminUsersCommand) Execute(ctx utils.CommandContext) {
-	count := 0
-	for _, guild := range ctx.Shard.Cache.GetGuilds() { // TODO: FIX
-		count += guild.MemberCount
+	var count int
+	query := `SELECT COUNT(DISTINCT "user_id") FROM members;`
+
+	if err := ctx.Shard.Cache.(*cache.PgCache).QueryRow(context.Background(), query).Scan(&count); err != nil {
+		ctx.HandleError(err)
+		return
 	}
+
 	ctx.SendEmbed(utils.Green, "Admin", fmt.Sprintf("There are %d users on this instance", count))
 }
 
