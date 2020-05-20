@@ -17,7 +17,7 @@ require (
 	github.com/jackc/pgx/v4 v4.6.0
 	github.com/jackc/puddle v1.1.1 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/rxdn/gdl v0.0.0-20200514180846-879057348f0d
+	github.com/rxdn/gdl v0.0.0-20200520174733-dbe2a9f7c10f
 	github.com/sirupsen/logrus v1.5.0
 	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79 // indirect
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
