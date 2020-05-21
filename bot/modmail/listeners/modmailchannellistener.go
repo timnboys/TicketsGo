@@ -41,6 +41,14 @@ func OnModMailChannelMessage(s *gateway.Shard, e *events.MessageCreate) {
 	// TODO: Make this less hacky
 	// check close
 	if isClose, args := isClose(e); isClose {
+		// get permission level
+		var permLevel utils.PermissionLevel
+		if e.GuildId != 0 {
+			ch := make(chan utils.PermissionLevel)
+			go utils.GetPermissionLevel(s, e.Member, e.GuildId, ch)
+			permLevel = <-ch
+		}
+
 		modmail.HandleClose(session, utils.CommandContext{
 			Shard:       s,
 			Message:     e.Message,
@@ -49,6 +57,7 @@ func OnModMailChannelMessage(s *gateway.Shard, e *events.MessageCreate) {
 			IsPremium:   false,
 			ShouldReact: true,
 			IsFromPanel: false,
+			UserPermissionLevel: permLevel,
 		})
 		return
 	}
