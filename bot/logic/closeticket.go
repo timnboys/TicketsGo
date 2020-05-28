@@ -37,7 +37,7 @@ func CloseTicket(s *gateway.Shard, guildId, channelId, messageId uint64, member 
 		// check whether this is a modmail channel
 		var isModmail bool
 		{
-			modmailSession, err := database.Client.ModmailSession.GetByChannel(channelId)
+			modmailSession, err := database.Client.ModmailSession.GetByChannel(utils.BOT_ID, channelId)
 			if err != nil {
 				sentry.Error(err)
 				return

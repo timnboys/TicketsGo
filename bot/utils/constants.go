@@ -12,4 +12,6 @@ const (
 		"+ Support development and help me pay the server costs\n" +
 		"```" +
 		"Alternatively, you can vote at <https://vote.ticketsbot.net> to get premium free for 24 hours"
+
+	BOT_ID uint64 = 508391840525975553
 )

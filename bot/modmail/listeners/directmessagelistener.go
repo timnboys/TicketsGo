@@ -33,7 +33,7 @@ func OnDirectMessage(s *gateway.Shard, e *events.MessageCreate) {
 		IsFromPanel: false,
 	}
 
-	session, err := dbclient.Client.ModmailSession.GetByUser(e.Author.Id)
+	session, err := dbclient.Client.ModmailSession.GetByUser(utils.BOT_ID, e.Author.Id)
 	if err != nil {
 		sentry.ErrorWithContext(err, ctx.ToErrorContext())
 		return

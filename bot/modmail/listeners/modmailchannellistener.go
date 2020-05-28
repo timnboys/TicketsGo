@@ -28,7 +28,7 @@ func OnModMailChannelMessage(s *gateway.Shard, e *events.MessageCreate) {
 		User:    e.Author.Id,
 	}
 
-	session, err := database.Client.ModmailSession.GetByChannel(e.ChannelId)
+	session, err := database.Client.ModmailSession.GetByChannel(utils.BOT_ID, e.ChannelId)
 	if err != nil {
 		sentry.ErrorWithContext(err, errorContext)
 		return

@@ -98,7 +98,6 @@ func (r RemoveCommand) Execute(ctx utils.CommandContext) {
 }
 
 func (r RemoveCommand) mentionsStaff(ctx utils.CommandContext) bool {
-
 	var lock sync.Mutex
 	var mentionsStaff bool
 

@@ -20,7 +20,7 @@ func OnDirectOpenMessageReact(s *gateway.Shard, e *events.MessageReactionAdd) {
 		return
 	}
 
-	session, err := database.Client.ModmailSession.GetByUser(e.UserId)
+	session, err := database.Client.ModmailSession.GetByUser(utils.BOT_ID, e.UserId)
 	if err != nil {
 		sentry.Error(err)
 		return
