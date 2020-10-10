@@ -15,6 +15,7 @@ import (
 	"github.com/rxdn/gdl/objects/user"
 	"github.com/rxdn/gdl/rest/ratelimit"
 	"os"
+	"math"
 )
 
 func Start(ch chan os.Signal) {
