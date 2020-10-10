@@ -1,4 +1,4 @@
-module github.com/TicketsBot/TicketsGo
+module github.com/timnboys/TicketsGo
 
 go 1.14
 
