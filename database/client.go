@@ -1,5 +1,5 @@
 package database
 
-import "github.com/TicketsBot/database"
+import "github.com/timnboys/database"
 
 var Client *database.Database
