@@ -5,6 +5,8 @@ go 1.14
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/certifi/gocertifi v0.0.0-20200211180108-c7c1fbc02894 // indirect
+	github.com/TicketsBot/archiverclient v0.0.0-20200704164621-09d42dd941e0
+	github.com/TicketsBot/database v0.0.0-20201012200041-a101b8adc78f
 	github.com/elliotchance/orderedmap v1.2.1
 	github.com/getsentry/raven-go v0.2.0
 	github.com/go-errors/errors v1.0.1
