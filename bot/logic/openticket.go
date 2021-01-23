@@ -204,6 +204,25 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 			_ = s.DeleteMessage(channel.Id, pingMessage.Id)
 		}
 	}
+	
+	// Ping @rolementions
+	pingRoles, err := dbclient.Client.PanelRoleMentions.GetRoles(panel.MessageId); if err != nil {
+		sentry.Error(err)
+	}
+
+	if pingRoles {
+		pingRolesMsg, err := s.CreateMessageComplex(channel.Id, rest.CreateMessageData{
+			Content:         "@"+pingRoles.roleId,
+			AllowedMentions: message.MentionEveryone,
+		})
+
+		if err != nil {
+			sentry.Error(err)
+		} else {
+			// error is likely to be a permission error
+			_ = s.DeleteMessage(channel.Id, pingMessage.Id)
+		}
+	}
 
 	// Let the user know the ticket has been opened
 	if panel == nil {
