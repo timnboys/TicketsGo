@@ -68,7 +68,7 @@ func (c UnclaimCommand) Execute(ctx utils.CommandContext) {
 
 	// Update channel
 	data := rest.ModifyChannelData{
-		PermissionOverwrites: logic.CreateOverwrites(ctx.GuildId, ticket.UserId, ctx.Shard.SelfId()),
+		PermissionOverwrites: logic.CreateOverwrites(ctx.GuildId, ticket.UserId, ctx.Shard.SelfId(),ticket.UserId),
 	}
 	if _, err := ctx.Shard.ModifyChannel(ctx.ChannelId, data); err != nil {
 		ctx.HandleError(err)
