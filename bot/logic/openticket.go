@@ -153,6 +153,15 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 	} else {
 		name = fmt.Sprintf("ticket-%d", id)
 	}
+	
+	for _, mentionedid := range pingRoles {
+                overwrites = append(overwrites, channel.PermissionOverwrite{
+                        Id:    mentionedid,
+                        Type:  channel.PermissionTypeRole,
+                        Allow: permission.BuildPermissions(permission.ViewChannel, permission.SendMessages, permission.AddReactions, permission.AttachFiles, permission.ReadMessageHistory, permission.EmbedLinks),
+                        Deny:  0,
+                })
+        }
 
 	data := rest.CreateChannelData{
 		Name:                 name,
