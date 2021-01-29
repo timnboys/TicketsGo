@@ -137,7 +137,7 @@ func OpenTicket(s *gateway.Shard, user user.User, msg message.MessageReference, 
 		return
 	}
 
-	overwrites := CreateOverwrites(msg.GuildId, user.Id, s.SelfId())
+	overwrites := CreateOverwrites(msg.GuildId, user.Id, s.SelfId(),panel.MessageId)
 
 	// Create ticket name
 	var name string
@@ -334,7 +334,7 @@ func sendWelcomeMessage(s *gateway.Shard, guildId, channelId, userId uint64, isP
 	return 0
 }
 
-func CreateOverwrites(guildId, userId, selfId uint64) (overwrites []channel.PermissionOverwrite) {
+func CreateOverwrites(guildId, userId, rolesmentioned, selfId uint64) (overwrites []channel.PermissionOverwrite) {
 	// Apply permission overwrites
 	overwrites = append(overwrites, channel.PermissionOverwrite{ // @everyone
 		Id:    guildId,
@@ -355,6 +355,11 @@ func CreateOverwrites(guildId, userId, selfId uint64) (overwrites []channel.Perm
 	for _, user := range supportUsers {
 		allowedUsers = append(allowedUsers, user)
 	}
+	
+	neededroles, err := dbclient.Client.PanelRoleMentions.GetRoles(rolesmentioned)
+        if err != nil {
+                sentry.Error(err)
+        }
 
 	// Get support roles & admin roles
 	supportRoles, err := dbclient.Client.RolePermissions.GetSupportRoles(guildId); if err != nil {
@@ -362,6 +367,10 @@ func CreateOverwrites(guildId, userId, selfId uint64) (overwrites []channel.Perm
 	}
 
 	for _, role := range supportRoles {
+		allowedRoles = append(allowedRoles, role)
+	}
+	
+	for _, role := range neededroles {
 		allowedRoles = append(allowedRoles, role)
 	}
 
